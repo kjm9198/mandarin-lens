@@ -1,0 +1,7 @@
+1
+00:00:00,000 --> 00:00:05,000
+&lt;img src=x onerror=window.__injected=1&gt; I want to drink coffee.
+
+2
+00:00:05,000 --> 00:00:10,000
+I am learning Chinese.

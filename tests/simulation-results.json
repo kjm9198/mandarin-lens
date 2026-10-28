@@ -1,0 +1,39 @@
+{
+  "label": "10,000 synthetic engine journeys; no human participants or browser/translation verification",
+  "seed": 20261028,
+  "sessions": 10000,
+  "passed": 10000,
+  "failed": 0,
+  "outcomes": {
+    "timedCaptionJourneys": 2662,
+    "liveCaptionFallbacks": 2635,
+    "noCaptionFallbacks": 2727,
+    "modelUnavailableFallbacks": 1976,
+    "interruptedJourneys": 664
+  },
+  "failures": [],
+  "measurements": {
+    "scope": "Node timestamp lookup only; not translation or Chrome rendering latency",
+    "lookupSamples": 53240,
+    "lookupP50Ms": 0.00012499999999704414,
+    "lookupP95Ms": 0.00020799999998644125,
+    "elapsedMs": 489.974916,
+    "cpuUserMs": 525.079,
+    "cpuSystemMs": 7.576,
+    "heapStartBytes": 7859048,
+    "heapEndBytes": 13942016
+  },
+  "environment": {
+    "node": "v24.13.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Pro",
+    "chrome": "Not measured"
+  },
+  "limitations": [
+    "Caption/model/device states are synthetic branches, not browser capability measurements.",
+    "Appearance values and learning-mode selections do not exercise the DOM.",
+    "No speech recognition, remote video access, real translation quality or long-session browser memory measured.",
+    "Fallback branch counts are expected safe outcomes, not successful translations."
+  ]
+}

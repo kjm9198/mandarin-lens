@@ -1,0 +1,18 @@
+{
+  "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+  "scope": "Bounded public-page read in separate isolated Chrome profile; no protection bypass or extension compatibility claim",
+  "httpStatus": 200,
+  "title": "Me at the zoo - YouTube",
+  "finalUrl": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+  "subtitleButton": {
+    "count": 1,
+    "label": "Subtitles/closed captions unavailable",
+    "disabled": null
+  },
+  "video": {
+    "readyState": 4,
+    "duration": 19.021,
+    "textTracks": []
+  },
+  "result": "Video exposes no captions; extension subtitle compatibility not verified"
+}

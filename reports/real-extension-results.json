@@ -1,0 +1,65 @@
+{
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Pro"
+  },
+  "label": "Real Chrome MV3 extension isolated-world integration with original local video fixture and real on-device Translator; no model stub",
+  "testOnlyManifestChanges": [
+    "localhost host permission replaces browser-toolbar activeTab gesture in automation",
+    "inert background worker enables test extension discovery"
+  ],
+  "packageSha256": "94e573223ecb1b03e7aa93ddea406904a0339857646954717d3e8664e4b9d597",
+  "packageFile": "mandarin-lens-1.0.0.zip",
+  "checks": [
+    "Actual extension user click downloaded/initialized real Translator and prepared English captions into Chinese plus pinyin",
+    "Seeking real local media to second prepared English cue displays matching Chinese translation",
+    "Actual extension imported Chinese captions and used real Chinese-to-English model while retaining original Hanzi and pinyin",
+    "Seeking real local media to second prepared Chinese cue displays matching English translation",
+    "Real model sessions cleaned up when overlay closes",
+    "Release ZIP and original manifest unchanged by temporary test permissions"
+  ],
+  "translator": {
+    "availability": "downloadable",
+    "present": true
+  },
+  "errors": [],
+  "screenshotNotes": {
+    "real-extension.png": "Actual extension and real Translator on an original local generated-video fixture; hover explanation card remains visible",
+    "real-extension-en-zh.png": "Actual extension and real Translator on an original local generated-video fixture",
+    "real-extension-zh-en.png": "Actual extension and real Translator on an original local generated-video fixture"
+  },
+  "limitations": [
+    "Two original caption lines per direction; no independent adequacy score or broad real-video compatibility claim.",
+    "Test-only localhost permission and inert worker differ from distribution manifest.",
+    "Chrome model initialization failed twice in this final run; the visible local-only error was followed by successful manual-equivalent retries."
+  ],
+  "extensionLoading": "Official CDP Extensions.loadUnpacked over Playwright debugging pipe, isolated temporary profile",
+  "browser": "156.0.8078.48",
+  "extensionVersion": "1.0.0",
+  "enZh": {
+    "hanzi": "\u6211\u60f3\u559d\u5496\u5561",
+    "pinyin": "w\u01d2xi\u01ceng h\u0113 k\u0101f\u0113i",
+    "text": "\u6211\u60f3w\u01d2xi\u01ceng\u559dh\u0113\u5496\u5561k\u0101f\u0113i\u3002I want to drink coffee.Translating on this device\u2026\u25b6 Start learning\u559dh\u0113to drinkIn context: I want to drink coffee.Hover preview \u2022 Click word to pin\u25b6 Pronounce\u2606 Save word\u25b6 Resume videoClose",
+    "status": "Prepared 2 timed subtitles from embedded timed subtitle track. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "firstSeek": {
+    "time": 5.5,
+    "duration": 12
+  },
+  "zhEn": {
+    "hanzi": "\u6211\u60f3\u559d\u5496\u5561",
+    "pinyin": "w\u01d2xi\u01ceng h\u0113 k\u0101f\u0113i",
+    "text": "\u6211\u60f3w\u01d2xi\u01ceng\u559dh\u0113\u5496\u5561k\u0101f\u0113i\u3002I'd like to have coffee.Translating on this device\u2026\u25b6 Start learning\u559dh\u0113to drinkIn context: \u6211\u60f3\u559d\u5496\u5561\u3002Hover preview \u2022 Click word to pin\u25b6 Pronounce\u2606 Save word\u25b6 Resume videoClose",
+    "status": "Prepared 2 timed subtitles from imported subtitle file. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "translatorAfter": {
+    "enZh": "available",
+    "zhEn": "available"
+  },
+  "passed": true,
+  "modelSetupRetries": [
+    "Chrome could not start the local model: Unable to create translator for the given source and target language.. No cloud fallback.",
+    "Chrome could not start the local model: Unable to create translator for the given source and target language.. No cloud fallback."
+  ]
+}

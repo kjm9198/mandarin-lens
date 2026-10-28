@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Mandarin Lens",
+  "short_name": "Mandarin Lens",
+  "version": "1.0.0",
+  "description": "Learn Mandarin with compact Chinese, pinyin and English video captions. Private, customizable, on-device translation on compatible Chrome.",
+  "minimum_chrome_version": "138",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_title": "Mandarin Lens",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'none'"
+  }
+}

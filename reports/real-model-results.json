@@ -1,0 +1,124 @@
+{
+  "label": "Real Chrome on-device Translator API, original short text dataset, isolated temporary profile; separate from MV3 extension integration",
+  "consent": "Owner explicitly approved English/Chinese language-pack downloads",
+  "dataset": {
+    "en-zh": [
+      "I want to drink coffee.",
+      "The bank is next to the school.",
+      "I am learning Chinese.",
+      "Please speak a little more slowly.",
+      "I will return the book tomorrow."
+    ],
+    "zh-en": [
+      "我想喝咖啡。",
+      "银行在学校旁边。",
+      "我正在学习中文。",
+      "请说慢一点。",
+      "我明天还书。"
+    ]
+  },
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Pro",
+    "totalSystemMemoryBytes": 51539607552,
+    "chrome": "156.0.8078.48"
+  },
+  "pairs": [
+    {
+      "pair": "en-zh",
+      "translations": [
+        {
+          "source": "I want to drink coffee.",
+          "translation": "我想喝咖啡。",
+          "latencyMs": 13.699999995529652
+        },
+        {
+          "source": "The bank is next to the school.",
+          "translation": "银行就在学校旁边。",
+          "latencyMs": 2.7999999970197678
+        },
+        {
+          "source": "I am learning Chinese.",
+          "translation": "我正在学习中文。",
+          "latencyMs": 2
+        },
+        {
+          "source": "Please speak a little more slowly.",
+          "translation": "请说得慢一点。",
+          "latencyMs": 10.899999998509884
+        },
+        {
+          "source": "I will return the book tomorrow.",
+          "translation": "明天我会归还这本书。",
+          "latencyMs": 2.7000000029802322
+        }
+      ],
+      "availabilityBefore": "downloadable",
+      "createMs": 13186.40000000596,
+      "availabilityAfter": "available",
+      "latencyP50Ms": 2.7999999970197678,
+      "latencyP95Ms": 13.699999995529652,
+      "sentencesPerSecond": 155.7632399043122,
+      "pageMetrics": {
+        "ScriptDuration": 0.048918,
+        "TaskDuration": 0.319561,
+        "JSHeapUsedSize": 2453500,
+        "JSHeapTotalSize": 3801088
+      },
+      "downloadProgressSamples": 130,
+      "downloadReachedPercent": 100
+    },
+    {
+      "pair": "zh-en",
+      "translations": [
+        {
+          "source": "我想喝咖啡。",
+          "translation": "I'd like to have coffee.",
+          "latencyMs": 11.799999997019768
+        },
+        {
+          "source": "银行在学校旁边。",
+          "translation": "The bank is next to the school.",
+          "latencyMs": 2.5
+        },
+        {
+          "source": "我正在学习中文。",
+          "translation": "I am learning Chinese.",
+          "latencyMs": 2
+        },
+        {
+          "source": "请说慢一点。",
+          "translation": "Please speak slowly.",
+          "latencyMs": 1.6000000014901161
+        },
+        {
+          "source": "我明天还书。",
+          "translation": "I will return the book tomorrow.",
+          "latencyMs": 2.5
+        }
+      ],
+      "availabilityBefore": "downloadable",
+      "createMs": 56.399999998509884,
+      "availabilityAfter": "available",
+      "latencyP50Ms": 2.5,
+      "latencyP95Ms": 11.799999997019768,
+      "sentencesPerSecond": 245.09803923358945,
+      "pageMetrics": {
+        "ScriptDuration": 0.049203,
+        "TaskDuration": 0.32409,
+        "JSHeapUsedSize": 2563820,
+        "JSHeapTotalSize": 3801088
+      },
+      "downloadProgressSamples": 2,
+      "downloadReachedPercent": 100
+    }
+  ],
+  "limitations": [
+    "No independent bilingual adequacy score or broad compatibility claim.",
+    "API timings include model execution only; not real-video caption discovery or extension rendering.",
+    "CDP JSHeap metrics describe this test page only; they exclude native/model memory and are not total Chrome memory. TaskDuration/ScriptDuration are cumulative page CPU times, not utilization."
+  ],
+  "passed": true,
+  "latencyMethod": "Five original sentences per direction, sequential translate() wall times; p50 uses sorted middle sample and p95 uses nearest-rank maximum for n=5. No extension rendering/video latency included."
+}
