@@ -45,3 +45,8 @@ The owner chose a freely shareable extension ZIP and a GitHub release. Chrome We
 ## Static verification result
 
 `node scripts/check.cjs` passed during the version 1 source follow-up. It verified version `1.0.0`, Manifest V3, the exact three permissions, absence of host/content/external connection exposure, and the restrictive extension-page policy `script-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'none'`. JavaScript syntax checks passed. Its source patterns found none of the selected unsafe HTML/code/network sinks or selected credential patterns in packaged application sources. The full included Unicode license notice was present. Pattern checks are limited by their specific patterns and are not proof that all possible secrets or vulnerabilities are absent.
+
+
+## Version 1.1 follow-up
+
+The added cache-only deletion UI measures extension-local prepared records and removes only keys with the existing `prepared:` namespace. A local cache-epoch signal cancels active preparation before deletion; generation checks remain in the checkpoint writer. Saved vocabulary and appearance settings are retained and verified in the packaged browser test. No new permission, network/capture API, runtime dependency, external message handler or executable source was introduced. Sentence-loop media listeners follow the existing cleanup path. The safe text-rendering and restrictive CSP policies remain. This is an internal source review of these changes; model availability, concurrent storage accounting and general browser security retain their documented limits.

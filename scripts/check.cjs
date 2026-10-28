@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),{execFileSync}=require('node:child_process'),assert=require('node:assert/strict');
 const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
-assert.equal(manifest.version,'1.0.0');assert.equal(manifest.manifest_version,3);
+assert.equal(manifest.version,JSON.parse(fs.readFileSync('package.json','utf8')).version);assert.equal(manifest.manifest_version,3);
 assert.deepEqual([...manifest.permissions].sort(),['activeTab','scripting','storage'].sort());
 assert.ok(!manifest.host_permissions&&!manifest.content_scripts&&!manifest.web_accessible_resources&&!manifest.externally_connectable);
 assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'none'");

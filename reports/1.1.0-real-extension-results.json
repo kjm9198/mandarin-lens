@@ -1,0 +1,60 @@
+{
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Pro"
+  },
+  "label": "Real Chrome MV3 extension isolated-world integration with original local video fixture and real on-device Translator; no model stub",
+  "testOnlyManifestChanges": [
+    "localhost host permission replaces browser-toolbar activeTab gesture in automation",
+    "inert background worker enables test extension discovery"
+  ],
+  "packageSha256": "66569fa931262ca8d8afa124b42e4c042867c5c59ed5a566c8a6a84c353aa980",
+  "packageFile": "mandarin-lens-1.1.0.zip",
+  "checks": [
+    "Actual extension user click downloaded/initialized real Translator and prepared English captions into Chinese plus pinyin",
+    "Seeking real local media to second prepared English cue displays matching Chinese translation",
+    "Actual extension imported Chinese captions and used real Chinese-to-English model while retaining original Hanzi and pinyin",
+    "Seeking real local media to second prepared Chinese cue displays matching English translation",
+    "Real model sessions cleaned up when overlay closes",
+    "Release ZIP and original manifest unchanged by temporary test permissions"
+  ],
+  "translator": {
+    "availability": "downloadable",
+    "present": true
+  },
+  "errors": [],
+  "screenshotNotes": {
+    "real-extension.png": "Actual extension and real Translator on an original local generated-video fixture",
+    "real-extension-en-zh.png": "Actual extension and real Translator on an original local generated-video fixture",
+    "real-extension-zh-en.png": "Actual extension and real Translator on an original local generated-video fixture"
+  },
+  "limitations": [
+    "Two original caption lines per direction; no independent adequacy score or broad real-video compatibility claim.",
+    "Test-only localhost permission and inert worker differ from distribution manifest."
+  ],
+  "extensionLoading": "Official CDP Extensions.loadUnpacked over Playwright debugging pipe, isolated temporary profile",
+  "browser": "156.0.8078.48",
+  "extensionVersion": "1.1.0",
+  "enZh": {
+    "hanzi": "我想喝咖啡",
+    "pinyin": "wǒxiǎng hē kāfēi",
+    "text": "我想wǒxiǎng喝hē咖啡kāfēi。I want to drink coffee.Translating on this device…▶ Start learningClick a word to keep this explanation open▶ Pronounce☆ Save word▶ Resume videoClose",
+    "status": "Prepared 2 timed subtitles from embedded timed subtitle track. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "firstSeek": {
+    "time": 5.5,
+    "duration": 12
+  },
+  "zhEn": {
+    "hanzi": "我想喝咖啡",
+    "pinyin": "wǒxiǎng hē kāfēi",
+    "text": "我想wǒxiǎng喝hē咖啡kāfēi。I'd like to have coffee.Translating on this device…▶ Start learning喝hēto drinkIn context: 我想喝咖啡。Hover preview • Click word to pin▶ Pronounce☆ Save word▶ Resume videoClose",
+    "status": "Prepared 2 timed subtitles from imported subtitle file. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "translatorAfter": {
+    "enZh": "available",
+    "zhEn": "available"
+  },
+  "passed": true
+}

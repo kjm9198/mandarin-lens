@@ -19,4 +19,33 @@ $('start').addEventListener('click',async()=>{const button=$('start');button.dis
 $('vocabulary').addEventListener('click',()=>chrome.tabs.create({url:chrome.runtime.getURL('vocabulary.html')}));
 $('help').addEventListener('click',()=>chrome.tabs.create({url:chrome.runtime.getURL('help.html')}));
 $('deleteData').addEventListener('click',async()=>{if(!confirm('Delete all saved words and preferences from Mandarin Lens? This cannot be undone. Close or refresh video tabs to remove their in-memory subtitles too.'))return;try{await chrome.storage.local.set({dataEpoch:Date.now()});await chrome.storage.local.clear();applyValues(DEFAULTS);$('wordCount').textContent='0';$('status').textContent='All saved learning data deleted. Close or refresh video tabs to clear active sessions.';}catch{failure('Could not delete learning data. Try again.');}});
-(async()=>{applyValues(await chrome.storage.local.get(DEFAULTS));const {vocabulary=[]}=await chrome.storage.local.get({vocabulary:[]});$('wordCount').textContent=String(Array.isArray(vocabulary)?vocabulary.length:0);})().catch(()=>failure('Could not load settings. Reopen Mandarin Lens to try again.')).finally(()=>{for(const el of controls)el.disabled=false;});
+(async()=>{applyValues(await chrome.storage.local.get(DEFAULTS));const {vocabulary=[]}=await chrome.storage.local.get({vocabulary:[]});$('wordCount').textContent=String(Array.isArray(vocabulary)?vocabulary.length:0);})().catch(()=>failure('Could not load settings. Reopen Mandarin Lens to try again.')).finally(()=>{for(const el of controls)el.disabled=false;if($('learningData').open)void refreshCacheUsage();});
+
+let cacheRequest=0;
+async function refreshCacheUsage(){
+  const request=++cacheRequest;
+  try{
+    const all=await chrome.storage.local.get(null),keys=Object.keys(all).filter(key=>key.startsWith('prepared:'));
+    const bytes=keys.length?await chrome.storage.local.getBytesInUse(keys):0;
+    if(request!==cacheRequest)return;
+    $('cacheUsage').textContent=`Prepared captions: ${keys.length} saved ${keys.length===1?'track':'tracks'} · ${bytes<1048576?Math.ceil(bytes/1024)+' KB':(bytes/1048576).toFixed(1)+' MB'}`;
+    $('clearCache').disabled=keys.length===0;
+  }catch{$('cacheUsage').textContent='Could not measure prepared caption storage.';}
+}
+$('learningData').addEventListener('toggle',()=>{if($('learningData').open)void refreshCacheUsage();});
+$('clearCache').addEventListener('click',async()=>{
+  $('clearCache').disabled=true;
+  try{
+    // Cancel in-flight tab checkpoints before deleting records, without touching vocabulary.
+    await chrome.storage.local.set({cacheEpoch:Date.now()});
+    const all=await chrome.storage.local.get(null),keys=Object.keys(all).filter(key=>key.startsWith('prepared:'));
+    if(keys.length)await chrome.storage.local.remove(keys);
+    $('status').textContent='Prepared captions cleared. Saved words and settings kept.';
+    await refreshCacheUsage();
+  }catch{failure('Could not clear prepared captions. Try again.');$('clearCache').disabled=false;}
+});
+chrome.storage.onChanged.addListener((changes,area)=>{
+  if(area!=='local')return;
+  if(changes.vocabulary)$('wordCount').textContent=String(Array.isArray(changes.vocabulary.newValue)?changes.vocabulary.newValue.length:0);
+  if($('learningData').open&&Object.keys(changes).some(key=>key.startsWith('prepared:')))void refreshCacheUsage();
+});

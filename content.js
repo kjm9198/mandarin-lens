@@ -13,7 +13,7 @@
     hanziSize:14, englishSize:14, textOpacity:100, horizontal:50, spacing:4, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 12, position: 12, pauseOnWord: true, autoPrepare: true,
     current: '', translation: '', enabled: false, translator: null, pendingTranslation: null,
     generation: 0, cache: new Map(), closed: false, selected: '',
-    reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],captionSeenAt: 0,
+    dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],captionSeenAt: 0,
     observer: null, captionFrame: null, hoverTimer: null, leaveTimer: null, wordPinned: false,
     sourceCues: null, sourceUrl: null, activatedAt: 0, prepared: null, preparedUrl: null, preparing: false, prepareToken: 0,
     preparePaused:false, partial:[], activeCacheKey:null, sessionUrl:location.href, prepareProgress: 0, prepareTotal: 0, prepareSource: '', prepareCoverage: null, lastCue: null,
@@ -38,7 +38,7 @@
     button{font:inherit;cursor:pointer}
     button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #7fc8ff;outline-offset:2px}
     .icon{background:transparent;color:#f5f9ff;border:none;padding:3px 8px;font-size:17px;border-radius:8px}
-    .icon:hover{background:#ffffff25}
+    .icon:hover{background:#ffffff25}.icon[aria-pressed=true]{background:#b4ddff;color:#172a45}
     #main{padding:3px 10px 5px;opacity:var(--ml-opacity,1);backdrop-filter:blur(var(--ml-blur,0px));border-radius:14px;background:var(--ml-bg);max-width:100%;pointer-events:none;text-shadow:0 1px 4px #000,0 2px 9px #000d}
     #original,#translated{max-width:100%;overflow-wrap:anywhere;line-height:1.25}
     .chinese{font-size:var(--ml-size);font-weight:700;color:#fff}
@@ -93,7 +93,8 @@
   const close = document.createElement('button'); close.className = 'icon'; close.textContent = '×'; close.title = 'Stop and remove overlay'; close.setAttribute('aria-label','Close Mandarin Lens');
   const replay=document.createElement('button');replay.className='icon';replay.textContent='↺';replay.title='Replay current subtitle';replay.setAttribute('aria-label','Replay current subtitle');replay.hidden=true;
   const transcriptButton=document.createElement('button');transcriptButton.className='icon';transcriptButton.textContent='☷';transcriptButton.setAttribute('aria-label','Timed transcript');transcriptButton.setAttribute('aria-expanded','false');
-  actions.append(replay,transcriptButton,gear,close);top.append(identity,actions);
+  const loop=document.createElement('button');loop.id='loop';loop.className='icon';loop.textContent='↻';loop.hidden=true;loop.title='Loop current subtitle';loop.setAttribute('aria-label','Loop current subtitle');loop.setAttribute('aria-pressed','false');
+  actions.append(replay,loop,transcriptButton,gear,close);top.append(identity,actions);
   const main = document.createElement('div');main.id='main';
   const original = document.createElement('div');original.id='original';
   const translated = document.createElement('div');translated.id='translated';
@@ -170,7 +171,7 @@
     try{
       const all=await chrome.storage.local.get(null);if(state.closed||token!==state.prepareToken)return;const entries=Object.entries(all).filter(([k])=>k.startsWith('prepared:')).sort((a,b)=>(b[1]?.savedAt||0)-(a[1]?.savedAt||0));
       let bytes=JSON.stringify(cues).length*2;const remove=[];let count=1;
-      for(const [k,v]of entries){if(k===key)continue;bytes+=JSON.stringify(v).length*2;if(count>=3||bytes>4_000_000)remove.push(k);else count++;}
+      for(const [k,v]of entries){if(k===key)continue;const size=JSON.stringify(v).length*2;if(count>=3||bytes+size>4_000_000)remove.push(k);else{bytes+=size;count++;}}
       if(remove.length)await chrome.storage.local.remove(remove);
       if(state.closed||token!==state.prepareToken)return;
       if(JSON.stringify(cues).length*2<=4_000_000)await chrome.storage.local.set({[key]:{savedAt:Date.now(),cues}});
@@ -258,7 +259,7 @@
       if(!state.wordPinned)state.hoverTimer=setTimeout(()=>void showWord(word,false),130);
     });
     btn.addEventListener('pointerleave',()=>{clearTimeout(state.hoverTimer);hideHoverSoon();});
-    btn.addEventListener('focus',()=>{if(!state.wordPinned)void showWord(word,false);});
+    btn.addEventListener('focus',()=>{if(!state.wordPinned&&!state.dismissWordFocus)void showWord(word,false);});
     btn.addEventListener('click',(event)=>{
       // Avoid replacing a character-level selection with a whole-word popup.
       if(event.target!==btn && event.target!==h && !event.target.classList.contains('pron'))return;
@@ -271,7 +272,7 @@
   function updatePrepareUi(){
     prepRow.classList.toggle('show',state.enabled);prepRow.classList.toggle('preparing',state.preparing);
     pausePrepare.hidden=!state.preparing;pausePrepare.textContent=state.preparePaused?'Resume preparation':'Pause preparation';
-    prepareButton.disabled=!state.enabled;
+    prepareButton.disabled=!state.enabled;loop.disabled=state.preparing;replay.disabled=state.preparing;
     prepareButton.textContent=state.preparing?'Cancel preparation':state.prepared?'Prepare again':'Prepare video first';
     if(state.preparing){prepStatus.textContent=`${state.preparePaused?'Paused':'Preparing'} ${state.prepareProgress}/${state.prepareTotal} lines`;
     }else if(state.prepared){prepStatus.textContent=`Ready · ${state.prepared.length} timed lines${state.prepareCoverage===false?' · partial track':''}`;
@@ -290,7 +291,7 @@
     main.insertBefore(state.direction==='en-zh'?original:translated,(state.direction==='en-zh'?translated:original).nextSibling);
     original.style.display=state.showOriginal?'block':'none';
     busy.classList.toggle('show',Boolean(state.enabled && state.current && !state.translation));
-    replay.hidden=!(state.enabled && state.prepared && state.lastCue);
+    replay.hidden=!(state.enabled && state.prepared && state.lastCue);loop.hidden=replay.hidden&&!state.loopCue;loop.setAttribute('aria-pressed',String(Boolean(state.loopCue)));loop.setAttribute('aria-label',state.loopCue?'Stop looping subtitle':'Loop current subtitle');loop.title=state.loopCue?'Stop looping subtitle':'Loop current subtitle';
     if(!state.current)return;
     if(state.direction==='zh-en')chineseLine(original,state.current,true);
     else original.textContent=state.current;
@@ -346,17 +347,19 @@
     }
   }
   function unbindVideo(){
-    if(state.boundVideo){for(const event of ['timeupdate','seeked','loadedmetadata'])state.boundVideo.removeEventListener(event,checkCaptions);state.boundVideo.textTracks?.removeEventListener('addtrack',bindTracks);}
+    if(state.boundVideo){for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata'])state.boundVideo.removeEventListener(event,checkCaptions);state.boundVideo.textTracks?.removeEventListener('addtrack',bindTracks);}
     for(const track of state.boundTracks)track.removeEventListener('cuechange',checkCaptions);state.boundTracks=[];state.boundVideo=null;
   }
   function bindTracks(){
     for(const track of Array.from(state.boundVideo?.textTracks||[]).slice(0,32))if(!state.boundTracks.includes(track)){state.boundTracks.push(track);track.addEventListener('cuechange',checkCaptions);}
   }
-  function bindVideo(){const video=currentVideo();if(state.boundVideo===video)return;unbindVideo();if(!video)return;state.boundVideo=video;for(const event of ['timeupdate','seeked','loadedmetadata'])video.addEventListener(event,checkCaptions);video.textTracks?.addEventListener('addtrack',bindTracks);bindTracks();}
+  function bindVideo(){const video=currentVideo();if(state.boundVideo===video)return;unbindVideo();if(!video)return;state.boundVideo=video;for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata'])video.addEventListener(event,checkCaptions);video.textTracks?.addEventListener('addtrack',bindTracks);bindTracks();}
   function currentVideo(){
     return Array.from(document.querySelectorAll('video')).find(v=>v.isConnected) || null;
   }
+  function stopLoop(){state.loopCue=null;state.loopSeeking=false;loop.setAttribute('aria-pressed','false');loop.setAttribute('aria-label','Loop current subtitle');loop.title='Loop current subtitle';}
   function invalidatePrepared(){
+    stopLoop();state.partial=[];
     state.prepareToken++;state.preparePaused=false;
     state.preparing=false;
     state.prepared=null;
@@ -364,13 +367,13 @@
     state.prepareProgress=0;
     state.prepareTotal=0;
     state.prepareCoverage=null;state.lastCue=null;
-    updatePrepareUi();
+    renderTranscript();updatePrepareUi();
   }
   async function prepareVideo(){
     try{await prepareVideoJob();}catch{if(!state.closed){invalidatePrepared();info('Could not prepare captions on this page. Try an HTTPS video page and prepare again.');}}
   }
   async function prepareVideoJob(){
-    if(state.preparing){invalidatePrepared();info('Preparation canceled. Saved progress is available when you prepare again.');return;}
+    if(state.preparing){const key=state.activeCacheKey,completed=state.partial.slice();invalidatePrepared();info('Preparation canceled. Completed lines can resume when you prepare again.');await savePrepared(key,completed);return;}
     if(!state.enabled || !state.translator){info('Select Start learning first, then prepare the video.');return;}
     const url=location.href;
     let source=state.sourceCues && state.sourceUrl===url?
@@ -381,7 +384,7 @@
     }
     if(source.cues.length>4000){info('Subtitle track is too long (maximum 4,000 cues).');return;}
     const token=++state.prepareToken;
-    state.preparing=true;state.preparePaused=false;updatePrepareUi();
+    stopLoop();state.partial=[];state.preparing=true;state.preparePaused=false;updatePrepareUi();
     const key=await P.cacheKey(videoIdentity(),state.direction,source.cues);
     if(token!==state.prepareToken||state.closed)return;
     state.activeCacheKey='prepared:'+key;
@@ -445,15 +448,24 @@
     if(state.enabled && translated===null){if(!state.preparing)void translateLatest();}
     else if(!state.enabled)info('Captions found! Press Start learning to show Chinese and pinyin.');
   }
-  function checkCaptions(){
+  function checkCaptions(event){
     if(state.closed)return;
     attach();bindVideo();
     if(state.sessionUrl!==location.href){state.sessionUrl=location.href;state.generation++;invalidatePrepared();state.current='';state.translation='';state.selected='';details.classList.remove('show');render();}
     if(state.prepared && state.preparedUrl===location.href){
       const video=currentVideo();
+      if(video&&state.loopCue){
+        const start=Math.max(0,state.loopCue.start+state.timingOffset),end=state.loopCue.end+state.timingOffset;
+        if(event?.type==='seeking'&&!state.loopSeeking&&(video.currentTime<start-.1||video.currentTime>=end))stopLoop();
+        if(event?.type==='seeked'){
+          if(!state.loopSeeking&&(video.currentTime<start-.1||video.currentTime>=end))stopLoop();
+          state.loopSeeking=false;
+        }
+        if(state.loopCue&&(!video.paused||video.ended)&&!video.seeking&&video.currentTime>=end){const ended=video.ended;state.loopSeeking=true;video.currentTime=start+.01;if(ended)void video.play().catch(()=>info('Press Play to continue looping this subtitle.'));}
+      }
       const cue=video?P.atTime(state.prepared,video.currentTime-state.timingOffset):null;
-      if(cue){state.lastCue=cue;updateCaption(cue.text,cue.translation);}
-      else {state.lastCue=null;if(state.current){state.current='';state.translation='';render();}}
+      if(cue){state.lastCue=cue;updateCaption(cue.text,cue.translation);loop.hidden=false;}else loop.hidden=!state.loopCue;
+      if(!cue){state.lastCue=null;if(state.current){state.current='';state.translation='';render();}}
       return;
     }
     if(state.prepared && state.preparedUrl!==location.href)invalidatePrepared();
@@ -593,7 +605,7 @@
       applyExtraPrefs(v);state.position=Math.max(4,Math.min(40,Number(v.position)||12));state.pauseOnWord=Boolean(v.pauseOnWord);state.autoPrepare=Boolean(v.autoPrepare);render();
     }).catch(()=>{if(!state.closed)info('Settings could not load. Reopen Mandarin Lens to retry.');});
   }
-  pausePrepare.addEventListener('click',()=>{state.preparePaused=!state.preparePaused;updatePrepareUi();});
+  pausePrepare.addEventListener('click',()=>{state.preparePaused=!state.preparePaused;updatePrepareUi();if(state.preparePaused)void savePrepared(state.activeCacheKey,state.partial.slice());});
   transcriptButton.addEventListener('click',()=>{const visible=transcript.classList.toggle('show');transcriptButton.setAttribute('aria-expanded',String(visible));renderTranscript();if(visible)transcriptSearch.focus();});
   transcriptSearch.addEventListener('input',renderTranscript);
   let drag=null;identity.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,left:state.horizontal,bottom:state.position};identity.setPointerCapture(e.pointerId);});
@@ -616,7 +628,8 @@
     }catch(error){info(`Could not read subtitles: ${error?.message||'Invalid file'}`);}
   });
   gear.addEventListener('click',()=>{const open=prefs.classList.toggle('show');gear.setAttribute('aria-expanded',String(open));});
-  replay.addEventListener('click',()=>{const video=currentVideo();if(!video||!state.lastCue)return;video.currentTime=Math.max(0,state.lastCue.start+.02);void video.play().catch(()=>info('Press Play on the video to replay the line.'));});
+  loop.addEventListener('click',()=>{if(state.loopCue){stopLoop();render();return;}const video=currentVideo();if(!video||!state.lastCue)return;state.loopCue={...state.lastCue};state.loopSeeking=true;video.currentTime=Math.max(0,state.loopCue.start+state.timingOffset)+.01;render();void video.play().catch(()=>info('Press Play on the video to loop this subtitle.'));});
+  replay.addEventListener('click',()=>{const video=currentVideo();if(!video||!state.lastCue)return;video.currentTime=Math.max(0,state.lastCue.start+state.timingOffset+.02);void video.play().catch(()=>info('Press Play on the video to replay the line.'));});
   resume.addEventListener('click',()=>{const video=currentVideo();if(video)void video.play().catch(()=>info('Press Play on the video to continue.'));resume.hidden=true;});
   autoPrepBox.addEventListener('change',()=>{state.autoPrepare=autoPrepBox.checked;void chrome.storage.local.set({autoPrepare:state.autoPrepare});});
   pauseBox.addEventListener('change',()=>{state.pauseOnWord=pauseBox.checked;void chrome.storage.local.set({pauseOnWord:state.pauseOnWord});});
@@ -625,6 +638,15 @@
   details.addEventListener('pointerenter',()=>clearTimeout(state.leaveTimer));
   details.addEventListener('pointerleave',hideHoverSoon);
   detailClose.addEventListener('click',()=>{state.wordPinned=false;details.classList.remove('show');});
+  shadow.addEventListener('keydown',event=>{
+    if(event.key!=='Escape')return;
+    let focus;
+    if(details.classList.contains('show')){state.wordPinned=false;details.classList.remove('show');focus=main.querySelector('.word');}
+    else if(prefs.classList.contains('show')){prefs.classList.remove('show');gear.setAttribute('aria-expanded','false');focus=gear;}
+    else if(transcript.classList.contains('show')){transcript.classList.remove('show');transcriptButton.setAttribute('aria-expanded','false');focus=transcriptButton;}
+    else return;
+    event.preventDefault();event.stopPropagation();state.dismissWordFocus=true;focus?.focus();state.dismissWordFocus=false;
+  });
   sound.addEventListener('click',pronounce);
   save.addEventListener('click',saveWord);
   select.addEventListener('change',()=>{
@@ -651,6 +673,7 @@
     if('opacity' in changes){const v=Number(changes.opacity.newValue);state.opacity=Number.isFinite(v)?Math.max(0,Math.min(80,v)):12;}
     if('position' in changes)state.position=Math.max(4,Math.min(40,Number(changes.position.newValue)||12));
     if('dataEpoch' in changes){closeOverlay();return;}
+    if('cacheEpoch' in changes){invalidatePrepared();state.cache.clear();state.current='';state.translation='';render();checkCaptions();}
     if(state.activeCacheKey && state.activeCacheKey in changes && !changes[state.activeCacheKey].newValue)invalidatePrepared();
     for(const key of Object.keys(extraDefaults))if(key in changes)applyExtraPrefs({[key]:changes[key].newValue??extraDefaults[key]});
     render();

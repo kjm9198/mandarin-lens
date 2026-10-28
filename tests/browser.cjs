@@ -21,8 +21,9 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
  const manifest=JSON.parse(await fs.readFile(path.join(extension,'manifest.json'),'utf8'));
  manifest.host_permissions=['http://127.0.0.1/*'];manifest.background={service_worker:'test-discovery-worker.js'};
  await fs.writeFile(path.join(extension,'manifest.json'),JSON.stringify(manifest));await fs.writeFile(path.join(extension,'test-discovery-worker.js'),'// Test-only worker; no listeners or privileged operations.\n');
- const fixture=await fs.readFile(path.join(__dirname,'fixtures/video.html'));
- const server=http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture);});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const fixture=await fs.readFile(path.join(__dirname,'fixtures/real-video.html'));
+ const media=await fs.readFile(path.join(__dirname,'fixtures/video.webm'));
+ const server=http.createServer((req,res)=>{if(req.url==='/video.webm'){const m=/bytes=(\d+)-(\d*)/.exec(req.headers.range||'');const start=m?Number(m[1]):0,end=m?.[2]?Math.min(Number(m[2]),media.length-1):media.length-1;if(start>=media.length){res.writeHead(416);res.end();return;}res.writeHead(m?206:200,{'Content-Type':'video/webm','Accept-Ranges':'bytes','Content-Length':end-start+1,...(m?{'Content-Range':`bytes ${start}-${end}/${media.length}`}:{})});res.end(media.subarray(start,end+1));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture);});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  let context;const report={label:'Real Chromium MV3 integration with local generated video; translation rendering uses an explicit test double',testOnlyManifestChanges:['localhost host permission replaces browser-toolbar activeTab gesture in automation','inert background worker enables test extension discovery'],packageSha256,packageFile:path.basename(archive),checks:[],translator:null,errors:[],screenshotNotes:{'popup.png':'Actual packaged popup, persisted customization','overlay-clean.png':'Local generated-video fixture and explicit Translator double; not a real-model translation-quality claim','overlay.png':'Malicious imported-subtitle test evidence; explicit Translator double'}};
  try{
   context=await chromium.launchPersistentContext(path.join(temporary,'profile'),{channel:'chromium',executablePath:chromiumExecutable(),headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`],viewport:{width:1280,height:800}});
@@ -48,7 +49,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
    await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(100);assert.match(await shadow(root=>root.querySelector('#status').textContent),/cannot translate locally|does not support|could not start/i);report.checks.push('Actual unsupported Translator environment shows a local-only fallback without downloading a model');
   }else report.checks.push('Actual Translator availability inspected only; model creation/download deliberately not triggered');
   await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator=undefined;}}),tabId);await shadow(root=>root.querySelector('#cta').click());assert.match(await shadow(root=>root.querySelector('#status').textContent),/cannot translate locally/);report.checks.push('Explicit API-absent test double verifies unsupported-device message');
-  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator={availability:async()=> 'available',create:async()=>({translate:async text=>text.includes('Chinese')?'我学习中文。':'我想喝咖啡。',destroy(){}})};}}),tabId);
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator={availability:async()=> 'available',create:async()=>({translate:async text=>{if(globalThis.__slowPrepare)await new Promise(resolve=>setTimeout(resolve,250));return text.includes('Chinese')?'我学习中文。':'我想喝咖啡。';},destroy(){}})};}}),tabId);
   await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:false}));
   await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(200);
   for(let attempt=0;attempt<30;attempt++){if((await shadow(root=>[...root.querySelectorAll('#main .han')].map(el=>el.textContent).join(''))).includes('咖啡'))break;await page.waitForTimeout(100);}
@@ -63,8 +64,56 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   report.checks.push('Real SRT file input, preparation and synchronized initial overlay render with explicit test Translator');report.checks.push('Encoded malicious subtitle remains inert text; no injected element or handler executes');
   await page.screenshot({path:path.join(output,'overlay.png')});
   await shadow(root=>root.querySelector('[aria-label="Timed transcript"]').click());assert.match(await shadow(root=>root.querySelector('#transcript').textContent),/I am learning Chinese/);report.checks.push('Timed transcript renders imported prepared cues');
+  // Exercise real media looping; model output remains explicitly simulated.
+  await page.evaluate(()=>document.querySelector('video').pause());
+  await shadow(root=>root.querySelector('#loop').click());
+  await page.waitForFunction(()=>!document.querySelector('video').paused);
+  await page.evaluate(()=>{document.querySelector('video').currentTime=4.9;});
+  await page.waitForFunction(()=>!document.querySelector('video').seeking);
+  await page.waitForTimeout(500);
+  assert.equal(await shadow(root=>root.querySelector('#loop').getAttribute('aria-pressed')),'true');
+  assert.ok(await page.evaluate(()=>document.querySelector('video').currentTime<2));
+  await page.evaluate(()=>{document.querySelector('video').currentTime=8;});
+  await page.waitForFunction(()=>!document.querySelector('video').seeking);await page.waitForTimeout(100);
+  assert.equal(await shadow(root=>root.querySelector('#loop').getAttribute('aria-pressed')),'false');
+  await page.evaluate(()=>document.querySelector('video').pause());
+  report.checks.push('Sentence loop wraps real media and releases on manual seek outside its cue');
+  await shadow(root=>root.querySelector('#loop').click());
+  await page.waitForFunction(()=>!document.querySelector('video').paused);
+  await page.evaluate(()=>{document.querySelector('video').currentTime=11.9;});
+  await page.waitForFunction(()=>!document.querySelector('video').seeking);await page.waitForTimeout(500);
+  assert.ok(await page.evaluate(()=>{const v=document.querySelector('video');return !v.paused&&v.currentTime>=5&&v.currentTime<7;}));
+  await shadow(root=>root.querySelector('#loop').click());await page.evaluate(()=>document.querySelector('video').pause());
+  report.checks.push('Looping the final sentence resumes after the media reaches its natural end');
+  await shadow(root=>root.querySelector('#transcript input').focus());await page.keyboard.press('Escape');
+  assert.equal(await shadow(root=>root.querySelector('#transcript').classList.contains('show')),false);
+  await shadow(root=>{root.querySelector('[aria-label="Settings"]').click();root.querySelector('#prefs select').focus();});await page.keyboard.press('Escape');
+  assert.equal(await shadow(root=>root.querySelector('#prefs').classList.contains('show')),false);
+  await shadow(root=>{root.querySelector('.word').click();root.querySelector('#details button').focus();});await page.keyboard.press('Escape');
+  assert.equal(await shadow(root=>root.querySelector('#details').classList.contains('show')),false);
+  report.checks.push('Escape dismisses transcript, settings and word details without reopening them on restored focus');
+  await popup.evaluate(()=>chrome.storage.local.set({vocabulary:[{word:'你好',pinyin:'nǐ hǎo',meaning:'hello'}]}));
+  await popup.locator('#learningData summary').click();await popup.locator('#clearCache:not([disabled])').waitFor();await popup.locator('#clearCache').click();
+  await popup.waitForFunction(async()=>!Object.keys(await chrome.storage.local.get(null)).some(key=>key.startsWith('prepared:')));
+  const retained=await popup.evaluate(()=>chrome.storage.local.get(['fontSize','vocabulary']));assert.equal(retained.fontSize,28);assert.equal(retained.vocabulary[0].word,'你好');
+  await page.locator('#mandarin-lens-root').waitFor();await popup.waitForFunction(()=>document.querySelector('#cacheUsage').textContent.includes('0 saved tracks'));
+  await popup.screenshot({path:path.join(output,'popup-storage.png'),fullPage:true});report.checks.push('Cache-only deletion removes prepared tracks while keeping saved words, appearance and active overlay');
+  const shortFile=path.join(temporary,'checkpoint.srt');await fs.writeFile(shortFile,'1\n00:00:00,000 --> 00:00:03,000\nCheckpoint one.\n\n2\n00:00:03,000 --> 00:00:06,000\nCheckpoint two.\n\n3\n00:00:06,000 --> 00:00:09,000\nCheckpoint three.\n');
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.__slowPrepare=true;}}),tabId);
+  const {root:refreshedTree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});const refreshedInput=findInput(refreshedTree);assert(refreshedInput);await cdp.send('DOM.setFileInputFiles',{nodeId:refreshedInput.nodeId,files:[shortFile]});await page.waitForTimeout(100);
+  await shadow(root=>root.querySelector('#prepareRow button').click());
+  for(let i=0;i<30;i++){if((await shadow(root=>root.querySelector('#prepStatus').textContent)).includes('1/3'))break;await page.waitForTimeout(40);}
+  assert.match(await shadow(root=>root.querySelector('#prepStatus').textContent),/1\/3/);assert.equal(await shadow(root=>root.querySelector('#loop').disabled),true);
+  await shadow(root=>root.querySelector('#prepareRow button').click());
+  await popup.waitForFunction(async()=>Object.entries(await chrome.storage.local.get(null)).some(([key,value])=>key.startsWith('prepared:')&&value.cues?.length===1));
+  await page.waitForTimeout(350);
+  assert.equal(await popup.evaluate(async()=>Object.entries(await chrome.storage.local.get(null)).find(([key])=>key.startsWith('prepared:'))[1].cues.length),1);
+  await shadow(root=>root.querySelector('#prepareRow button').click());
+  for(let i=0;i<40;i++){if((await shadow(root=>root.querySelector('#status').textContent)).includes('Prepared 3'))break;await page.waitForTimeout(100);}
+  assert.match(await shadow(root=>root.querySelector('#status').textContent),/Prepared 3/);
+  report.checks.push('Cancel before the twentieth line saves its completed prefix, ignores the stale in-flight result and can resume');
   await shadow(root=>root.querySelector('[aria-label="Close Mandarin Lens"]').click());await page.locator('#mandarin-lens-root').waitFor({state:'detached'});report.checks.push('Overlay close removes host in actual extension runtime');
-  await inject(['content.js']);await page.locator('#mandarin-lens-root').waitFor();await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.accept());await popup.locator('#deleteData').click();await page.locator('#mandarin-lens-root').waitFor({state:'detached'});assert.equal(await popup.evaluate(async()=>Object.keys(await chrome.storage.local.get(null)).length),0);report.checks.push('Confirmed data deletion clears extension storage and closes active overlay');
+  await inject(['content.js']);await page.locator('#mandarin-lens-root').waitFor();if(!await popup.locator('#learningData').evaluate(el=>el.open))await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.accept());await popup.locator('#deleteData').click();await page.locator('#mandarin-lens-root').waitFor({state:'detached'});assert.equal(await popup.evaluate(async()=>Object.keys(await chrome.storage.local.get(null)).length),0);report.checks.push('Confirmed data deletion clears extension storage and closes active overlay');
   assert.equal(report.errors.length,0);assert.deepEqual(await fs.readFile(path.join(root,'manifest.json')),sourceManifest);assert.equal(createHash('sha256').update(await fs.readFile(archive)).digest('hex'),packageSha256);report.checks.push('Release ZIP and original manifest unchanged by temporary test permissions');report.passed=true;
  }catch(error){report.passed=false;report.failure=error.stack;throw error;}
  finally{await fs.writeFile(path.join(output,'browser-results.json'),JSON.stringify(report,null,2)+'\n');if(context)await context.close();await new Promise(resolve=>server.close(resolve));await fs.rm(temporary,{recursive:true,force:true});}
