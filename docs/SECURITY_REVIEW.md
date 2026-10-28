@@ -50,3 +50,8 @@ The owner chose a freely shareable extension ZIP and a GitHub release. Chrome We
 ## Version 1.1 follow-up
 
 The added cache-only deletion UI measures extension-local prepared records and removes only keys with the existing `prepared:` namespace. A local cache-epoch signal cancels active preparation before deletion; generation checks remain in the checkpoint writer. Saved vocabulary and appearance settings are retained and verified in the packaged browser test. No new permission, network/capture API, runtime dependency, external message handler or executable source was introduced. Sentence-loop media listeners follow the existing cleanup path. The safe text-rendering and restrictive CSP policies remain. This is an internal source review of these changes; model availability, concurrent storage accounting and general browser security retain their documented limits.
+
+
+## Version 1.2 follow-up
+
+Source review of media selection, live track filtering and retry handling confirms no new permissions, executable sources, message bridges, uploads or runtime dependencies. Candidate enumeration is bounded to 32 videos/tracks/cues; DOM caption fallback is scoped to the chosen player. Video/source changes invalidate old generation-sensitive preparation and clear in-memory imported captions. Rejected live translations expose user-initiated restart; preparation failures checkpoint the completed prefix before resetting the local translator. Existing safe text rendering, source-file import validation, cache limits and restrictive CSP remain in place. These are correctness and availability improvements, not a new independent audit or proof of universal site compatibility.

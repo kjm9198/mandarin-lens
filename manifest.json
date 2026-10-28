@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Mandarin Lens",
   "short_name": "Mandarin Lens",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Learn Mandarin with compact Chinese, pinyin and English video captions. Private, customizable, on-device translation on compatible Chrome.",
   "minimum_chrome_version": "138",
   "permissions": [

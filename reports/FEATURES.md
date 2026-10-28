@@ -1,5 +1,7 @@
 # Version 1 feature status
 
+Added in 1.2: visible-player selection, live caption language/kind filtering, same-URL media invalidation and local model retry/resume.
+
 Added in 1.1: sentence looping, Escape dismissal, prepared-cache usage and cache-only clearing, plus immediate pause/cancel checkpoints.
 
 Implemented: compact popup/overlay, independent appearance controls and reset, title dragging, reduced-motion/contrast preferences, two translation directions using Chrome's local API, native/live YouTube caption detection, SRT/VTT imports, accessible transcript preparation with pause/resume/cancel and local checkpoints, timed display/replay/search, phrase-aware pinyin, small offline glossary, locally reported pronunciation voices, local vocabulary and interval reviews, editing/import/export/backup, deletion, release tooling and free GitHub ZIP distribution.

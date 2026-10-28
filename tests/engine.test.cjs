@@ -58,3 +58,32 @@ test('cache key distinguishes transcript, direction, video and settings',async()
 });
 
 test('coverage estimate does not mark a short video complete from an opening cue',()=>{assert.equal(P.coverage([{start:0,end:1,text:'opening'}],20).complete,false);assert.equal(P.coverage([{start:0,end:20,text:'full'}],20).complete,true);});
+
+
+test('main video selection excludes hidden players and favors substantial visible media',()=>{
+ const hidden={video:'hidden',visible:false,area:1000000,visibleArea:1000000,playing:true};
+ const main={video:'main',visible:true,area:500000,visibleArea:400000};
+ const ad={video:'small-ad',visible:true,area:10000,visibleArea:10000,playing:true};
+ assert.equal(P.selectVideo([hidden,ad,main]),'main');
+ assert.equal(P.selectVideo([hidden]),null);
+ assert.equal(P.selectVideo([main,{...ad,fullscreen:true}]),'small-ad');
+});
+test('equally sized videos prefer playback but keep the current selection on ties',()=>{
+ const a={video:'a',visible:true,area:10000,visibleArea:10000,current:true};
+ const b={video:'b',visible:true,area:10000,visibleArea:10000};
+ assert.equal(P.selectVideo([b,a]),'a');assert.equal(P.selectVideo([a,{...b,playing:true}]),'b');
+ assert.equal(P.selectVideo([{...a,visibleArea:0},{...b,visibleArea:0}]),'a');
+});
+test('live captions exclude metadata and wrong language and normalize inert text',()=>{
+ const cue=text=>({text});
+ const track=(kind,language,text,mode='showing')=>({kind,language,mode,activeCues:[cue(text)]});
+ const video={textTracks:[track('metadata','en','metadata'),track('subtitles','fr','French'),track('captions','zh-CN','你好'),track('captions','en-US','<b>Hello</b> &amp; world')]};
+ assert.equal(P.activeCaption(video),'Hello & world');assert.equal(P.activeCaption(video,'zh-en'),'你好');
+ assert.equal(P.activeCaption({textTracks:[track('captions','fr','French')]}),'');
+});
+test('live source prefers explicit language and selected matching track with bounded deduplication',()=>{
+ const caption=(language,mode,text)=>({kind:'captions',language,mode,activeCues:[{text},{text}]});
+ assert.equal(P.activeCaption({textTracks:[caption('','showing','unknown'),caption('en','hidden','known')]}),'known');
+ assert.equal(P.activeCaption({textTracks:[caption('en','hidden','hidden'),caption('en','showing','shown')]}),'shown');
+ assert.equal(P.activeCaption(null),'');
+});

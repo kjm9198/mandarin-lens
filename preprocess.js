@@ -110,6 +110,33 @@
     for(let i=candidate;i>=0;i--){const cue=cues[i];if(time>=cue.start && time<cue.end)return cue;}
     return null;
   }
+  // Selection receives bounded DOM snapshots; no page execution or privileged access.
+  function selectVideo(candidates){
+    let selected=null,best=-Infinity;
+    for(const candidate of (Array.isArray(candidates)?candidates:[]).slice(0,32)){
+      if(!candidate || candidate.visible!==true || !Number.isFinite(candidate.area) || candidate.area<=0)continue;
+      const visible=Number.isFinite(candidate.visibleArea)?Math.max(0,Math.min(candidate.area,candidate.visibleArea)):0;
+      const size=visible||candidate.area;
+      const score=(candidate.fullscreen?1e12:0)+(visible?1e9:0)+Math.min(size,1e8)*(1+(candidate.playing?.15:0)+(candidate.current?.03:0));
+      if(score>best){best=score;selected=candidate.video;}
+    }
+    return selected;
+  }
+  function activeCaption(video,direction='en-zh'){
+    if(!video)return '';
+    const primary=direction==='zh-en'?'zh':'en';let best=-1,result='';
+    const tracks=video.textTracks||[];
+    for(let i=0;i<Math.min(tracks.length,32);i++){
+      const track=tracks[i],language=(track.language||'').toLowerCase();
+      if(!['subtitles','captions'].includes(track.kind)||!track.activeCues?.length)continue;
+      if(language&&language!==primary&&!language.startsWith(primary+'-'))continue;
+      const parts=[];
+      for(let n=0;n<Math.min(track.activeCues.length,32);n++){const text=normalizeSubtitle(track.activeCues[n].text);if(text&&!parts.includes(text))parts.push(text);}
+      const text=normalize(parts.join(' ')),score=(language?4:0)+(track.mode==='showing'?2:0);
+      if(text&&score>best){best=score;result=text;}
+    }
+    return result;
+  }
   async function cacheKey(videoId,direction,cues,settings={}){
     if(!globalThis.crypto?.subtle)throw new Error('Secure local cache is unavailable in this browser.');
     if(typeof videoId!=='string' || !['en-zh','zh-en'].includes(direction))throw new Error('Invalid subtitle cache identity.');
@@ -118,5 +145,5 @@
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload));
     return PIPELINE_VERSION+':'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
   }
-  globalThis.MandarinLensPreprocess=Object.freeze({PIPELINE_VERSION,MAX_CUES,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
+  globalThis.MandarinLensPreprocess=Object.freeze({PIPELINE_VERSION,MAX_CUES,selectVideo,activeCaption,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
 })();

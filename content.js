@@ -13,7 +13,7 @@
     hanziSize:14, englishSize:14, textOpacity:100, horizontal:50, spacing:4, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 12, position: 12, pauseOnWord: true, autoPrepare: true,
     current: '', translation: '', enabled: false, translator: null, pendingTranslation: null,
     generation: 0, cache: new Map(), closed: false, selected: '',
-    dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],captionSeenAt: 0,
+    dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],mediaInitialized:false,mediaSource:null,mediaObject:null,captionSeenAt: 0,
     observer: null, captionFrame: null, hoverTimer: null, leaveTimer: null, wordPinned: false,
     sourceCues: null, sourceUrl: null, activatedAt: 0, prepared: null, preparedUrl: null, preparing: false, prepareToken: 0,
     preparePaused:false, partial:[], activeCacheKey:null, sessionUrl:location.href, prepareProgress: 0, prepareTotal: 0, prepareSource: '', prepareCoverage: null, lastCue: null,
@@ -208,20 +208,12 @@
     for(const button of presets.querySelectorAll('button')){const v=presetMap[button.dataset.preset];const active=Object.keys(v).every(key=>v[key]===state[key]);button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}
   }
   function getClipText(){
-    const captions = Array.from(document.querySelectorAll('.ytp-caption-window-container .ytp-caption-segment'))
-      .map(e => e.textContent || '');
-    const youtubeText = C.normalize(captions.join(' '));
-    if (youtubeText) return youtubeText;
-    const videos=Array.from(document.querySelectorAll('video')).filter(v => v.isConnected);
-    for (const video of videos) {
-      for (const track of Array.from(video.textTracks || [])) {
-        if (!track.activeCues?.length) continue;
-        const cues=Array.from(track.activeCues).map(cue => cue.text || '');
-        const text=C.normalize([...new Set(cues)].join(' '));
-        if(text) return text;
-      }
-    }
-    return '';
+    const video=currentVideo();if(!video||video.readyState===0)return '';
+    const native=P.activeCaption(video,state.direction);if(native)return native;
+    const player=video.closest('.html5-video-player')||video.parentElement;
+    const captions=player?.querySelectorAll('.ytp-caption-window-container .ytp-caption-segment')||[];
+    const parts=[];for(let i=0;i<Math.min(captions.length,32);i++)parts.push(captions[i].textContent||'');
+    return C.normalize(parts.join(' '));
   }
   function tokenButton(word, isOriginal) {
     if (!C.isChinese(word)) {
@@ -323,8 +315,7 @@
         let result;
         try {result=C.normalize(await timedTranslate(translator,text));}
         catch(error){
-          if(state.translator===translator && state.generation===generation)
-            info(`Translation unavailable: ${error.message || 'local model error'}. No cloud fallback.`);
+          if(state.translator===translator && state.generation===generation){resetTranslation();info('Local translation stopped. Press Start learning to retry. No captions were uploaded.');}
           break;
         }
         if (state.closed || state.translator!==translator || state.generation!==generation) break;
@@ -347,15 +338,33 @@
     }
   }
   function unbindVideo(){
-    if(state.boundVideo){for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata'])state.boundVideo.removeEventListener(event,checkCaptions);state.boundVideo.textTracks?.removeEventListener('addtrack',bindTracks);}
+    if(state.boundVideo){for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata','emptied','loadstart'])state.boundVideo.removeEventListener(event,checkCaptions);state.boundVideo.textTracks?.removeEventListener('addtrack',bindTracks);}
     for(const track of state.boundTracks)track.removeEventListener('cuechange',checkCaptions);state.boundTracks=[];state.boundVideo=null;
   }
   function bindTracks(){
     for(const track of Array.from(state.boundVideo?.textTracks||[]).slice(0,32))if(!state.boundTracks.includes(track)){state.boundTracks.push(track);track.addEventListener('cuechange',checkCaptions);}
   }
-  function bindVideo(){const video=currentVideo();if(state.boundVideo===video)return;unbindVideo();if(!video)return;state.boundVideo=video;for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata'])video.addEventListener(event,checkCaptions);video.textTracks?.addEventListener('addtrack',bindTracks);bindTracks();}
+  function bindVideo(){
+    const video=currentVideo(),source=video?(video.getAttribute('src')||video.currentSrc||''):'',object=video?.srcObject||null;
+    if(state.boundVideo===video&&state.mediaSource===source&&state.mediaObject===object)return;
+    const changed=state.mediaInitialized;
+    unbindVideo();state.mediaInitialized=true;state.mediaSource=source;state.mediaObject=object;
+    if(changed){state.generation++;invalidatePrepared();state.sourceCues=null;state.sourceUrl=null;state.current='';state.translation='';state.selected='';state.wordPinned=false;details.classList.remove('show');render();}
+    if(!video)return;
+    state.boundVideo=video;
+    for(const event of ['timeupdate','seeking','seeked','ended','loadedmetadata','emptied','loadstart'])video.addEventListener(event,checkCaptions);
+    video.textTracks?.addEventListener('addtrack',bindTracks);bindTracks();
+  }
   function currentVideo(){
-    return Array.from(document.querySelectorAll('video')).find(v=>v.isConnected) || null;
+    const videos=document.querySelectorAll('video'),candidates=[],full=document.fullscreenElement;
+    for(let i=0;i<Math.min(videos.length,32);i++){
+      const video=videos[i];if(!video.isConnected)continue;
+      const rect=video.getBoundingClientRect(),style=getComputedStyle(video);
+      candidates.push({video,visible:style.display!=='none'&&style.visibility!=='hidden'&&style.visibility!=='collapse'&&Number(style.opacity)!==0,
+        area:Math.max(0,rect.width)*Math.max(0,rect.height),visibleArea:Math.max(0,Math.min(innerWidth,rect.right)-Math.max(0,rect.left))*Math.max(0,Math.min(innerHeight,rect.bottom)-Math.max(0,rect.top)),
+        fullscreen:Boolean(full&&(full===video||full.contains(video))),playing:!video.paused&&!video.ended,current:video===state.boundVideo});
+    }
+    return P.selectVideo(candidates);
   }
   function stopLoop(){state.loopCue=null;state.loopSeeking=false;loop.setAttribute('aria-pressed','false');loop.setAttribute('aria-label','Loop current subtitle');loop.title='Loop current subtitle';}
   function invalidatePrepared(){
@@ -411,8 +420,8 @@
       if(!translation){
         try{translation=C.normalize(await timedTranslate(translator,cue.text));}
         catch(error){
-          if(token===state.prepareToken){info(`Preparation stopped at ${i+1}: ${error?.message||'on-device translation failed'}.`);}
-          break;
+          if(token===state.prepareToken){await savePrepared(state.activeCacheKey,prepared);if(token===state.prepareToken&&!state.closed){resetTranslation();info('Preparation stopped. Press Start learning, then prepare again to resume completed lines.');}}
+          return;
         }
         if(translation){state.cache.set(key,translation);if(state.cache.size>5000)state.cache.delete(state.cache.keys().next().value);}
       }
@@ -445,7 +454,7 @@
     state.captionSeenAt=Date.now();
     if(!state.wordPinned)details.classList.remove('show');
     render();
-    if(state.enabled && translated===null){if(!state.preparing)void translateLatest();}
+    if(state.enabled && translated===null){status.classList.remove('show');if(!state.preparing)void translateLatest();}
     else if(!state.enabled)info('Captions found! Press Start learning to show Chinese and pinyin.');
   }
   function checkCaptions(event){
@@ -688,6 +697,9 @@
   state.observer=new MutationObserver((mutations)=>{
     if(state.closed||state.captionFrame)return;
     if(!mutations.some(m=>{
+      if(m.type==='childList')for(const nodes of [m.addedNodes,m.removedNodes])for(let i=0;i<Math.min(nodes.length,32);i++){
+        const element=nodes[i];if(element.nodeType===1&&(element.matches('video,source')||element.querySelector('video,source')))return true;
+      }
       const node=m.target.nodeType===1?m.target:m.target.parentElement;
       return node?.closest?.('.ytp-caption-window-container');
     }))return;

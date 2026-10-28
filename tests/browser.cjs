@@ -23,7 +23,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
  await fs.writeFile(path.join(extension,'manifest.json'),JSON.stringify(manifest));await fs.writeFile(path.join(extension,'test-discovery-worker.js'),'// Test-only worker; no listeners or privileged operations.\n');
  const fixture=await fs.readFile(path.join(__dirname,'fixtures/real-video.html'));
  const media=await fs.readFile(path.join(__dirname,'fixtures/video.webm'));
- const server=http.createServer((req,res)=>{if(req.url==='/video.webm'){const m=/bytes=(\d+)-(\d*)/.exec(req.headers.range||'');const start=m?Number(m[1]):0,end=m?.[2]?Math.min(Number(m[2]),media.length-1):media.length-1;if(start>=media.length){res.writeHead(416);res.end();return;}res.writeHead(m?206:200,{'Content-Type':'video/webm','Accept-Ranges':'bytes','Content-Length':end-start+1,...(m?{'Content-Range':`bytes ${start}-${end}/${media.length}`}:{})});res.end(media.subarray(start,end+1));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture);});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const server=http.createServer((req,res)=>{if(req.url.split('?')[0]==='/video.webm'){const m=/bytes=(\d+)-(\d*)/.exec(req.headers.range||'');const start=m?Number(m[1]):0,end=m?.[2]?Math.min(Number(m[2]),media.length-1):media.length-1;if(start>=media.length){res.writeHead(416);res.end();return;}res.writeHead(m?206:200,{'Content-Type':'video/webm','Accept-Ranges':'bytes','Content-Length':end-start+1,...(m?{'Content-Range':`bytes ${start}-${end}/${media.length}`}:{})});res.end(media.subarray(start,end+1));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture);});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  let context;const report={label:'Real Chromium MV3 integration with local generated video; translation rendering uses an explicit test double',testOnlyManifestChanges:['localhost host permission replaces browser-toolbar activeTab gesture in automation','inert background worker enables test extension discovery'],packageSha256,packageFile:path.basename(archive),checks:[],translator:null,errors:[],screenshotNotes:{'popup.png':'Actual packaged popup, persisted customization','overlay-clean.png':'Local generated-video fixture and explicit Translator double; not a real-model translation-quality claim','overlay.png':'Malicious imported-subtitle test evidence; explicit Translator double'}};
  try{
   context=await chromium.launchPersistentContext(path.join(temporary,'profile'),{channel:'chromium',executablePath:chromiumExecutable(),headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`],viewport:{width:1280,height:800}});
@@ -37,10 +37,18 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await popup.reload();await popup.locator('#start:not([disabled])').waitFor();assert.equal(await popup.locator('#fontSize').inputValue(),'28');report.checks.push('Popup preset and customization persist in actual chrome.storage.local');
   await popup.setViewportSize({width:360,height:760});assert(await popup.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await popup.screenshot({path:path.join(output,'popup.png'),fullPage:true});report.checks.push('Popup has no horizontal overflow at 360px');
   const page=await context.newPage();page.on('pageerror',error=>report.errors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}/video`);
+  await page.evaluate(()=>{
+   const video=document.querySelector('video:not(#hidden-ad)');video.textTracks[0].mode='disabled';
+   const hidden=document.createElement('video');hidden.id='hidden-ad';hidden.style.display='none';document.querySelector('main').prepend(hidden);
+   for(const [kind,language,text]of [['metadata','en','metadata should never appear'],['captions','fr','French should never appear'],['captions','en','I want to drink coffee.']]){const track=video.addTextTrack(kind,'Test '+language,language);track.mode='hidden';track.addCue(new VTTCue(0,12,text));}
+  });
+  await page.evaluate(()=>{document.querySelector('video:not(#hidden-ad)').currentTime=.1;});await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').seeking);
+  await page.waitForFunction(()=>Array.from(document.querySelector('video:not(#hidden-ad)').textTracks).slice(1).every(track=>track.activeCues?.length===1));
   const target=await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1/'))?.id).catch(()=>null);
   const tabId=target || await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1:')).id);
   async function inject(files){return popup.evaluate(async({tabId,files})=>chrome.scripting.executeScript({target:{tabId},files}),{tabId,files});}
   await inject(['data/pinyin.js','core.js','preprocess.js','content.js']);await page.locator('#mandarin-lens-root').waitFor();
+  assert.ok(await page.evaluate(()=>{const video=document.querySelector('video:not(#hidden-ad)').getBoundingClientRect(),host=document.querySelector('#mandarin-lens-root').getBoundingClientRect();return Math.abs(video.top-host.top)<1&&Math.abs(video.height-host.height)<1;}));report.checks.push('Overlay anchors to visible main video when the first video is hidden');
   const cdp=await context.newCDPSession(page);
   async function shadowObject(){const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function find(node){if(node.attributes?.includes('mandarin-lens-root'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=find(child);if(found)return found;}}const host=find(tree);assert(host?.shadowRoots?.[0]);return (await cdp.send('DOM.resolveNode',{nodeId:host.shadowRoots[0].nodeId})).object.objectId;}
   async function shadow(fn,arg){const objectId=await shadowObject();const result=await cdp.send('Runtime.callFunctionOn',{objectId,functionDeclaration:`function(arg){return (${fn.toString()})(this,arg)}`,arguments:[{value:arg}],returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));return result.result.value;}
@@ -49,10 +57,11 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
    await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(100);assert.match(await shadow(root=>root.querySelector('#status').textContent),/cannot translate locally|does not support|could not start/i);report.checks.push('Actual unsupported Translator environment shows a local-only fallback without downloading a model');
   }else report.checks.push('Actual Translator availability inspected only; model creation/download deliberately not triggered');
   await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator=undefined;}}),tabId);await shadow(root=>root.querySelector('#cta').click());assert.match(await shadow(root=>root.querySelector('#status').textContent),/cannot translate locally/);report.checks.push('Explicit API-absent test double verifies unsupported-device message');
-  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator={availability:async()=> 'available',create:async()=>({translate:async text=>{if(globalThis.__slowPrepare)await new Promise(resolve=>setTimeout(resolve,250));return text.includes('Chinese')?'我学习中文。':'我想喝咖啡。';},destroy(){}})};}}),tabId);
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator={availability:async()=> 'available',create:async()=>({translate:async text=>{if(globalThis.__slowPrepare)await new Promise(resolve=>setTimeout(resolve,250));if(globalThis.__failNext){globalThis.__failNext=false;throw Error('Synthetic local-model failure');}if(Number.isInteger(globalThis.__failAfter)&&--globalThis.__failAfter===0){delete globalThis.__failAfter;throw Error('Synthetic preparation failure');}return text.includes('Chinese')?'我学习中文。':'我想喝咖啡。';},destroy(){}})};}}),tabId);
   await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:false}));
   await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(200);
   for(let attempt=0;attempt<30;attempt++){if((await shadow(root=>[...root.querySelectorAll('#main .han')].map(el=>el.textContent).join(''))).includes('咖啡'))break;await page.waitForTimeout(100);}
+  assert.match(await shadow(root=>root.querySelector('#original').textContent),/I want to drink coffee/);assert.doesNotMatch(await shadow(root=>root.querySelector('#original').textContent),/metadata|French/);report.checks.push('Live captions use matching-language subtitles instead of active metadata or French tracks');
   await page.screenshot({path:path.join(output,'overlay-clean.png')});
   // CDP sets the real hidden input's file list without exposing closed shadow roots to webpages.
   const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function findInput(node){if(node.nodeName==='INPUT'&&node.attributes?.includes('file'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=findInput(child);if(found)return found;}}const input=findInput(tree);assert(input);await cdp.send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[path.join(__dirname,'fixtures/untrusted.srt')]});
@@ -65,25 +74,25 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.screenshot({path:path.join(output,'overlay.png')});
   await shadow(root=>root.querySelector('[aria-label="Timed transcript"]').click());assert.match(await shadow(root=>root.querySelector('#transcript').textContent),/I am learning Chinese/);report.checks.push('Timed transcript renders imported prepared cues');
   // Exercise real media looping; model output remains explicitly simulated.
-  await page.evaluate(()=>document.querySelector('video').pause());
+  await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').pause());
   await shadow(root=>root.querySelector('#loop').click());
-  await page.waitForFunction(()=>!document.querySelector('video').paused);
-  await page.evaluate(()=>{document.querySelector('video').currentTime=4.9;});
-  await page.waitForFunction(()=>!document.querySelector('video').seeking);
+  await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').paused);
+  await page.evaluate(()=>{document.querySelector('video:not(#hidden-ad)').currentTime=4.9;});
+  await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').seeking);
   await page.waitForTimeout(500);
   assert.equal(await shadow(root=>root.querySelector('#loop').getAttribute('aria-pressed')),'true');
-  assert.ok(await page.evaluate(()=>document.querySelector('video').currentTime<2));
-  await page.evaluate(()=>{document.querySelector('video').currentTime=8;});
-  await page.waitForFunction(()=>!document.querySelector('video').seeking);await page.waitForTimeout(100);
+  assert.ok(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').currentTime<2));
+  await page.evaluate(()=>{document.querySelector('video:not(#hidden-ad)').currentTime=8;});
+  await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').seeking);await page.waitForTimeout(100);
   assert.equal(await shadow(root=>root.querySelector('#loop').getAttribute('aria-pressed')),'false');
-  await page.evaluate(()=>document.querySelector('video').pause());
+  await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').pause());
   report.checks.push('Sentence loop wraps real media and releases on manual seek outside its cue');
   await shadow(root=>root.querySelector('#loop').click());
-  await page.waitForFunction(()=>!document.querySelector('video').paused);
-  await page.evaluate(()=>{document.querySelector('video').currentTime=11.9;});
-  await page.waitForFunction(()=>!document.querySelector('video').seeking);await page.waitForTimeout(500);
-  assert.ok(await page.evaluate(()=>{const v=document.querySelector('video');return !v.paused&&v.currentTime>=5&&v.currentTime<7;}));
-  await shadow(root=>root.querySelector('#loop').click());await page.evaluate(()=>document.querySelector('video').pause());
+  await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').paused);
+  await page.evaluate(()=>{document.querySelector('video:not(#hidden-ad)').currentTime=11.9;});
+  await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').seeking);await page.waitForTimeout(500);
+  assert.ok(await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');return !v.paused&&v.currentTime>=5&&v.currentTime<7;}));
+  await shadow(root=>root.querySelector('#loop').click());await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').pause());
   report.checks.push('Looping the final sentence resumes after the media reaches its natural end');
   await shadow(root=>root.querySelector('#transcript input').focus());await page.keyboard.press('Escape');
   assert.equal(await shadow(root=>root.querySelector('#transcript').classList.contains('show')),false);
@@ -112,6 +121,37 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   for(let i=0;i<40;i++){if((await shadow(root=>root.querySelector('#status').textContent)).includes('Prepared 3'))break;await page.waitForTimeout(100);}
   assert.match(await shadow(root=>root.querySelector('#status').textContent),/Prepared 3/);
   report.checks.push('Cancel before the twentieth line saves its completed prefix, ignores the stale in-flight result and can resume');
+  await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.src='/video.webm?switched=1';v.load();});
+  await page.waitForFunction(()=>document.querySelector('video:not(#hidden-ad)').readyState>=2);await page.waitForTimeout(200);
+  assert.doesNotMatch(await shadow(root=>root.querySelector('#prepStatus').textContent),/Ready/);
+  assert.doesNotMatch(await shadow(root=>root.querySelector('#transcript').textContent),/Checkpoint one/);
+  report.checks.push('Changing the same video element source at the same page URL invalidates prepared/imported captions');
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.__failNext=true;}}),tabId);
+  await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.textTracks[v.textTracks.length-1].cues[0].text='Recovering from a local failure.';document.querySelector('.ytp-caption-segment').textContent='Recovering from a local failure.';v.currentTime=.1;v.dispatchEvent(new Event('timeupdate'));});
+  for(let i=0;i<40;i++){if(await shadow(root=>root.querySelector('#cta').classList.contains('show')))break;await page.waitForTimeout(100);}
+  if(!(await shadow(root=>root.querySelector('#status').textContent)).includes('Press Start learning to retry'))console.log('RECOVERY_DIAGNOSTIC',JSON.stringify(await popup.evaluate(async tabId=>(await chrome.scripting.executeScript({target:{tabId},func:()=>{const v=document.querySelector('video:not(#hidden-ad)');return {failNext:globalThis.__failNext,ready:v.readyState,time:v.currentTime,tracks:Array.from(v.textTracks).map(t=>({kind:t.kind,lang:t.language,mode:t.mode,cues:t.cues?.length,active:t.activeCues?.length})),native:MandarinLensPreprocess.activeCaption(v,'en-zh'),dom:v.parentElement.querySelector('.ytp-caption-segment')?.textContent};}}))[0].result,tabId)));
+  assert.match(await shadow(root=>root.querySelector('#status').textContent),/Press Start learning to retry/);
+  await shadow(root=>root.querySelector('#cta').click());
+  for(let i=0;i<40;i++){if((await shadow(root=>root.querySelector('#main .han')?.textContent||'')))break;await page.waitForTimeout(100);}
+  assert.equal(await shadow(root=>root.querySelector('#cta').classList.contains('show')),false);
+  assert.match(await shadow(root=>root.querySelector('#translated').textContent),/咖啡/);
+  report.checks.push('An actual rejected live translation exposes a retry control and resumes after reactivation');
+  const failFile=path.join(temporary,'failure.srt');await fs.writeFile(failFile,'1\n00:00:00,000 --> 00:00:03,000\nFailure one.\n\n2\n00:00:03,000 --> 00:00:06,000\nFailure two.\n\n3\n00:00:06,000 --> 00:00:09,000\nFailure three.\n');
+  const {root:failureTree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});await cdp.send('DOM.setFileInputFiles',{nodeId:findInput(failureTree).nodeId,files:[failFile]});await page.waitForTimeout(100);
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.__failAfter=2;}}),tabId);
+  await shadow(root=>root.querySelector('#prepareRow button').click());
+  for(let i=0;i<40;i++){if((await shadow(root=>root.querySelector('#status').textContent)).includes('Preparation stopped.'))break;await page.waitForTimeout(100);}
+  assert.match(await shadow(root=>root.querySelector('#status').textContent),/prepare again to resume/);
+  assert.ok(await popup.evaluate(async()=>Object.entries(await chrome.storage.local.get(null)).some(([key,value])=>key.startsWith('prepared:')&&value.cues?.length===1&&value.cues[0].text==='Failure one.')));
+  await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(400);await shadow(root=>root.querySelector('#prepareRow button').click());
+  for(let i=0;i<40;i++){if((await shadow(root=>root.querySelector('#status').textContent)).includes('Prepared 3'))break;await page.waitForTimeout(100);}
+  assert.match(await shadow(root=>root.querySelector('#status').textContent),/Prepared 3/);
+  report.checks.push('Preparation model failure preserves completed lines and offers retry/resume without a page refresh');
+  await page.evaluate(()=>{const old=document.querySelector('video:not(#hidden-ad)'),next=old.cloneNode(false);next.src='/video.webm?replaced=1';old.replaceWith(next);});
+  for(let i=0;i<40;i++){if(!(await shadow(root=>root.querySelector('#prepStatus').textContent)).includes('Ready'))break;await page.waitForTimeout(50);}
+  assert.doesNotMatch(await shadow(root=>root.querySelector('#prepStatus').textContent),/Ready/);
+  assert.doesNotMatch(await shadow(root=>root.querySelector('#transcript').textContent),/Failure one/);
+  report.checks.push('Replacing a media element at the same page URL clears its old preparation and transcript');
   await shadow(root=>root.querySelector('[aria-label="Close Mandarin Lens"]').click());await page.locator('#mandarin-lens-root').waitFor({state:'detached'});report.checks.push('Overlay close removes host in actual extension runtime');
   await inject(['content.js']);await page.locator('#mandarin-lens-root').waitFor();if(!await popup.locator('#learningData').evaluate(el=>el.open))await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.accept());await popup.locator('#deleteData').click();await page.locator('#mandarin-lens-root').waitFor({state:'detached'});assert.equal(await popup.evaluate(async()=>Object.keys(await chrome.storage.local.get(null)).length),0);report.checks.push('Confirmed data deletion clears extension storage and closes active overlay');
   assert.equal(report.errors.length,0);assert.deepEqual(await fs.readFile(path.join(root,'manifest.json')),sourceManifest);assert.equal(createHash('sha256').update(await fs.readFile(archive)).digest('hex'),packageSha256);report.checks.push('Release ZIP and original manifest unchanged by temporary test permissions');report.passed=true;

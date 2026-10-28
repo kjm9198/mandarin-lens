@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 — 28 October 2026
+
+Prefer the main visible video over hidden or small players, prioritize fullscreen and playback, and filter live native caption tracks by source language and kind. Invalidate prepared/imported captions on media element/source changes even when the page URL stays the same. Restore a visible retry action after live/model preparation failure while preserving completed preparation lines. Clear obsolete caption warnings when captions return. No new permissions, services or dependencies.
+
 ## 1.1.0 — 28 October 2026
 
 Added sentence looping for prepared captions, with a visible active state and automatic release when seeking outside the selected sentence. Replay now respects the timing offset. Escape dismisses word explanations, settings and transcripts with keyboard focus restored. Prepared caption storage usage is visible, and a cache-only clear keeps vocabulary and display preferences. Pausing/canceling preparation checkpoints completed lines immediately; canceled in-flight work cannot append to that checkpoint. Cache eviction no longer counts discarded records against the remaining storage budget.
