@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 — 29 October 2026
+
+Redesigned the video overlay around compact subtitles. Word explanations are small anchored popovers outside the subtitle layout; hover has no action row or context, pinning reveals compact actions, and context expands only on request. Replaced the permanent branded toolbar with one explicit ··· control. Added smaller/lighter 12/18/12 subtitle defaults, transparent background and tighter spacing, with one-time migration of exact old defaults that preserves custom choices and vocabulary. Verified fixed subtitle geometry with hover/pin and bounded popovers at narrow viewport widths.
+
 ## 1.2.0 — 28 October 2026
 
 Prefer the main visible video over hidden or small players, prioritize fullscreen and playback, and filter live native caption tracks by source language and kind. Invalidate prepared/imported captions on media element/source changes even when the page URL stays the same. Restore a visible retry action after live/model preparation failure while preserving completed preparation lines. Clear obsolete caption warnings when captions return. No new permissions, services or dependencies.

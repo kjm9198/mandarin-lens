@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const DEFAULTS={direction:'en-zh',showHanzi:true,showPinyin:true,showOriginal:true,fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,horizontal:50,spacing:4,textOpacity:100,backgroundBlur:0,timingOffset:0,fontFamily:'system',toneColors:false,pauseOnWord:true,autoPrepare:true};
-const PRESETS={minimal:{fontSize:20,hanziSize:12,englishSize:12,opacity:0,position:8},balanced:{fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12},large:{fontSize:32,hanziSize:20,englishSize:18,opacity:32,position:16}};
+const DEFAULTS={direction:'en-zh',showHanzi:true,showPinyin:true,showOriginal:true,fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,horizontal:50,spacing:2,textOpacity:100,backgroundBlur:0,timingOffset:0,fontFamily:'system',toneColors:false,pauseOnWord:true,autoPrepare:true};
+const PRESETS={minimal:{fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,spacing:2},balanced:{fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4},large:{fontSize:32,hanziSize:20,englishSize:18,opacity:32,position:16}};
 const ranges={fontSize:[14,42,'px'],hanziSize:[10,32,'px'],englishSize:[10,32,'px'],opacity:[0,80,'%'],position:[4,40,'%'],horizontal:[10,90,'%'],spacing:[0,16,'px'],textOpacity:[40,100,'%'],backgroundBlur:[0,16,'px'],timingOffset:[-5,5,'s']};
 const fonts={system:'system-ui, sans-serif',serif:'Georgia, serif',rounded:'ui-rounded, system-ui, sans-serif'};
 const controls=[...document.querySelectorAll('button,input,select')];
@@ -19,7 +19,7 @@ $('start').addEventListener('click',async()=>{const button=$('start');button.dis
 $('vocabulary').addEventListener('click',()=>chrome.tabs.create({url:chrome.runtime.getURL('vocabulary.html')}));
 $('help').addEventListener('click',()=>chrome.tabs.create({url:chrome.runtime.getURL('help.html')}));
 $('deleteData').addEventListener('click',async()=>{if(!confirm('Delete all saved words and preferences from Mandarin Lens? This cannot be undone. Close or refresh video tabs to remove their in-memory subtitles too.'))return;try{await chrome.storage.local.set({dataEpoch:Date.now()});await chrome.storage.local.clear();applyValues(DEFAULTS);$('wordCount').textContent='0';$('status').textContent='All saved learning data deleted. Close or refresh video tabs to clear active sessions.';}catch{failure('Could not delete learning data. Try again.');}});
-(async()=>{applyValues(await chrome.storage.local.get(DEFAULTS));const {vocabulary=[]}=await chrome.storage.local.get({vocabulary:[]});$('wordCount').textContent=String(Array.isArray(vocabulary)?vocabulary.length:0);})().catch(()=>failure('Could not load settings. Reopen Mandarin Lens to try again.')).finally(()=>{for(const el of controls)el.disabled=false;if($('learningData').open)void refreshCacheUsage();});
+(async()=>{const values=await chrome.storage.local.get({...DEFAULTS,compactLayoutVersion:0}),patch=MandarinLensCore.compactAppearance(values);if(Object.keys(patch).length)await chrome.storage.local.set(patch);applyValues({...values,...patch});const {vocabulary=[]}=await chrome.storage.local.get({vocabulary:[]});$('wordCount').textContent=String(Array.isArray(vocabulary)?vocabulary.length:0);})().catch(()=>failure('Could not load settings. Reopen Mandarin Lens to try again.')).finally(()=>{for(const el of controls)el.disabled=false;if($('learningData').open)void refreshCacheUsage();});
 
 let cacheRequest=0;
 async function refreshCacheUsage(){

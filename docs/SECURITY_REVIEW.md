@@ -55,3 +55,8 @@ The added cache-only deletion UI measures extension-local prepared records and r
 ## Version 1.2 follow-up
 
 Source review of media selection, live track filtering and retry handling confirms no new permissions, executable sources, message bridges, uploads or runtime dependencies. Candidate enumeration is bounded to 32 videos/tracks/cues; DOM caption fallback is scoped to the chosen player. Video/source changes invalidate old generation-sensitive preparation and clear in-memory imported captions. Rejected live translations expose user-initiated restart; preparation failures checkpoint the completed prefix before resetting the local translator. Existing safe text rendering, source-file import validation, cache limits and restrictive CSP remain in place. These are correctness and availability improvements, not a new independent audit or proof of universal site compatibility.
+
+
+## Version 1.3 follow-up
+
+Word explanations remain safe text nodes inside the closed extension shadow tree; moving them outside the subtitle layout does not add a page message bridge or external API. Positioning uses local element rectangles and viewport bounds. The popup loads the already-packaged core script to share a pure appearance migration helper. The migration only writes known appearance fields and a constant layout-version marker, preserves vocabulary and custom font settings, and is tested against actual extension storage. No permission, network/capture capability or dependency was added. Existing CSP and package allowlist checks remain. This is internal review and does not certify universal accessibility or security.

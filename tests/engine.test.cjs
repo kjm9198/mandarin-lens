@@ -87,3 +87,12 @@ test('live source prefers explicit language and selected matching track with bou
  assert.equal(P.activeCaption({textTracks:[caption('en','hidden','hidden'),caption('en','showing','shown')]}),'shown');
  assert.equal(P.activeCaption(null),'');
 });
+
+
+test('compact migration updates only the exact previous default appearance',()=>{
+ const legacy={fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4};
+ assert.deepEqual(plain(C.compactAppearance(legacy)),{compactLayoutVersion:1,fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,spacing:2});
+ assert.deepEqual(plain(C.compactAppearance({...legacy,fontSize:28})),{compactLayoutVersion:1});
+ assert.deepEqual(plain(C.compactAppearance({...legacy,compactLayoutVersion:1})),{});
+ assert.deepEqual(plain(C.compactAppearance({})),{compactLayoutVersion:1});
+});

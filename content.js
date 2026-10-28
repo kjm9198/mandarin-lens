@@ -9,8 +9,8 @@
   }
 
   const state = {
-    direction: 'en-zh', showPinyin: true, showOriginal: true, fontSize: 22,
-    hanziSize:14, englishSize:14, textOpacity:100, horizontal:50, spacing:4, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 12, position: 12, pauseOnWord: true, autoPrepare: true,
+    direction: 'en-zh', showPinyin: true, showOriginal: true, fontSize: 18,
+    hanziSize:12, englishSize:12, textOpacity:100, horizontal:50, spacing:2, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 0, position: 8, pauseOnWord: true, autoPrepare: true,
     current: '', translation: '', enabled: false, translator: null, pendingTranslation: null,
     generation: 0, cache: new Map(), closed: false, selected: '',
     dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],mediaInitialized:false,mediaSource:null,mediaObject:null,captionSeenAt: 0,
@@ -53,7 +53,7 @@
     #top{touch-action:none}#identity{cursor:grab}#transcript{display:none;position:fixed;right:12px;top:12px;width:min(320px,90vw);max-height:70vh;overflow:auto;background:#122238f5;border:1px solid #8299b5;border-radius:12px;padding:12px;pointer-events:auto;text-align:left;font-size:13px;text-shadow:none}#transcript.show{display:block}#transcript input{width:100%;padding:8px;margin-bottom:8px}#transcript button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #456;background:transparent;color:white;padding:8px;line-height:1.5}
     @media(prefers-contrast:more){#main,#top{background:#07111f;border:1px solid white}}@media(prefers-reduced-transparency:reduce){#main,#top{background:#07111f;backdrop-filter:none}}
     .han-char,.syllable{display:inline-block;border-radius:3px;padding:0 2px}
-    .han-char:hover,.syllable:hover{background:rgba(171,217,255,.3)}
+    .syllable+.syllable{margin-left:.12em}.han-char:hover,.syllable:hover{background:rgba(171,217,255,.3)}
     .text-bit{white-space:pre-wrap}
     #status{display:none;max-width:88vw;background:rgba(13,25,40,.92);color:#e1efff;padding:9px 12px;border-radius:11px;font-size:12px;line-height:1.5;pointer-events:auto;text-shadow:none}
     #status.show{display:block}
@@ -79,13 +79,31 @@
     #prefs{position:fixed;top:16px;left:16px;right:auto;max-height:calc(100vh - 32px);overflow-y:auto;z-index:10;margin:0;width:min(350px,92vw)}
     .range-value{float:right;color:#b9deff;font-variant-numeric:tabular-nums}
     #presets{display:flex;gap:5px;margin:9px 0 12px}#presets button{flex:1;min-height:34px;border:1px solid #587a9f;border-radius:8px;background:#1e344e;color:#e6f4ff;padding:6px 4px;font-size:11px;cursor:pointer}#presets button.active{background:#b4ddff;color:#172a45;font-weight:750}#setupHint{font-size:11px;color:#bcdcf6;line-height:1.45;margin:4px 0 6px}#prefs .toggle{display:flex;gap:8px;align-items:center}#prefs .toggle input{margin:0}#prefsTitle{font-size:13px;font-weight:750}#main:empty{display:none}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-    @media(max-width:600px){#panel{width:96vw}#main{padding:5px 8px}}
+    @media(max-width:600px){#panel{width:96%}#main{padding:5px 8px}}
+
+    #surface{position:relative;width:fit-content;max-width:calc(100% - 32px);margin:0 auto;gap:2px}
+    #main{padding:2px 6px 3px;border-radius:6px;text-shadow:0 1px 3px #000,0 0 5px #000b}
+    .english{margin-top:2px;line-height:1.15}.pron{font-weight:600;line-height:1.1}.han{line-height:1.05}.word{padding:0 1px}.han-char,.syllable{padding:0 1px}
+    #controlToggle{position:absolute;right:-24px;bottom:2px;width:24px;height:22px;padding:0;border:0;border-radius:6px;background:#0d1b2d80;color:#fff;pointer-events:auto;opacity:.35;font-size:17px;line-height:1;letter-spacing:1px}
+    #controlToggle:hover,#controlToggle:focus-visible,#surface.controls-open #controlToggle{opacity:1}
+    #top{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(90vw,350px);padding:1px 5px;gap:4px;border-radius:8px;opacity:1;z-index:2}
+    #surface.controls-open #top{display:flex}#identity{font-size:9px;gap:4px}#badge{display:none}#actions{gap:1px}#top .icon{font-size:15px;padding:2px 6px;min-height:26px}
+    #prepareRow.show,#surface:hover #prepareRow.show,#surface:focus-within #prepareRow.show{display:none}
+    #surface.controls-open #prepareRow.show,#prepareRow.preparing{display:flex;position:absolute;bottom:calc(100% + 38px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(88vw,470px);opacity:1;z-index:3;padding:3px 5px;border-radius:6px}
+    #prepareRow button{font-size:10px;padding:4px 6px;min-height:24px}#prepStatus{font-size:10px}
+    #details{position:fixed;margin:0;width:max-content;max-width:240px;min-width:120px;padding:7px 9px;border-radius:8px;background:#142336f5;color:#f1f6ff;border:1px solid #ffffff26;box-shadow:0 3px 12px #0005;z-index:5;font:12px/1.3 system-ui,-apple-system,sans-serif;max-height:220px;overflow:auto}
+    #detailHeading{font-size:15px;font-weight:650}#detailPinyin{font-size:12px;color:#bedcff;margin-left:6px}#detailMeaning{font-size:12px;margin-top:3px;line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+    #detailContext,#detailHint,.detailBtns{display:none}#details.pinned .detailBtns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}.detailBtns button{font-size:10px;font-weight:550;padding:3px 6px;border:0;border-radius:4px;background:#ffffff13;color:#deedff;min-height:23px}
+    #details.expanded #detailContext{display:block;font-size:11px;color:#c0cfdf;margin-top:6px}#details.expanded #detailMeaning{display:block;overflow:visible}#details.expanded{max-width:min(280px,90vw)}
+    #status{font-size:11px;max-width:min(320px,85vw);padding:6px 8px;border-radius:6px}#busy{font-size:9px}
+    @media(max-width:600px){#main{padding:2px 4px}#controlToggle{right:-18px;width:18px}}
   `;  const panel = document.createElement('section'); panel.id = 'panel'; panel.setAttribute('aria-label', 'Mandarin Lens subtitles');
   const surface = document.createElement('div'); surface.id = 'surface';
   const top = document.createElement('div'); top.id = 'top';
+  const controlToggle=document.createElement('button');controlToggle.id='controlToggle';controlToggle.textContent='···';controlToggle.title='Subtitle controls';controlToggle.setAttribute('aria-label','Subtitle controls');controlToggle.setAttribute('aria-expanded','false');
   const identity = document.createElement('div'); identity.id = 'identity';
   const badge = document.createElement('span'); badge.id = 'badge'; badge.textContent = '文';
-  const title = document.createElement('span'); title.textContent = 'Mandarin Lens';
+  const title = document.createElement('span'); title.textContent = '';
   const directionLabel = document.createElement('span'); directionLabel.id = 'directionLabel';
   identity.append(badge, title, directionLabel);
   const actions = document.createElement('div'); actions.id = 'actions';
@@ -109,12 +127,13 @@
   const detailContext=document.createElement('div');detailContext.id='detailContext';
   const detailHint=document.createElement('div');detailHint.id='detailHint';detailHint.textContent='Click a word to keep this explanation open';
   const detailButtons=document.createElement('div');detailButtons.className='detailBtns';
-  const sound=document.createElement('button');sound.textContent='▶ Pronounce';
-  const save=document.createElement('button');save.textContent='☆ Save word';
-  const resume=document.createElement('button');resume.textContent='▶ Resume video';resume.hidden=true;
-  const detailClose=document.createElement('button');detailClose.textContent='Close';
-  detailButtons.append(sound,save,resume,detailClose);details.append(detailHeader,detailMeaning,detailContext,detailHint,detailButtons);
-  main.append(original,translated,busy,cta,details);
+  const sound=document.createElement('button');sound.textContent='Listen';sound.setAttribute('aria-label','Pronounce word');
+  const save=document.createElement('button');save.textContent='Save';save.setAttribute('aria-label','Save word');
+  const resume=document.createElement('button');resume.textContent='Play';resume.setAttribute('aria-label','Resume video');resume.hidden=true;
+  const detailClose=document.createElement('button');detailClose.textContent='×';detailClose.setAttribute('aria-label','Close word explanation');
+  const more=document.createElement('button');more.textContent='⋯';more.setAttribute('aria-label','Show sentence context');more.setAttribute('aria-expanded','false');
+  detailButtons.append(sound,save,resume,more,detailClose);details.append(detailHeader,detailMeaning,detailContext,detailHint,detailButtons);
+  main.append(original,translated,busy,cta);
   const prepRow=document.createElement('div');prepRow.id='prepareRow';
   const prepareButton=document.createElement('button');prepareButton.textContent='Prepare video first';prepareButton.title='Translate available timed subtitle cues in advance (requires an accessible full transcript or SRT/VTT)';
   const fileButton=document.createElement('button');fileButton.textContent='Import captions';fileButton.title='Import a local subtitle file to prepare the video';
@@ -126,8 +145,8 @@
   const prefsTitle=document.createElement('div');prefsTitle.id='prefsTitle';prefsTitle.textContent='Make subtitles yours';
   const setupHint=document.createElement('div');setupHint.id='setupHint';setupHint.textContent='Changes appear instantly. Pick a preset or fine-tune below.';
   const presets=document.createElement('div');presets.id='presets';
-  const presetMap={minimal:{fontSize:20,hanziSize:12,englishSize:12,opacity:0,position:8},balanced:{fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12},large:{fontSize:32,hanziSize:20,englishSize:18,opacity:32,position:16}};
-  for(const [id,label] of [['minimal','Minimal'],['balanced','Comfort'],['large','Large']]){const b=document.createElement('button');b.textContent=label;b.type='button';b.dataset.preset=id;b.addEventListener('click',()=>{const values=presetMap[id];Object.assign(state,values);applyAppearance();render();void chrome.storage.local.set(values);});presets.append(b);}
+  const presetMap={minimal:{fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,spacing:2},balanced:{fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4},large:{fontSize:32,hanziSize:20,englishSize:18,opacity:32,position:16}};
+  for(const [id,label] of [['minimal','Compact'],['balanced','Comfort'],['large','Large']]){const b=document.createElement('button');b.textContent=label;b.type='button';b.dataset.preset=id;b.addEventListener('click',()=>{const values=presetMap[id];Object.assign(state,values);applyAppearance();render();void chrome.storage.local.set(values);});presets.append(b);}
   const prefLang=document.createElement('label');prefLang.textContent='Source ';const select=document.createElement('select');
   for(const [value,label] of [['en-zh','English → Chinese'],['zh-en','Chinese → English']]){const option=document.createElement('option');option.value=value;option.textContent=label;select.append(option);}prefLang.append(select);
   const prefPinyin=document.createElement('label');prefPinyin.className='toggle';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=true;prefPinyin.append(checkbox,document.createTextNode(' Show pinyin below small Chinese characters'));
@@ -149,9 +168,9 @@
   prefs.append(prefsTitle,setupHint,presets,prefLang,prefPinyin,prefOriginal,autoPrep,pauseLabel,sizeLabel,opacityLabel,positionLabel);
   const status = document.createElement('div');status.id = 'status';status.setAttribute('role','status');status.textContent = 'Turn on the video’s CC captions to start.';
   const transcript=document.createElement('section');transcript.id='transcript';transcript.setAttribute('aria-label','Timed transcript');const transcriptSearch=document.createElement('input');transcriptSearch.type='search';transcriptSearch.placeholder='Search prepared captions';transcriptSearch.setAttribute('aria-label','Search prepared captions');const transcriptLines=document.createElement('div');transcript.append(transcriptSearch,transcriptLines);
-  surface.append(top,prepRow,main,prefs,status);panel.append(surface,transcript);shadow.append(style,panel);
+  surface.append(controlToggle,top,prepRow,main,prefs,status);panel.append(surface,transcript);shadow.append(style,panel,details);
 
-  const extraDefaults={hanziSize:14,englishSize:14,textOpacity:100,horizontal:50,spacing:4,backgroundBlur:0,timingOffset:0,fontFamily:'system',showHanzi:true,toneColors:false};
+  const extraDefaults={hanziSize:12,englishSize:12,textOpacity:100,horizontal:50,spacing:2,backgroundBlur:0,timingOffset:0,fontFamily:'system',showHanzi:true,toneColors:false};
   function applyExtraPrefs(values){
     const ranges={hanziSize:[10,32],englishSize:[10,32],textOpacity:[40,100],horizontal:[10,90],spacing:[0,16],backgroundBlur:[0,16],timingOffset:[-5,5]};
     for(const key of Object.keys(extraDefaults)){
@@ -184,6 +203,15 @@
     for(const cue of cues.slice(0,200)){const b=document.createElement('button');b.textContent=`${Math.floor(cue.start/60)}:${String(Math.floor(cue.start%60)).padStart(2,'0')} · ${cue.text} · ${cue.translation}`;b.addEventListener('click',()=>{const video=currentVideo();if(video){video.currentTime=cue.start+state.timingOffset;checkCaptions();}});transcriptLines.append(b);}
     if(cues.length>200)transcriptLines.append(document.createTextNode('Showing the first 200 matches. Refine your search.'));
   }
+  function positionDetails(){
+    if(!details.classList.contains('show'))return;
+    const anchor=state.detailAnchor?.isConnected?state.detailAnchor.getBoundingClientRect():main.getBoundingClientRect();
+    const bounds=host.getBoundingClientRect(),left=Math.max(8,bounds.left+4),right=Math.min(innerWidth-8,bounds.right-4),top=Math.max(8,bounds.top+4),bottom=Math.min(innerHeight-8,bounds.bottom-4);
+    details.style.maxWidth=Math.max(100,Math.min(details.classList.contains('expanded')?280:240,right-left))+'px';
+    const box=details.getBoundingClientRect(),x=Math.max(left,Math.min(right-box.width,anchor.left+anchor.width/2-box.width/2));
+    let y=anchor.top-box.height-7;if(y<top)y=anchor.bottom+7;y=Math.max(top,Math.min(bottom-box.height,y));
+    details.style.left=x+'px';details.style.top=y+'px';
+  }
   function attach() {
     if (state.closed) return;
     const full = document.fullscreenElement;
@@ -191,6 +219,7 @@
     if (parent && host.parentNode !== parent) parent.appendChild(host);
     const rect=currentVideo()?.getBoundingClientRect();
     if(rect?.width>0&&rect?.height>0){host.style.inset='auto';host.style.left=rect.left+'px';host.style.top=rect.top+'px';host.style.width=rect.width+'px';host.style.height=rect.height+'px';}else{host.style.inset='0';host.style.width='auto';host.style.height='auto';}
+    positionDetails();
   }
   function info(message){
     if(status.textContent===message)return;
@@ -219,16 +248,13 @@
     if (!C.isChinese(word)) {
       const span=document.createElement('span');span.className='text-bit';span.textContent=word;return span;
     }
-    const btn=document.createElement('button');btn.className='word'+(state.showPinyin?'':' no-pinyin');btn.type='button';btn.title=`${word} — ${C.pinyinFor(word)}. Hover to explain; click to pin.`;
+    const btn=document.createElement('button');btn.className='word'+(state.showPinyin?'':' no-pinyin');btn.type='button';btn.setAttribute('aria-label',`${word} · ${C.pinyinFor(word)}. Select for meaning.`);btn.setAttribute('aria-haspopup','dialog');btn.setAttribute('aria-controls','details');
     const characters=[...word];
     const readings=C.pinyinFor(word).split(/\s+/);
     const h=document.createElement('span');h.className='han';
     characters.forEach((character,index)=>{
       const piece=document.createElement('span');piece.className='han-char';piece.textContent=character;
-      piece.title=`${character} · ${readings[index] || C.pinyinFor(character)} · ${C.meaning(character) || 'See word meaning'}`;
-      piece.addEventListener('pointerenter',()=>{clearTimeout(state.hoverTimer);clearTimeout(state.leaveTimer);if(!state.wordPinned)void showWord(character,false);});
-      piece.addEventListener('pointerdown',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(character,true);});
-      piece.addEventListener('click',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(character,true);});
+      piece.addEventListener('click',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(character,true,btn);});
       h.append(piece);
     });
     btn.append(h);
@@ -237,10 +263,7 @@
       if(readings.length===characters.length && characters.every(ch=>C.isChinese(ch))){
         readings.forEach((syllable,index)=>{
           const piece=document.createElement('span');piece.className='syllable tone-'+(/[āēīōūǖ]/i.test(syllable)?1:/[áéíóúǘ]/i.test(syllable)?2:/[ǎěǐǒǔǚ]/i.test(syllable)?3:/[àèìòùǜ]/i.test(syllable)?4:5);piece.textContent=syllable;
-          piece.title=`${characters[index]} · ${syllable} · ${C.meaning(characters[index]) || 'See word meaning'}`;
-          piece.addEventListener('pointerenter',()=>{clearTimeout(state.hoverTimer);clearTimeout(state.leaveTimer);if(!state.wordPinned)void showWord(characters[index],false);});
-          piece.addEventListener('pointerdown',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(characters[index],true);});
-          piece.addEventListener('click',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(characters[index],true);});
+          piece.addEventListener('click',(event)=>{event.stopPropagation();clearTimeout(state.leaveTimer);void showWord(characters[index],true,btn);});
           p.append(piece);
         });
       } else {p.textContent=C.pinyinFor(word);}
@@ -248,14 +271,14 @@
     }
     btn.addEventListener('pointerenter',()=>{
       clearTimeout(state.leaveTimer);clearTimeout(state.hoverTimer);
-      if(!state.wordPinned)state.hoverTimer=setTimeout(()=>void showWord(word,false),130);
+      if(!state.wordPinned)state.hoverTimer=setTimeout(()=>void showWord(word,false,btn),350);
     });
     btn.addEventListener('pointerleave',()=>{clearTimeout(state.hoverTimer);hideHoverSoon();});
-    btn.addEventListener('focus',()=>{if(!state.wordPinned&&!state.dismissWordFocus)void showWord(word,false);});
+    btn.addEventListener('focus',()=>{if(!state.wordPinned&&!state.dismissWordFocus)void showWord(word,false,btn);});
     btn.addEventListener('click',(event)=>{
       // Avoid replacing a character-level selection with a whole-word popup.
       if(event.target!==btn && event.target!==h && !event.target.classList.contains('pron'))return;
-      clearTimeout(state.leaveTimer);void showWord(word,true);
+      clearTimeout(state.leaveTimer);void showWord(word,true,btn);
     });return btn;
   }
   function chineseLine(target,text,isOriginal=false) {
@@ -291,6 +314,7 @@
       if(state.direction==='en-zh')chineseLine(translated,state.translation);
       else translated.textContent=state.translation;
     }
+    positionDetails();
   }
   const cacheKey=(t)=>`${state.direction}:${t}`;
   // One translation at a time per Translator instance. Coalesce fast captions into
@@ -452,7 +476,7 @@
     if(text===state.current && nextTranslation===state.translation)return;
     state.current=text;state.translation=nextTranslation;
     state.captionSeenAt=Date.now();
-    if(!state.wordPinned)details.classList.remove('show');
+    if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}
     render();
     if(state.enabled && translated===null){status.classList.remove('show');if(!state.preparing)void translateLatest();}
     else if(!state.enabled)info('Captions found! Press Start learning to show Chinese and pinyin.');
@@ -484,7 +508,7 @@
     if(text)updateCaption(text);
     else if(state.current && Date.now()-state.captionSeenAt > 1100){
       state.current='';state.translation='';
-      if(!state.wordPinned)details.classList.remove('show');
+      if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}
       render();
     } else if(!state.current && state.enabled && Date.now()-state.activatedAt>2600){
       info('No captions detected. Turn on CC in the video, or import an SRT/VTT file. Audio-only transcription is not available yet.');
@@ -535,9 +559,10 @@
   function hideHoverSoon(){
     if(state.wordPinned)return;
     clearTimeout(state.leaveTimer);
-    state.leaveTimer=setTimeout(()=>{if(!state.wordPinned)details.classList.remove('show');},340);
+    state.leaveTimer=setTimeout(()=>{if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}},340);
   }
-  async function showWord(word,pinned){
+  async function showWord(word,pinned,anchor){
+    if(anchor){if(state.detailAnchor!==anchor)state.detailAnchor?.removeAttribute('aria-describedby');state.detailAnchor=anchor;anchor.setAttribute('aria-describedby','detailMeaning');}
     if(pinned){state.wordPinned=true;const video=currentVideo();if(state.pauseOnWord && video && !video.paused){video.pause();resume.hidden=false;}else resume.hidden=true;}
     else if(state.wordPinned)return;
     state.selected=word;
@@ -547,8 +572,9 @@
     detailMeaning.textContent=found || 'No offline dictionary entry yet. Click for an optional local lookup.';
     detailContext.textContent=`In context: ${state.current || state.translation || word}`;
     detailHint.textContent=pinned?'Pinned • Close to dismiss':'Hover preview • Click word to pin';
-    save.textContent='☆ Save word';
-    details.classList.add('show');
+    save.textContent='Save';
+    details.setAttribute('role',pinned?'dialog':'tooltip');details.classList.toggle('pinned',Boolean(pinned));details.classList.remove('expanded');more.setAttribute('aria-expanded','false');
+    details.classList.add('show');positionDetails();
     if(!pinned||found)return;
     try {
       if(!state.reverseTranslator){
@@ -559,7 +585,7 @@
         state.reverseTranslator=reverse;
       }
       const meaning=C.normalize(await timedTranslate(state.reverseTranslator,word));
-      if(!state.closed && state.selected===word)detailMeaning.textContent=meaning || 'No meaning available for this word.';
+      if(!state.closed && state.selected===word){detailMeaning.textContent=meaning || 'No meaning available for this word.';positionDetails();}
     } catch {
       if(state.selected===word)detailMeaning.textContent='No local definition found. Chrome’s on-device Chinese → English pack may be unavailable.';
       state.reverseCreating=null;
@@ -571,12 +597,12 @@
       const {vocabulary=[]}=await chrome.storage.local.get({vocabulary:[]});
       if(state.closed)return;
       const clean=Array.isArray(vocabulary)?vocabulary.filter(entry=>typeof entry?.word==='string').slice(-500):[];
-      if(clean.some(entry=>entry.word===state.selected)){save.textContent='✓ Already saved';return;}
+      if(clean.some(entry=>entry.word===state.selected)){save.textContent='Saved';return;}
       if(clean.length>=500){save.textContent='Collection full · export or remove words';return;}
       clean.push({word:state.selected.slice(0,100),pinyin:C.pinyinFor(state.selected).slice(0,300),meaning:detailMeaning.textContent.slice(0,600),example:C.normalize(state.current),timestamp:Math.max(0,currentVideo()?.currentTime||0),savedAt:Date.now()});
       if(state.closed)return;
       await chrome.storage.local.set({vocabulary:clean});
-      save.textContent='✓ Saved locally';
+      save.textContent='Saved';
     }catch{save.textContent='Could not save';}
   }
   function pronounce(){
@@ -604,7 +630,8 @@
   function open(){
     if(state.closed)return;
     attach();panel.hidden=false;
-    void chrome.storage.local.get({direction:'en-zh',showPinyin:true,showOriginal:true,fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,pauseOnWord:true,autoPrepare:true,...extraDefaults}).then(v=>{
+    void chrome.storage.local.get({direction:'en-zh',showPinyin:true,showOriginal:true,fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,pauseOnWord:true,autoPrepare:true,...extraDefaults,compactLayoutVersion:0}).then(async v=>{
+      const patch=C.compactAppearance(v);if(Object.keys(patch).length){await chrome.storage.local.set(patch);Object.assign(v,patch);}
       if(state.closed)return;
       const next=C.isDirection(v.direction)?v.direction:'en-zh';
       if(state.direction!==next){state.direction=next;resetTranslation();}
@@ -636,6 +663,8 @@
       info(`Imported ${cues.length} private caption lines. Choose Prepare video first to translate them.`);
     }catch(error){info(`Could not read subtitles: ${error?.message||'Invalid file'}`);}
   });
+  controlToggle.addEventListener('click',()=>{const visible=surface.classList.toggle('controls-open');controlToggle.setAttribute('aria-expanded',String(visible));if(visible){clearTimeout(state.hoverTimer);state.wordPinned=false;details.classList.remove('show');}else{prefs.classList.remove('show');gear.setAttribute('aria-expanded','false');}});
+  more.addEventListener('click',()=>{const expanded=details.classList.toggle('expanded');more.setAttribute('aria-expanded',String(expanded));positionDetails();});
   gear.addEventListener('click',()=>{const open=prefs.classList.toggle('show');gear.setAttribute('aria-expanded',String(open));});
   loop.addEventListener('click',()=>{if(state.loopCue){stopLoop();render();return;}const video=currentVideo();if(!video||!state.lastCue)return;state.loopCue={...state.lastCue};state.loopSeeking=true;video.currentTime=Math.max(0,state.loopCue.start+state.timingOffset)+.01;render();void video.play().catch(()=>info('Press Play on the video to loop this subtitle.'));});
   replay.addEventListener('click',()=>{const video=currentVideo();if(!video||!state.lastCue)return;video.currentTime=Math.max(0,state.lastCue.start+state.timingOffset+.02);void video.play().catch(()=>info('Press Play on the video to replay the line.'));});
@@ -646,13 +675,14 @@
   cta.addEventListener('click',startLocalTranslation);
   details.addEventListener('pointerenter',()=>clearTimeout(state.leaveTimer));
   details.addEventListener('pointerleave',hideHoverSoon);
-  detailClose.addEventListener('click',()=>{state.wordPinned=false;details.classList.remove('show');});
+  detailClose.addEventListener('click',()=>{state.wordPinned=false;details.classList.remove('show');state.dismissWordFocus=true;if(state.detailAnchor?.isConnected)state.detailAnchor.focus({preventScroll:true});state.dismissWordFocus=false;});
   shadow.addEventListener('keydown',event=>{
     if(event.key!=='Escape')return;
     let focus;
-    if(details.classList.contains('show')){state.wordPinned=false;details.classList.remove('show');focus=main.querySelector('.word');}
+    if(details.classList.contains('show')){state.wordPinned=false;details.classList.remove('show');focus=state.detailAnchor?.isConnected?state.detailAnchor:main.querySelector('.word');}
     else if(prefs.classList.contains('show')){prefs.classList.remove('show');gear.setAttribute('aria-expanded','false');focus=gear;}
     else if(transcript.classList.contains('show')){transcript.classList.remove('show');transcriptButton.setAttribute('aria-expanded','false');focus=transcriptButton;}
+    else if(surface.classList.contains('controls-open')){surface.classList.remove('controls-open');controlToggle.setAttribute('aria-expanded','false');focus=controlToggle;}
     else return;
     event.preventDefault();event.stopPropagation();state.dismissWordFocus=true;focus?.focus();state.dismissWordFocus=false;
   });

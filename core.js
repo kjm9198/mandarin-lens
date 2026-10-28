@@ -128,6 +128,13 @@
     return words;
   }
   const meaning = (word) => typeof word==='string' ? own(DEFINITIONS,word) : '';
-  const api = Object.freeze({normalize, isChinese, isDirection, options, pinyinFor, segmentChinese, meaning});
+  function compactAppearance(values){
+    if(values?.compactLayoutVersion>=1)return {};
+    const legacy={fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4};
+    const patch={compactLayoutVersion:1};
+    if(values&&Object.entries(legacy).every(([key,value])=>values[key]===value))Object.assign(patch,{fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,spacing:2});
+    return patch;
+  }
+  const api = Object.freeze({normalize, isChinese, isDirection, options, pinyinFor, segmentChinese, meaning, compactAppearance});
   globalThis.MandarinLensCore = api;
 })();

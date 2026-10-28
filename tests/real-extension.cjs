@@ -30,7 +30,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   const browserCdp=await context.browser().newBrowserCDPSession();for(const old of (await browserCdp.send('Extensions.getExtensions')).extensions){await browserCdp.send('Extensions.uninstall',{id:old.id});}const {id}=await browserCdp.send('Extensions.loadUnpacked',{path:extension});
   const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/popup.html`);await popup.locator('#start:not([disabled])').waitFor();
   report.extensionLoading='Official CDP Extensions.loadUnpacked over Playwright debugging pipe, isolated temporary profile';report.browser=context.browser().version();report.extensionVersion=manifest.version;
-  await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:true,fontSize:24,position:12}));
+  await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:true}));
   const page=await context.newPage();page.on('pageerror',error=>report.errors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}/video`);
   const target=await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1/'))?.id).catch(()=>null);
   const tabId=target || await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1:')).id);
@@ -62,6 +62,15 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   assert.match(englishToChinese.hanzi,/咖啡/);assert.match(englishToChinese.pinyin,/kā/);assert.match(englishToChinese.text,/I want to drink coffee/);report.enZh=englishToChinese;
   report.checks.push('Actual extension user click downloaded/initialized real Translator and prepared English captions into Chinese plus pinyin');
   await page.mouse.move(10,10);await page.waitForTimeout(600);await page.screenshot({path:path.join(output,'real-extension-en-zh.png')});await page.screenshot({path:path.join(output,'real-extension.png')});
+  const compactBefore=await shadow(root=>{const b=root.querySelector('#main').getBoundingClientRect();return {top:b.top,height:b.height,toolbar:getComputedStyle(root.querySelector('#top')).display};});
+  assert.equal(compactBefore.toolbar,'none');assert.ok(compactBefore.height<=66);
+  const word=await shadow(root=>{const el=[...root.querySelectorAll('.word')].find(w=>w.querySelector('.han')?.textContent==='喝');const b=el.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};});
+  await page.mouse.click(word.x,word.y);await page.waitForTimeout(100);
+  const compactPinned=await shadow(root=>{const d=root.querySelector('#details').getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {width:d.width,height:d.height,mainTop:m.top};});
+  assert.ok(compactPinned.width<=240&&compactPinned.height<=105);assert.ok(Math.abs(compactPinned.mainTop-compactBefore.top)<.5);report.compactGeometry={subtitle:compactBefore,pinned:compactPinned};
+  await page.screenshot({path:path.join(output,'compact-real-detail.png'),clip:{x:390,y:480,width:500,height:190}});
+  await shadow(root=>root.querySelector('[aria-label="Close word explanation"]').click());await page.mouse.move(10,10);await page.waitForTimeout(400);
+  report.checks.push('Actual-model compact subtitles stay under 66px and the pinned popover never shifts them or reveals the toolbar');
   await page.evaluate(()=>{document.querySelector('video').currentTime=5.5;});await page.waitForFunction(()=>document.querySelector('video').currentTime>=5 && !document.querySelector('video').seeking);await page.waitForTimeout(300);report.firstSeek=await page.evaluate(()=>({time:document.querySelector('video').currentTime,duration:document.querySelector('video').duration}));const secondEnZh=await shadow(root=>[...root.querySelectorAll('#main .han')].map(el=>el.textContent).join(''));assert.match(secondEnZh,/中文/);report.checks.push('Seeking real local media to second prepared English cue displays matching Chinese translation');await page.evaluate(()=>{document.querySelector('video').currentTime=0;});await page.waitForTimeout(100);
   await popup.evaluate(()=>chrome.storage.local.set({direction:'zh-en'}));await page.waitForTimeout(100);
   const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function findInput(node){if(node.nodeName==='INPUT'&&node.attributes?.includes('file'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=findInput(child);if(found)return found;}}const input=findInput(tree);assert(input);await cdp.send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[path.join(__dirname,'fixtures/chinese.srt')]});await page.waitForTimeout(100);

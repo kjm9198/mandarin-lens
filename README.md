@@ -1,4 +1,4 @@
-# Mandarin Lens 1.2
+# Mandarin Lens 1.3
 
 Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, local-first, open source. No account, analytics, subscription, server or API key.
 
@@ -6,22 +6,24 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 ## Install locally or share with a friend
 
-1. Download `mandarin-lens-1.2.0.zip` from the release and extract it into a permanent folder.
+1. Download `mandarin-lens-1.3.0.zip` from the release and extract it into a permanent folder.
 2. In desktop Chrome open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json`.
 3. Open a captioned video, turn on CC, click Mandarin Lens, then **Start learning**. On the video, press **Start learning** to authorize Chrome's local language pack. This second click is required for Chrome's model activation.
 4. Chrome may download a language pack. Its size is controlled by Chrome and is not included in this ZIP. Availability depends on your browser, device and language pair.
 
-Send the same ZIP to someone else; they follow the same steps. No Chrome Web Store account or fee is needed. This is an unpacked extension, not a Chrome Web Store reviewed or automatically updated installation. Managed browsers may prohibit unpacked extensions. Keep the extracted folder; deleting it breaks installation. For updates replace its files and press **Reload** on the extensions page. Back up vocabulary first. Chrome 138+ desktop is the API baseline, not a guarantee of model availability; mobile Chrome is not supported.
+Send the same ZIP to someone else; they follow the same steps. No Chrome Web Store account or fee is needed. This is an unpacked extension, not a Chrome Web Store reviewed or automatically updated installation. Managed browsers may prohibit unpacked extensions. Keep the extracted folder; deleting it breaks installation. For updates replace its files and press **Reload** on the extensions page, then refresh video tabs. Back up vocabulary first. Chrome 138+ desktop is the API baseline, not a guarantee of model availability; mobile Chrome is not supported.
 
 ## What changed
+
+Version 1.3 replaces the large inline word card with a small anchored popover outside the subtitle layout. Hover shows only the word, pinyin and meaning; clicking reveals compact actions, with sentence context behind a separate control. The permanent branded toolbar is replaced by a small **···** button. Hovering captions never reveals the toolbar. Compact defaults reduce font weight, spacing and background shading. Exact previous default appearances migrate once; custom sizes and saved words are preserved.
 
 Version 1.2 improves main-player selection on multi-video pages, excludes wrong-language and metadata tracks from live subtitles, invalidates old captions when the media source changes at the same URL, and restores a visible retry path after local translation failures. Prepared progress is retained after model failure.
 
 Version 1.1 adds sentence looping, Escape-to-dismiss panels, storage usage, cache-only clearing that preserves saved words/settings, and immediate checkpoints when pausing or canceling preparation. Click the loop button beside replay after preparing captions; seeking outside that sentence stops the loop. Replay and looping respect your caption timing offset.
 
-- Smaller 336px popup, collapsed advanced settings and compact subtitle defaults: Chinese 14px, pinyin 22px, English 14px.
-- Independent font sizes, layer visibility, font choice, word spacing, opacity, background blur, tone colors, timing offset and position. Drag the overlay's title to reposition it, or use sliders and Reset appearance.
-- Minimal, Comfortable and Large presets; accessible keyboard focus and reduced-motion/contrast preferences.
+- Smaller 336px popup, collapsed advanced settings and compact subtitle defaults: Chinese 12px, pinyin 18px, English 12px, transparent background.
+- Independent font sizes, layer visibility, font choice, word spacing, opacity, background blur, tone colors, timing offset and position. Open the ··· controls and drag the strip's label to reposition it, or use sliders and Reset appearance.
+- Compact, Comfortable and Large presets; accessible keyboard focus and reduced-motion/contrast preferences.
 - English↔Chinese local browser translation, with stale-result suppression and a timeout retry path.
 - Prepare accessible native caption tracks, the visible YouTube transcript panel, or imported SRT/VTT before playback. Pause/resume/cancel, line progress and resume checkpoints. Only available captions are prepared; completeness is an estimate.
 - Prepared captions follow video time and support seeking, replay and a searchable transcript (200 results at a time).
@@ -50,9 +52,9 @@ npm run build
 npm run test:browser
 ```
 
-Packaging needs Python 3. Browser tests need the `playwright` npm package and a compatible installed Chromium (`npm install --no-save playwright`, then `npx playwright install chromium` if unavailable). They can use the Codex bundled runtime when present. `CHROMIUM_EXECUTABLE` can point to an existing compatible Chromium. Tests use a disposable profile with test-only localhost permissions and an inert discovery worker, never the user's browser profile. See [testing report](reports/1.2.0-TESTING.md).
+Packaging needs Python 3. Browser tests need the `playwright` npm package and a compatible installed Chromium (`npm install --no-save playwright`, then `npx playwright install chromium` if unavailable). They can use the Codex bundled runtime when present. `CHROMIUM_EXECUTABLE` can point to an existing compatible Chromium. Tests use a disposable profile with test-only localhost permissions and an inert discovery worker, never the user's browser profile. See [testing report](reports/1.3.0-TESTING.md).
 
-Build output: `dist/mandarin-lens-1.2.0.zip`, unpacked `dist/mandarin-lens/`, SHA-256 checksums and a package inventory. The ZIP uses an explicit file allowlist and fixed timestamps. Run the build twice to verify deterministic output. Source stays readable; no minification hides behavior.
+Build output: `dist/mandarin-lens-1.3.0.zip`, unpacked `dist/mandarin-lens/`, SHA-256 checksums and a package inventory. The ZIP uses an explicit file allowlist and fixed timestamps. Run the build twice to verify deterministic output. Source stays readable; no minification hides behavior.
 
 ## Project layout
 

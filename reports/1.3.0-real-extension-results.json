@@ -1,0 +1,73 @@
+{
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Pro"
+  },
+  "label": "Real Chrome MV3 extension isolated-world integration with original local video fixture and real on-device Translator; no model stub",
+  "testOnlyManifestChanges": [
+    "localhost host permission replaces browser-toolbar activeTab gesture in automation",
+    "inert background worker enables test extension discovery"
+  ],
+  "packageSha256": "d47c6df720ed95b34dc37e4395879443148047d5f6ac46ee36bbce4d95656864",
+  "packageFile": "mandarin-lens-1.3.0.zip",
+  "checks": [
+    "Actual extension user click downloaded/initialized real Translator and prepared English captions into Chinese plus pinyin",
+    "Actual-model compact subtitles stay under 66px and the pinned popover never shifts them or reveals the toolbar",
+    "Seeking real local media to second prepared English cue displays matching Chinese translation",
+    "Actual extension imported Chinese captions and used real Chinese-to-English model while retaining original Hanzi and pinyin",
+    "Seeking real local media to second prepared Chinese cue displays matching English translation",
+    "Real model sessions cleaned up when overlay closes",
+    "Release ZIP and original manifest unchanged by temporary test permissions"
+  ],
+  "translator": {
+    "availability": "downloadable",
+    "present": true
+  },
+  "errors": [],
+  "screenshotNotes": {
+    "real-extension.png": "Actual extension and real Translator on an original local generated-video fixture",
+    "real-extension-en-zh.png": "Actual extension and real Translator on an original local generated-video fixture",
+    "real-extension-zh-en.png": "Actual extension and real Translator on an original local generated-video fixture"
+  },
+  "limitations": [
+    "Two original caption lines per direction; no independent adequacy score or broad real-video compatibility claim.",
+    "Test-only localhost permission and inert worker differ from distribution manifest."
+  ],
+  "extensionLoading": "Official CDP Extensions.loadUnpacked over Playwright debugging pipe, isolated temporary profile",
+  "browser": "156.0.8078.48",
+  "extensionVersion": "1.3.0",
+  "enZh": {
+    "hanzi": "我想喝咖啡",
+    "pinyin": "wǒxiǎng hē kāfēi",
+    "text": "我想wǒxiǎng喝hē咖啡kāfēi。I want to drink coffee.Translating on this device…▶ Start learning",
+    "status": "Prepared 2 timed subtitles from embedded timed subtitle track. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "compactGeometry": {
+    "subtitle": {
+      "top": 599.046875,
+      "height": 54.390625,
+      "toolbar": "none"
+    },
+    "pinned": {
+      "width": 150.3984375,
+      "height": 83.09375,
+      "mainTop": 599.046875
+    }
+  },
+  "firstSeek": {
+    "time": 5.5,
+    "duration": 12
+  },
+  "zhEn": {
+    "hanzi": "我想喝咖啡",
+    "pinyin": "wǒxiǎng hē kāfēi",
+    "text": "我想wǒxiǎng喝hē咖啡kāfēi。I'd like to have coffee.Translating on this device…▶ Start learning",
+    "status": "Prepared 2 timed subtitles from imported subtitle file. Press Play for pretranslated captions. This track may not cover the entire video."
+  },
+  "translatorAfter": {
+    "enZh": "available",
+    "zhEn": "available"
+  },
+  "passed": true
+}

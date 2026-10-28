@@ -28,14 +28,17 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
  try{
   context=await chromium.launchPersistentContext(path.join(temporary,'profile'),{channel:'chromium',executablePath:chromiumExecutable(),headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`],viewport:{width:1280,height:800}});
   let worker=context.serviceWorkers()[0];if(!worker)worker=await context.waitForEvent('serviceworker');const id=new URL(worker.url()).host;
+  await worker.evaluate(()=>chrome.storage.local.set({fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4,vocabulary:[{word:'旧',pinyin:'jiù',meaning:'old'}]}));
   const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/popup.html`);await popup.locator('#start:not([disabled])').waitFor();
   report.browser=context.browser().version();report.extensionVersion=manifest.version;
-  await popup.getByRole('button',{name:'Minimal',exact:true}).click();assert.equal(await popup.locator('#fontSize').inputValue(),'20');
+  assert.equal(await popup.locator('#fontSize').inputValue(),'18');assert.equal(await popup.evaluate(async()=>(await chrome.storage.local.get('vocabulary')).vocabulary[0].word),'旧');report.checks.push('Previous default appearance migrates to Compact without deleting existing vocabulary');
+  await popup.getByRole('button',{name:'Compact',exact:true}).click();assert.equal(await popup.locator('#fontSize').inputValue(),'18');
   await popup.locator('#advanced summary').click();await popup.locator('#fontSize').fill('28');await popup.locator('#fontSize').dispatchEvent('input');
   await popup.waitForFunction(async()=> (await chrome.storage.local.get('fontSize')).fontSize===28);
   await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.dismiss());await popup.locator('#deleteData').click();assert.equal(await popup.evaluate(async()=> (await chrome.storage.local.get('fontSize')).fontSize),28);report.checks.push('Canceling data deletion preserves saved customization');
   await popup.reload();await popup.locator('#start:not([disabled])').waitFor();assert.equal(await popup.locator('#fontSize').inputValue(),'28');report.checks.push('Popup preset and customization persist in actual chrome.storage.local');
   await popup.setViewportSize({width:360,height:760});assert(await popup.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await popup.screenshot({path:path.join(output,'popup.png'),fullPage:true});report.checks.push('Popup has no horizontal overflow at 360px');
+  await popup.getByRole('button',{name:'Compact',exact:true}).click();
   const page=await context.newPage();page.on('pageerror',error=>report.errors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}/video`);
   await page.evaluate(()=>{
    const video=document.querySelector('video:not(#hidden-ad)');video.textTracks[0].mode='disabled';
@@ -62,6 +65,30 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(200);
   for(let attempt=0;attempt<30;attempt++){if((await shadow(root=>[...root.querySelectorAll('#main .han')].map(el=>el.textContent).join(''))).includes('咖啡'))break;await page.waitForTimeout(100);}
   assert.match(await shadow(root=>root.querySelector('#original').textContent),/I want to drink coffee/);assert.doesNotMatch(await shadow(root=>root.querySelector('#original').textContent),/metadata|French/);report.checks.push('Live captions use matching-language subtitles instead of active metadata or French tracks');
+  const compactBefore=await shadow(root=>{const b=root.querySelector('#main').getBoundingClientRect();return {top:b.top,left:b.left,width:b.width,height:b.height,toolbar:getComputedStyle(root.querySelector('#top')).display};});
+  assert.equal(compactBefore.toolbar,'none');assert.ok(compactBefore.height<=66,JSON.stringify(compactBefore));
+  const wordRect=await shadow(root=>{const word=[...root.querySelectorAll('.word')].find(w=>w.querySelector('.han')?.textContent==='喝');const b=word.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};});
+  await page.mouse.move(wordRect.x,wordRect.y);await page.waitForTimeout(450);
+  const hover=await shadow(root=>{const card=root.querySelector('#details'),b=card.getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {width:b.width,height:b.height,show:card.classList.contains('show'),pinned:card.classList.contains('pinned'),mainTop:m.top,mainHeight:m.height,actions:getComputedStyle(card.querySelector('.detailBtns')).display,toolbar:getComputedStyle(root.querySelector('#top')).display};});
+  assert.equal(hover.show,true);assert.equal(hover.pinned,false);assert.ok(hover.height<=72&&hover.width<=240,JSON.stringify(hover));assert.equal(hover.actions,'none');assert.equal(hover.toolbar,'none');assert.ok(Math.abs(hover.mainTop-compactBefore.top)<.5&&Math.abs(hover.mainHeight-compactBefore.height)<.5);
+  await page.screenshot({path:path.join(output,'compact-hover.png')});
+  await page.mouse.click(wordRect.x,wordRect.y);await page.waitForTimeout(100);
+  const pinned=await shadow(root=>{const d=root.querySelector('#details'),b=d.getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {height:b.height,width:b.width,pinned:d.classList.contains('pinned'),mainTop:m.top,mainHeight:m.height};});
+  assert.equal(pinned.pinned,true);assert.ok(pinned.height<=105&&pinned.width<=240,JSON.stringify(pinned));assert.ok(Math.abs(pinned.mainTop-compactBefore.top)<.5);
+  await page.screenshot({path:path.join(output,'compact-pinned.png')});
+  await page.screenshot({path:path.join(output,'compact-detail.png'),clip:{x:390,y:480,width:500,height:190}});
+  for(const width of [540,320]){
+    await page.setViewportSize({width,height:600});await page.waitForTimeout(100);
+    const bounds=await shadow(root=>{const d=root.querySelector('#details').getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {left:d.left,right:d.right,top:d.top,bottom:d.bottom,mainHeight:m.height};});
+    assert.ok(bounds.left>=0&&bounds.right<=width&&bounds.top>=0&&bounds.bottom<=600,JSON.stringify(bounds));
+    assert.ok(bounds.mainHeight<=66,JSON.stringify(bounds));
+  }
+  await page.setViewportSize({width:1280,height:800});await page.waitForTimeout(100);
+  report.checks.push('Compact popovers stay within the viewport at 540px and 320px widths');
+  await shadow(root=>root.querySelector('[aria-label="Close word explanation"]').click());await page.mouse.move(10,10);await page.waitForTimeout(400);
+  report.compactGeometry={subtitle:compactBefore,hover,pinned};report.checks.push('Compact subtitles stay below 66px for the fixture; hover and pinned cards are bounded and never move subtitles or reveal the toolbar');
+  await shadow(root=>root.querySelector('#controlToggle').click());assert.equal(await shadow(root=>getComputedStyle(root.querySelector('#top')).display),'flex');await shadow(root=>root.querySelector('#controlToggle').click());
+  report.checks.push('One small control explicitly opens and closes the toolbar; caption hovering leaves it hidden');
   await page.screenshot({path:path.join(output,'overlay-clean.png')});
   // CDP sets the real hidden input's file list without exposing closed shadow roots to webpages.
   const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function findInput(node){if(node.nodeName==='INPUT'&&node.attributes?.includes('file'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=findInput(child);if(found)return found;}}const input=findInput(tree);assert(input);await cdp.send('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[path.join(__dirname,'fixtures/untrusted.srt')]});
@@ -104,7 +131,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await popup.evaluate(()=>chrome.storage.local.set({vocabulary:[{word:'你好',pinyin:'nǐ hǎo',meaning:'hello'}]}));
   await popup.locator('#learningData summary').click();await popup.locator('#clearCache:not([disabled])').waitFor();await popup.locator('#clearCache').click();
   await popup.waitForFunction(async()=>!Object.keys(await chrome.storage.local.get(null)).some(key=>key.startsWith('prepared:')));
-  const retained=await popup.evaluate(()=>chrome.storage.local.get(['fontSize','vocabulary']));assert.equal(retained.fontSize,28);assert.equal(retained.vocabulary[0].word,'你好');
+  const retained=await popup.evaluate(()=>chrome.storage.local.get(['fontSize','vocabulary']));assert.equal(retained.fontSize,18);assert.equal(retained.vocabulary[0].word,'你好');
   await page.locator('#mandarin-lens-root').waitFor();await popup.waitForFunction(()=>document.querySelector('#cacheUsage').textContent.includes('0 saved tracks'));
   await popup.screenshot({path:path.join(output,'popup-storage.png'),fullPage:true});report.checks.push('Cache-only deletion removes prepared tracks while keeping saved words, appearance and active overlay');
   const shortFile=path.join(temporary,'checkpoint.srt');await fs.writeFile(shortFile,'1\n00:00:00,000 --> 00:00:03,000\nCheckpoint one.\n\n2\n00:00:03,000 --> 00:00:06,000\nCheckpoint two.\n\n3\n00:00:06,000 --> 00:00:09,000\nCheckpoint three.\n');

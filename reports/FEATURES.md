@@ -1,5 +1,7 @@
 # Version 1 feature status
 
+Added in 1.3: subtitle-first Compact defaults, a small explicit controls toggle, anchored hover/pinned word popovers, optional sentence context and one-time default-appearance migration.
+
 Added in 1.2: visible-player selection, live caption language/kind filtering, same-URL media invalidation and local model retry/resume.
 
 Added in 1.1: sentence looping, Escape dismissal, prepared-cache usage and cache-only clearing, plus immediate pause/cancel checkpoints.
