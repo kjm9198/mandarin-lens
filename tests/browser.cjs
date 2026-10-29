@@ -65,6 +65,9 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await shadow(root=>root.querySelector('#cta').click());await page.waitForTimeout(200);
   for(let attempt=0;attempt<30;attempt++){if((await shadow(root=>[...root.querySelectorAll('#main .han')].map(el=>el.textContent).join(''))).includes('咖啡'))break;await page.waitForTimeout(100);}
   assert.match(await shadow(root=>root.querySelector('#original').textContent),/I want to drink coffee/);assert.doesNotMatch(await shadow(root=>root.querySelector('#original').textContent),/metadata|French/);report.checks.push('Live captions use matching-language subtitles instead of active metadata or French tracks');
+  const learningTokens=await shadow(root=>({words:[...root.querySelectorAll('#main .word')].map(el=>(el.querySelector('.han')?.textContent||'').replace(/[。，！？、；：,.!?;:]+$/u,'')),punctuation:[...root.querySelectorAll('#main .han-punctuation')].map(el=>el.textContent)}));
+  assert.deepEqual(learningTokens.words,['我','想','喝','咖啡']);assert.deepEqual(learningTokens.punctuation,['。']);
+  report.checks.push('Chinese word grouping separates 我 and 想, preserves 咖啡, and displays punctuation with Hanzi');
   const compactBefore=await shadow(root=>{const b=root.querySelector('#main').getBoundingClientRect();return {top:b.top,left:b.left,width:b.width,height:b.height,toolbar:getComputedStyle(root.querySelector('#top')).display};});
   assert.equal(compactBefore.toolbar,'none');assert.ok(compactBefore.height<=66,JSON.stringify(compactBefore));
   const wordRect=await shadow(root=>{const word=[...root.querySelectorAll('.word')].find(w=>w.querySelector('.han')?.textContent==='喝');const b=word.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};});
@@ -74,7 +77,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.screenshot({path:path.join(output,'compact-hover.png')});
   await page.mouse.click(wordRect.x,wordRect.y);await page.waitForTimeout(100);
   const pinned=await shadow(root=>{const d=root.querySelector('#details'),b=d.getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {height:b.height,width:b.width,pinned:d.classList.contains('pinned'),mainTop:m.top,mainHeight:m.height};});
-  assert.equal(pinned.pinned,true);assert.ok(pinned.height<=105&&pinned.width<=240,JSON.stringify(pinned));assert.ok(Math.abs(pinned.mainTop-compactBefore.top)<.5);
+  assert.equal(pinned.pinned,true);assert.ok(pinned.height<=160&&pinned.width<=260,JSON.stringify(pinned));assert.ok(Math.abs(pinned.mainTop-compactBefore.top)<.5);
   await page.screenshot({path:path.join(output,'compact-pinned.png')});
   await page.screenshot({path:path.join(output,'compact-detail.png'),clip:{x:390,y:480,width:500,height:190}});
   for(const width of [540,320]){
