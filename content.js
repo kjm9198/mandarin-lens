@@ -82,18 +82,18 @@
     @media(max-width:600px){#panel{width:96%}#main{padding:5px 8px}}
 
     #surface{position:relative;width:fit-content;max-width:calc(100% - 32px);margin:0 auto;gap:2px}
-    #main{padding:2px 6px 3px;border-radius:6px;text-shadow:0 1px 3px #000,0 0 5px #000b}
+    #main{padding:2px 6px 3px;border-radius:6px;text-shadow:0 1px 3px #000,0 0 5px #000b}.han-punctuation{font-size:.95em;font-weight:500}
     .english{margin-top:2px;line-height:1.15}.pron{font-weight:600;line-height:1.1}.han{line-height:1.05}.word{padding:0 1px}.han-char,.syllable{padding:0 1px}
     #controlToggle{position:absolute;right:-24px;bottom:2px;width:24px;height:22px;padding:0;border:0;border-radius:6px;background:#0d1b2d80;color:#fff;pointer-events:auto;opacity:.35;font-size:17px;line-height:1;letter-spacing:1px}
     #controlToggle:hover,#controlToggle:focus-visible,#surface.controls-open #controlToggle{opacity:1}
     #top{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(90vw,350px);padding:1px 5px;gap:4px;border-radius:8px;opacity:1;z-index:2}
     #surface.controls-open #top{display:flex}#identity{font-size:9px;gap:4px}#badge{display:none}#actions{gap:1px}#top .icon{font-size:15px;padding:2px 6px;min-height:26px}
     #prepareRow.show,#surface:hover #prepareRow.show,#surface:focus-within #prepareRow.show{display:none}
-    #surface.controls-open #prepareRow.show,#prepareRow.preparing{display:flex;position:absolute;bottom:calc(100% + 38px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(88vw,470px);opacity:1;z-index:3;padding:3px 5px;border-radius:6px}
-    #prepareRow button{font-size:10px;padding:4px 6px;min-height:24px}#prepStatus{font-size:10px}
-    #details{position:fixed;margin:0;width:max-content;max-width:240px;min-width:120px;padding:7px 9px;border-radius:8px;background:#142336f5;color:#f1f6ff;border:1px solid #ffffff26;box-shadow:0 3px 12px #0005;z-index:5;font:12px/1.3 system-ui,-apple-system,sans-serif;max-height:220px;overflow:auto}
+    #surface.controls-open #prepareRow.show,#prepareRow.preparing{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));position:absolute;bottom:calc(100% + 38px);left:50%;transform:translateX(-50%);width:min(320px,88vw);max-width:88vw;opacity:1;z-index:3;padding:8px;gap:6px;border-radius:10px}
+    #prepareRow button{font-size:11px;padding:6px 8px;min-height:32px;white-space:nowrap}#pausePrepare,#prepStatus{grid-column:1 / -1}#prepStatus{font-size:11px;line-height:1.4;text-align:center}
+    #details{position:fixed;margin:0;width:max-content;max-width:260px;min-width:120px;padding:7px 9px;border-radius:8px;background:#142336f5;color:#f1f6ff;border:1px solid #ffffff26;box-shadow:0 3px 12px #0005;z-index:5;font:12px/1.3 system-ui,-apple-system,sans-serif;max-height:220px;overflow:auto}
     #detailHeading{font-size:15px;font-weight:650}#detailPinyin{font-size:12px;color:#bedcff;margin-left:6px}#detailMeaning{font-size:12px;margin-top:3px;line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-    #detailContext,#detailHint,.detailBtns{display:none}#details.pinned .detailBtns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}.detailBtns button{font-size:10px;font-weight:550;padding:3px 6px;border:0;border-radius:4px;background:#ffffff13;color:#deedff;min-height:23px}
+    #detailContext,#detailHint,.detailBtns{display:none}#details.pinned .detailBtns{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.detailBtns button{font-size:11px;font-weight:600;padding:5px 9px;border:0;border-radius:6px;background:#ffffff18;color:#eef5ff;min-height:32px}
     #details.expanded #detailContext{display:block;font-size:11px;color:#c0cfdf;margin-top:6px}#details.expanded #detailMeaning{display:block;overflow:visible}#details.expanded{max-width:min(280px,90vw)}
     #status{font-size:11px;max-width:min(320px,85vw);padding:6px 8px;border-radius:6px}#busy{font-size:9px}
     @media(max-width:600px){#main{padding:2px 4px}#controlToggle{right:-18px;width:18px}}
@@ -131,7 +131,7 @@
   const save=document.createElement('button');save.textContent='Save';save.setAttribute('aria-label','Save word');
   const resume=document.createElement('button');resume.textContent='Play';resume.setAttribute('aria-label','Resume video');resume.hidden=true;
   const detailClose=document.createElement('button');detailClose.textContent='×';detailClose.setAttribute('aria-label','Close word explanation');
-  const more=document.createElement('button');more.textContent='⋯';more.setAttribute('aria-label','Show sentence context');more.setAttribute('aria-expanded','false');
+  const more=document.createElement('button');more.textContent='Context';more.title='Show sentence context';more.setAttribute('aria-label','Show sentence context');more.setAttribute('aria-expanded','false');
   detailButtons.append(sound,save,resume,more,detailClose);details.append(detailHeader,detailMeaning,detailContext,detailHint,detailButtons);
   main.append(original,translated,busy,cta);
   const prepRow=document.createElement('div');prepRow.id='prepareRow';
@@ -139,8 +139,8 @@
   const fileButton=document.createElement('button');fileButton.textContent='Import captions';fileButton.title='Import a local subtitle file to prepare the video';
   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.srt,.vtt,text/vtt';fileInput.hidden=true;
   const prepStatus=document.createElement('span');prepStatus.id='prepStatus';prepStatus.setAttribute('role','status');
-  const pausePrepare=document.createElement('button');pausePrepare.textContent='Pause preparation';pausePrepare.hidden=true;
-  prepRow.append(prepareButton,pausePrepare,fileButton,fileInput,prepStatus);
+  const pausePrepare=document.createElement('button');pausePrepare.id='pausePrepare';pausePrepare.textContent='Pause preparation';pausePrepare.hidden=true;
+  prepRow.append(prepareButton,fileButton,pausePrepare,fileInput,prepStatus);
   const prefs=document.createElement('div');prefs.id='prefs';
   const prefsTitle=document.createElement('div');prefsTitle.id='prefsTitle';prefsTitle.textContent='Make subtitles yours';
   const setupHint=document.createElement('div');setupHint.id='setupHint';setupHint.textContent='Changes appear instantly. Pick a preset or fine-tune below.';
@@ -282,7 +282,16 @@
     });return btn;
   }
   function chineseLine(target,text,isOriginal=false) {
-    target.replaceChildren(...C.segmentChinese(text).map(w=>tokenButton(w,isOriginal)));
+    const nodes=[];
+    for(const chunk of C.segmentChinese(text)){
+      const previous=nodes[nodes.length-1];
+      // Keep sentence punctuation on the Hanzi row, not hanging beside pinyin.
+      if(/^[。，！？、；：,.!?;:]+$/u.test(chunk) && previous?.classList?.contains('word')){
+        const mark=document.createElement('span');mark.className='han-punctuation';mark.textContent=chunk;
+        previous.querySelector('.han')?.append(mark);
+      }else nodes.push(tokenButton(chunk,isOriginal));
+    }
+    target.replaceChildren(...nodes);
   }
   function updatePrepareUi(){
     prepRow.classList.toggle('show',state.enabled);prepRow.classList.toggle('preparing',state.preparing);
