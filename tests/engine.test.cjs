@@ -6,10 +6,10 @@ const fs=require('node:fs');
 const path=require('node:path');
 function load(extra={}){
  const context=vm.createContext({Intl,crypto:globalThis.crypto,TextEncoder,...extra});
- for(const file of ['data/pinyin.js','core.js','preprocess.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
- return {C:context.MandarinLensCore,P:context.MandarinLensPreprocess};
+ for(const file of ['data/pinyin.js','data/lexicon.js','core.js','preprocess.js','learning.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
+ return {C:context.MandarinLensCore,P:context.MandarinLensPreprocess,L:context.MandarinLensLearning};
 }
-const {C,P}=load();
+const {C,P,L}=load();
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('normalization is bounded and does not stringify arbitrary objects',()=>{
  assert.equal(C.normalize(' a\n b '),'a b');assert.equal(C.normalize('x'.repeat(100000)).length,600);
@@ -60,7 +60,7 @@ test('cache key distinguishes transcript, direction, video and settings',async()
  const cues=[{start:0,end:1,text:'hello'}],base=await P.cacheKey('video-a','en-zh',cues);
  assert.equal(base,await P.cacheKey('video-a','en-zh',cues));
  for(const args of [['video-b','en-zh',cues],['video-a','zh-en',cues],['video-a','en-zh',[{start:0,end:1,text:'bye'}]],['video-a','en-zh',cues,{traditional:true}]])assert.notEqual(await P.cacheKey(...args),base);
- assert.match(base,/^1\.0\.0:[a-f0-9]{64}$/);
+ assert.match(base,/^2\.0\.0:[a-f0-9]{64}$/);
 });
 
 test('coverage estimate does not mark a short video complete from an opening cue',()=>{assert.equal(P.coverage([{start:0,end:1,text:'opening'}],20).complete,false);assert.equal(P.coverage([{start:0,end:20,text:'full'}],20).complete,true);});
@@ -101,4 +101,26 @@ test('compact migration updates only the exact previous default appearance',()=>
  assert.deepEqual(plain(C.compactAppearance({...legacy,fontSize:28})),{compactLayoutVersion:1});
  assert.deepEqual(plain(C.compactAppearance({...legacy,compactLayoutVersion:1})),{});
  assert.deepEqual(plain(C.compactAppearance({})),{compactLayoutVersion:1});
+});
+
+test('licensed lexicon aliases traditional and marks numbered neutral tones',()=>{
+ assert.equal(C.lookup('銀行').simplified,'银行');assert.equal(C.toneMarks('nu:3 peng2 you5'),'nǚ péng you');assert.equal(C.pinyinFor('还书'),'huán shū');assert.equal(C.pinyinFor('你好',undefined,{sandhi:true}),'ní hǎo');
+});
+test('context notes disclose unsupported grammar and recognize wanting an action',()=>{
+ assert.equal(L.explain('想','我想喝咖啡。').reliable,true);assert.equal(L.explain('想','我想你。').reliable,false);assert.equal(L.explain('咖啡','咖啡很好。').reliable,false);
+});
+test('bounded learning preferences and review history preserve legacy data',()=>{
+ const prefs=L.preferences({mode:'bad',repeatCount:100,repeatSpeed:-1});assert.equal(prefs.mode,'watch');assert.equal(prefs.repeatCount,3);assert.equal(prefs.repeatSpeed,.5);
+ let word={word:'茶',pinyin:'chá',meaning:'tea'};for(let i=0;i<150;i++)word=L.grade(word,'Good',1000+i);assert.equal(word.reviewHistory.length,100);assert.equal(word.review.interval,365);assert.equal(L.grade(word,'Again',2000).review.due,602000);assert.equal(L.grade(word,'Known').known,true);
+ assert.equal(L.cleanEntry({...word,sourceId:'https://private.example/secret'}).sourceId,undefined);
+});
+test('offline practice uses saved answers and discloses missing sentence context',()=>{
+ const words=[{word:'茶',meaning:'tea',pinyin:'chá',example:'我喝茶。'},{word:'水',meaning:'water',pinyin:'shuǐ'}];for(const mode of ['flashcard','meaning','pinyin','listening','sentence']){const e=L.exercise(words,mode,0);assert.equal(e.options.includes(e.answer),true);}assert.match(L.exercise(words,'sentence',1).unavailable,/example sentence/);
+});
+test('bilingual caption pairing reuses matching lines and reports omissions',()=>{
+ const zh=[{start:0,end:2,text:'我喝茶。'},{start:3,end:4,text:'你好。'}],en=[{start:.1,end:2.1,text:'I drink tea.'}];const paired=P.pairCues(zh,en);assert.equal(paired.matched,1);assert.equal(paired.total,2);assert.equal(paired.cues[0].translation,'我喝茶。');assert.throws(()=>P.pairCues(zh,zh));
+});
+
+test('accelerated 30-, 60- and 120-minute timelines remain synchronized across seeks',()=>{
+ for(const minutes of [30,60,120]){const cues=Array.from({length:minutes*30},(_,i)=>({start:i*2,end:i*2+1.8,text:'学习中文。'}));for(let t=0;t<minutes*60;t+=.7){const cue=P.atTime(cues,t),i=Math.floor(t/2);assert.equal(cue?.text,(t<cues[i].end)?'学习中文。':undefined);}}
 });

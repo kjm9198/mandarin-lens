@@ -24,7 +24,7 @@
     '还是':'hái shi','还有':'hái yǒu','得到':'dé dào','得分':'dé fēn',
     '觉得':'jué de','不得不':'bù dé bù','得去':'děi qù','得走':'děi zǒu',
     '跑得快':'pǎo de kuài','说得好':'shuō de hǎo','英语':'yīng yǔ',
-    '还好':'hái hǎo','便宜':'pián yi','方便':'fāng biàn',
+    '还书':'huán shū','还给':'huán gěi','还得':'hái děi','一个':'yī ge','语法':'yǔ fǎ','很好':'hěn hǎo','不是':'bù shì','一天':'yī tiān','还好':'hái hǎo','便宜':'pián yi','方便':'fāng biàn',
     '好吃':'hǎo chī','喝水':'hē shuǐ','中国人':'zhōng guó rén',
   });
   const DEFINITIONS = Object.freeze({
@@ -98,46 +98,59 @@
   });
   const normalize = (value) => (typeof value === 'string' ? value : '').slice(0, 10000).replace(/\s+/gu, ' ').trim().slice(0, 600);
   const own = (object, key) => Object.hasOwn(object, key) ? object[key] : '';
-  const phraseKeys = Object.keys(PHRASES).sort((a,b) => b.length-a.length);
-  const wordKeys = [...new Set([...Object.keys(DEFINITIONS), ...phraseKeys])].sort((a,b) => b.length-a.length);
-  const segmenter = typeof Intl.Segmenter === 'function' ? new Intl.Segmenter('zh', {granularity:'word'}) : null;
-  const isChinese = (s) => HAN.test(s);
-  const isDirection = (s) => s === 'en-zh' || s === 'zh-en';
-  const options = (direction) => direction === 'zh-en' ? {sourceLanguage:'zh',targetLanguage:'en'} : {sourceLanguage:'en',targetLanguage:'zh'};
-  function pinyinFor(text, lookup = globalThis.CJK_PINYIN_MAP || {}) {
-    const value=normalize(text), readings=[];
-    // Longest phrase first: resolve common polyphonic words even inside a sentence.
-    // Uncovered words retain ICU's character reading; this is not a semantic model.
+  const lexicon=globalThis.MandarinLensLexicon||{};
+  const dictionary=new Map();
+  for(const [simplified,records]of Object.entries(lexicon)){
+    if(!Array.isArray(records))continue;
+    for(const [traditional,numbered,definition]of records){
+      const entry={simplified,traditional,numbered,definition};
+      for(const word of new Set([simplified,traditional])){if(!dictionary.has(word))dictionary.set(word,[]);dictionary.get(word).push(entry);}
+    }
+  }
+  const wordKeys=[...new Set([...Object.keys(DEFINITIONS),...Object.keys(PHRASES),...dictionary.keys()])].sort((a,b)=>b.length-a.length);
+  const knownWords=new Set(wordKeys),prefixes=new Map();
+  for(const word of wordKeys){const first=Array.from(word)[0];if(!prefixes.has(first))prefixes.set(first,[]);prefixes.get(first).push(word);}
+  const segmenter=typeof Intl.Segmenter==='function'?new Intl.Segmenter('zh',{granularity:'word'}):null;
+  const isChinese=s=>typeof s==='string'&&HAN.test(s);
+  const isDirection=s=>s==='en-zh'||s==='zh-en';
+  const options=direction=>direction==='zh-en'?{sourceLanguage:'zh',targetLanguage:'en'}:{sourceLanguage:'en',targetLanguage:'zh'};
+  function toneMarks(input){
+    return String(input||'').replace(/u:|v/gi,match=>match[0]===match[0].toUpperCase()?'Ü':'ü').split(/\s+/).map(raw=>{
+      const m=/^([a-züê]+)([0-5])$/i.exec(raw);if(!m)return raw;
+      let letters=m[1],tone=Number(m[2]);if(tone===0||tone===5)return letters;
+      const lower=letters.toLowerCase();let index=lower.indexOf('a');if(index<0)index=lower.indexOf('e');if(index<0&&lower.includes('ou'))index=lower.indexOf('o');if(index<0)for(let n=letters.length-1;n>=0;n--)if('aeiouü'.includes(lower[n])){index=n;break;}
+      const marks={a:'āáǎà',e:'ēéěè',i:'īíǐì',o:'ōóǒò',u:'ūúǔù',ü:'ǖǘǚǜ'};
+      if(index>=0&&marks[lower[index]]){let mark=marks[lower[index]][tone-1];if(letters[index]===letters[index].toUpperCase())mark=mark.toUpperCase();letters=letters.slice(0,index)+mark+letters.slice(index+1);}
+      return letters;
+    }).join(' ');
+  }
+  const spoken=Object.freeze({'你好':'ní hǎo','很好':'hén hǎo','可以':'ké yǐ','语法':'yú fǎ','不是':'bú shì','一个':'yí ge','一天':'yì tiān'});
+  function lookup(word){
+    const records=dictionary.get(word)||[],record=records[0];
+    return {word,simplified:record?.simplified||word,traditional:record?.traditional||word,pinyin:own(PHRASES,word)||(record?toneMarks(record.numbered):''),meaning:own(DEFINITIONS,word)||record?.definition||'',
+      alternatives:records.slice(0,3).map(r=>({pinyin:toneMarks(r.numbered),meaning:r.definition})),source:own(DEFINITIONS,word)?'Curated beginner glossary':record?'CC-CEDICT (offline)':'Unavailable',uncertain:!own(PHRASES,word)&&records.length!==1};
+  }
+  function pinyinFor(text, characterMap=globalThis.CJK_PINYIN_MAP||{}, settings={}){
+    const value=normalize(text),readings=[];
     for(let i=0;i<value.length;){
-      const phrase=phraseKeys.find(word=>value.startsWith(word,i));
-      if(phrase){readings.push(own(PHRASES,phrase));i+=phrase.length;continue;}
-      const ch=String.fromCodePoint(value.codePointAt(i));
-      readings.push(own(lookup,ch) || (HAN.test(ch) ? '?' : ch));i+=ch.length;
+      const ch=String.fromCodePoint(value.codePointAt(i)),word=(prefixes.get(ch)||[]).find(w=>value.startsWith(w,i));
+      if(word){const entry=lookup(word),reading=settings.sandhi&&own(spoken,word)||entry.pinyin;if(reading){readings.push(reading);i+=word.length;continue;}}
+      readings.push(own(characterMap,ch)||(isChinese(ch)?'?':ch));i+=ch.length;
     }
     return readings.join(' ').replace(/\s+([.,!?。，？！；：、])/gu,'$1').replace(/\s+/gu,' ').trim();
   }
-  const knownWords = new Set(wordKeys);
-  function segmentChinese(text) {
-    const value = normalize(text);
-    if (!value) return [];
-    // Intl.Segmenter can combine separately useful beginner words (e.g. 我想).
-    // Preserve dictionary phrases like 咖啡, while splitting unfamiliar Han-only chunks.
-    function splitKnownWords(chunk) {
-      const words=[];
-      for(let i=0;i<chunk.length;){
-        const word=wordKeys.find(candidate=>chunk.startsWith(candidate,i)) || String.fromCodePoint(chunk.codePointAt(i));
-        words.push(word);i+=word.length;
-      }
-      return words;
+  const segmentCache=new Map();
+  function segmentChinese(text){
+    const value=normalize(text);if(!value)return [];if(segmentCache.has(value))return segmentCache.get(value).slice();
+    function split(chunk,preserveUnknown=false){
+      const result=[];let unknown=false;
+      for(let i=0;i<chunk.length;){const ch=String.fromCodePoint(chunk.codePointAt(i)),word=(prefixes.get(ch)||[]).find(w=>chunk.startsWith(w,i));if(!word)unknown=true;result.push(word||ch);i+=(word||ch).length;}
+      return preserveUnknown&&unknown?[chunk]:result;
     }
-    if (segmenter) {
-      return Array.from(segmenter.segment(value), part => part.segment).flatMap(chunk =>
-        /^[\u3400-\u9fff\uf900-\ufaff]+$/u.test(chunk) && !knownWords.has(chunk)
-          ? splitKnownWords(chunk) : [chunk]);
-    }
-    return splitKnownWords(value);
+    const parts=segmenter?Array.from(segmenter.segment(value),part=>part.segment).flatMap(chunk=>/^[\p{Script=Han}]+$/u.test(chunk)&&!knownWords.has(chunk)?split(chunk,true):[chunk]):split(value);
+    segmentCache.set(value,parts);if(segmentCache.size>256)segmentCache.delete(segmentCache.keys().next().value);return parts.slice();
   }
-  const meaning = (word) => typeof word==='string' ? own(DEFINITIONS,word) : '';
+  const meaning=word=>typeof word==='string'?lookup(word).meaning:'';
   function compactAppearance(values){
     if(values?.compactLayoutVersion>=1)return {};
     const legacy={fontSize:22,hanziSize:14,englishSize:14,opacity:12,position:12,spacing:4};
@@ -145,6 +158,6 @@
     if(values&&Object.entries(legacy).every(([key,value])=>values[key]===value))Object.assign(patch,{fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,spacing:2});
     return patch;
   }
-  const api = Object.freeze({normalize, isChinese, isDirection, options, pinyinFor, segmentChinese, meaning, compactAppearance});
+  const api = Object.freeze({normalize, isChinese, isDirection, options, pinyinFor, segmentChinese, meaning, compactAppearance, lookup, toneMarks});
   globalThis.MandarinLensCore = api;
 })();
