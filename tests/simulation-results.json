@@ -15,13 +15,13 @@
   "measurements": {
     "scope": "Node timestamp lookup only; not translation or Chrome rendering latency",
     "lookupSamples": 52500,
-    "lookupP50Ms": 0.00012499999999704414,
-    "lookupP95Ms": 0.0002080000000006521,
-    "elapsedMs": 513.541125,
-    "cpuUserMs": 557.558,
-    "cpuSystemMs": 6.01,
-    "heapStartBytes": 17070384,
-    "heapEndBytes": 21477872
+    "lookupP50Ms": 0.000125000000011255,
+    "lookupP95Ms": 0.0002089999999839165,
+    "elapsedMs": 566.111584,
+    "cpuUserMs": 603.657,
+    "cpuSystemMs": 7.651,
+    "heapStartBytes": 17124920,
+    "heapEndBytes": 26660136
   },
   "environment": {
     "node": "v24.13.0",

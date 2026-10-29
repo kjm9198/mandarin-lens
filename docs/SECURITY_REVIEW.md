@@ -60,3 +60,7 @@ Source review of media selection, live track filtering and retry handling confir
 ## Version 1.3 follow-up
 
 Word explanations remain safe text nodes inside the closed extension shadow tree; moving them outside the subtitle layout does not add a page message bridge or external API. Positioning uses local element rectangles and viewport bounds. The popup loads the already-packaged core script to share a pure appearance migration helper. The migration only writes known appearance fields and a constant layout-version marker, preserves vocabulary and custom font settings, and is tested against actual extension storage. No permission, network/capture capability or dependency was added. Existing CSP and package allowlist checks remain. This is internal review and does not certify universal accessibility or security.
+
+## Version 2.0 follow-up
+
+See [reports/2.0.0-SECURITY.md](../reports/2.0.0-SECURITY.md) for the current worker trust boundary, concurrent-write/deletion fixes, actual regression evidence and remaining risks. Previous findings above describe their release-time state; V2 replaces tab-local vocabulary/cache mutations with sender-validated serialized worker operations.

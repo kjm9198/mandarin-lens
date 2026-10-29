@@ -17,3 +17,7 @@ The UI uses system font stacks rather than downloaded font files. Review the pro
 ## Application dependencies
 
 The supplied extension uses browser APIs and packaged JavaScript without third-party application runtime packages. Development/test dependencies, if added, must be audited from the final lockfile and are not automatically part of the installable extension. A dependency audit does not audit the browser, operating system, or native models.
+
+## Selected CC-CEDICT lexicon (2.0)
+
+`data/lexicon.js` contains 6,500 selected headwords from the MDBG CC-CEDICT export downloaded on 29 October 2026, with up to three readings per headword. Data is CC BY-SA 4.0, separately from MIT application code. See `licenses/CC-CEDICT-NOTICE.md`, full `licenses/CC-BY-SA-4.0.txt`, and `data/lexicon-provenance.json` for attribution, source hash, selection changes and reproducible generator. Traditional aliases are built locally from the same entries. Curated meanings and phrase overrides remain project code; neither source establishes universal contextual accuracy.

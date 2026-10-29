@@ -1,0 +1,91 @@
+{
+  "label": "Real Chromium MV3 integration with local generated video; translation rendering uses an explicit test double",
+  "testOnlyManifestChanges": [
+    "localhost host permission replaces browser-toolbar activeTab gesture in automation",
+    "distribution storage worker also enables test extension discovery"
+  ],
+  "packageSha256": "f4629c13a5b20454c9b137a8d5b93c372e46b83971d0409c90ddd13200a46dd7",
+  "packageFile": "mandarin-lens-2.0.0.zip",
+  "checks": [
+    "Previous default appearance migrates to Compact without deleting existing vocabulary",
+    "Canceling data deletion preserves saved customization",
+    "Popup preset and customization persist in actual chrome.storage.local",
+    "Popup has no horizontal overflow at 360px",
+    "Overlay anchors to visible main video when the first video is hidden",
+    "Actual Translator availability inspected only; model creation/download deliberately not triggered",
+    "Explicit API-absent test double verifies unsupported-device message",
+    "Live captions use matching-language subtitles instead of active metadata or French tracks",
+    "Chinese word grouping separates 我 and 想, preserves 咖啡, and displays punctuation with Hanzi",
+    "Compact popovers stay within the viewport at 540px and 320px widths",
+    "Compact subtitles stay below 66px for the fixture; hover and pinned cards are bounded and never move subtitles or reveal the toolbar",
+    "One small control explicitly opens and closes the toolbar; caption hovering leaves it hidden",
+    "Real SRT file input, preparation and synchronized initial overlay render with explicit test Translator",
+    "Encoded malicious subtitle remains inert text; no injected element or handler executes",
+    "Timed transcript renders imported prepared cues",
+    "Sentence loop wraps real media and releases on manual seek outside its cue",
+    "Looping the final sentence resumes after the media reaches its natural end",
+    "Escape dismisses transcript, settings and word details without reopening them on restored focus",
+    "Cache-only deletion removes prepared tracks while keeping saved words, appearance and active overlay",
+    "Cancel before the twentieth line saves its completed prefix, ignores the stale in-flight result and can resume",
+    "Changing the same video element source at the same page URL invalidates prepared/imported captions",
+    "An actual rejected live translation exposes a retry control and resumes after reactivation",
+    "Preparation model failure preserves completed lines and offers retry/resume without a page refresh",
+    "Replacing a media element at the same page URL clears its old preparation and transcript",
+    "Reduced motion disables transitions; 2× display-scale emulation, fullscreen player-container anchoring and bright/dark original-media screenshots verified",
+    "Actual vocabulary page opens an accessible practice dialog and reveals a saved flashcard",
+    "Two real SRT files pair and play bilingual captions with Translator explicitly absent",
+    "English visibility is independent in both directions, and paired captions retain their language mapping after direction changes",
+    "Watch does not pause, Learn pauses and optionally resumes, and finite sentence replay restores the previous speed",
+    "Shadowing listens once, pauses with English hidden, and reveals meaning only when requested",
+    "Overlay close removes host in actual extension runtime",
+    "Confirmed data deletion clears extension storage and closes active overlay",
+    "Release ZIP and original manifest unchanged by temporary test permissions"
+  ],
+  "translator": {
+    "availability": "downloadable",
+    "present": true
+  },
+  "errors": [],
+  "screenshotNotes": {
+    "popup.png": "Actual packaged popup, persisted customization",
+    "overlay-clean.png": "Local generated-video fixture and explicit Translator double; not a real-model translation-quality claim",
+    "overlay.png": "Malicious imported-subtitle test evidence; explicit Translator double"
+  },
+  "browser": "156.0.8078.4",
+  "extensionVersion": "2.0.0",
+  "compactGeometry": {
+    "subtitle": {
+      "top": 598.546875,
+      "left": 554.328125,
+      "width": 171.34375,
+      "height": 54.390625,
+      "toolbar": "none"
+    },
+    "hover": {
+      "width": 120,
+      "height": 54.09375,
+      "show": true,
+      "pinned": false,
+      "mainTop": 598.546875,
+      "mainHeight": 54.390625,
+      "actions": "none",
+      "toolbar": "none"
+    },
+    "pinned": {
+      "height": 93.09375,
+      "width": 217.03125,
+      "pinned": true,
+      "mainTop": 598.546875,
+      "mainHeight": 54.390625
+    }
+  },
+  "performance": {
+    "condition": "20-second paused original-video fixture, overlay active; translation double, renderer metrics only",
+    "elapsedMs": 20004,
+    "rendererTaskSeconds": 0.024475,
+    "rendererJSHeapBytes": 11162936,
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "passed": true
+}

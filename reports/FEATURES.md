@@ -1,3 +1,5 @@
+Current V2 implementation and limits: [2.0.0-FEATURES.md](2.0.0-FEATURES.md). The history below describes version 1.
+
 # Version 1 feature status
 
 Added in 1.3: subtitle-first Compact defaults, a small explicit controls toggle, anchored hover/pinned word popovers, optional sentence context and one-time default-appearance migration.
