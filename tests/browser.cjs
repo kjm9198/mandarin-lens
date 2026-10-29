@@ -19,12 +19,12 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
  execFileSync(process.env.PYTHON || 'python3',['-c','import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])',archive,extension]);
  assert.deepEqual(await fs.readFile(path.join(extension,'manifest.json')),sourceManifest);
  const manifest=JSON.parse(await fs.readFile(path.join(extension,'manifest.json'),'utf8'));
- manifest.host_permissions=['http://127.0.0.1/*'];manifest.background={service_worker:'test-discovery-worker.js'};
+ manifest.host_permissions=['http://127.0.0.1/*'];
  await fs.writeFile(path.join(extension,'manifest.json'),JSON.stringify(manifest));await fs.writeFile(path.join(extension,'test-discovery-worker.js'),'// Test-only worker; no listeners or privileged operations.\n');
  const fixture=await fs.readFile(path.join(__dirname,'fixtures/real-video.html'));
  const media=await fs.readFile(path.join(__dirname,'fixtures/video.webm'));
  const server=http.createServer((req,res)=>{if(req.url.split('?')[0]==='/video.webm'){const m=/bytes=(\d+)-(\d*)/.exec(req.headers.range||'');const start=m?Number(m[1]):0,end=m?.[2]?Math.min(Number(m[2]),media.length-1):media.length-1;if(start>=media.length){res.writeHead(416);res.end();return;}res.writeHead(m?206:200,{'Content-Type':'video/webm','Accept-Ranges':'bytes','Content-Length':end-start+1,...(m?{'Content-Range':`bytes ${start}-${end}/${media.length}`}:{})});res.end(media.subarray(start,end+1));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture);});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- let context;const report={label:'Real Chromium MV3 integration with local generated video; translation rendering uses an explicit test double',testOnlyManifestChanges:['localhost host permission replaces browser-toolbar activeTab gesture in automation','inert background worker enables test extension discovery'],packageSha256,packageFile:path.basename(archive),checks:[],translator:null,errors:[],screenshotNotes:{'popup.png':'Actual packaged popup, persisted customization','overlay-clean.png':'Local generated-video fixture and explicit Translator double; not a real-model translation-quality claim','overlay.png':'Malicious imported-subtitle test evidence; explicit Translator double'}};
+ let context;const report={label:'Real Chromium MV3 integration with local generated video; translation rendering uses an explicit test double',testOnlyManifestChanges:['localhost host permission replaces browser-toolbar activeTab gesture in automation','distribution storage worker also enables test extension discovery'],packageSha256,packageFile:path.basename(archive),checks:[],translator:null,errors:[],screenshotNotes:{'popup.png':'Actual packaged popup, persisted customization','overlay-clean.png':'Local generated-video fixture and explicit Translator double; not a real-model translation-quality claim','overlay.png':'Malicious imported-subtitle test evidence; explicit Translator double'}};
  try{
   context=await chromium.launchPersistentContext(path.join(temporary,'profile'),{channel:'chromium',executablePath:chromiumExecutable(),headless:true,args:[`--disable-extensions-except=${extension}`,`--load-extension=${extension}`],viewport:{width:1280,height:800}});
   let worker=context.serviceWorkers()[0];if(!worker)worker=await context.waitForEvent('serviceworker');const id=new URL(worker.url()).host;
@@ -50,7 +50,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   const target=await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1/'))?.id).catch(()=>null);
   const tabId=target || await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1:')).id);
   async function inject(files){return popup.evaluate(async({tabId,files})=>chrome.scripting.executeScript({target:{tabId},files}),{tabId,files});}
-  await inject(['data/pinyin.js','core.js','preprocess.js','content.js']);await page.locator('#mandarin-lens-root').waitFor();
+  await inject(['data/pinyin.js','data/lexicon.js','core.js','preprocess.js','learning.js','content.js']);await page.locator('#mandarin-lens-root').waitFor();
   assert.ok(await page.evaluate(()=>{const video=document.querySelector('video:not(#hidden-ad)').getBoundingClientRect(),host=document.querySelector('#mandarin-lens-root').getBoundingClientRect();return Math.abs(video.top-host.top)<1&&Math.abs(video.height-host.height)<1;}));report.checks.push('Overlay anchors to visible main video when the first video is hidden');
   const cdp=await context.newCDPSession(page);
   async function shadowObject(){const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function find(node){if(node.attributes?.includes('mandarin-lens-root'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=find(child);if(found)return found;}}const host=find(tree);assert(host?.shadowRoots?.[0]);return (await cdp.send('DOM.resolveNode',{nodeId:host.shadowRoots[0].nodeId})).object.objectId;}
@@ -78,7 +78,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.mouse.click(wordRect.x,wordRect.y);await page.waitForTimeout(100);
   const pinned=await shadow(root=>{const d=root.querySelector('#details'),b=d.getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {height:b.height,width:b.width,pinned:d.classList.contains('pinned'),mainTop:m.top,mainHeight:m.height};});
   assert.equal(pinned.pinned,true);assert.ok(pinned.height<=160&&pinned.width<=260,JSON.stringify(pinned));assert.ok(Math.abs(pinned.mainTop-compactBefore.top)<.5);
-  await page.screenshot({path:path.join(output,'compact-pinned.png')});
+  await page.screenshot({path:path.join(output,'compact-pinned.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());await page.screenshot({path:path.join(output,'v2-context.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());
   await page.screenshot({path:path.join(output,'compact-detail.png'),clip:{x:390,y:480,width:500,height:190}});
   for(const width of [540,320]){
     await page.setViewportSize({width,height:600});await page.waitForTimeout(100);
@@ -128,7 +128,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   assert.equal(await shadow(root=>root.querySelector('#transcript').classList.contains('show')),false);
   await shadow(root=>{root.querySelector('[aria-label="Settings"]').click();root.querySelector('#prefs select').focus();});await page.keyboard.press('Escape');
   assert.equal(await shadow(root=>root.querySelector('#prefs').classList.contains('show')),false);
-  await shadow(root=>{root.querySelector('.word').click();root.querySelector('#details button').focus();});await page.keyboard.press('Escape');
+  await shadow(root=>{root.querySelector('.word').click();root.querySelector('#details .detailBtns button').focus();});await page.keyboard.press('Escape');
   assert.equal(await shadow(root=>root.querySelector('#details').classList.contains('show')),false);
   report.checks.push('Escape dismisses transcript, settings and word details without reopening them on restored focus');
   await popup.evaluate(()=>chrome.storage.local.set({vocabulary:[{word:'你好',pinyin:'nǐ hǎo',meaning:'hello'}]}));
@@ -182,8 +182,41 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   assert.doesNotMatch(await shadow(root=>root.querySelector('#prepStatus').textContent),/Ready/);
   assert.doesNotMatch(await shadow(root=>root.querySelector('#transcript').textContent),/Failure one/);
   report.checks.push('Replacing a media element at the same page URL clears its old preparation and transcript');
+  await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').pause());await cdp.send('Performance.enable');
+  const perfBefore=await cdp.send('Performance.getMetrics'),idleStart=Date.now();await page.waitForTimeout(20000);const perfAfter=await cdp.send('Performance.getMetrics');
+  const metric=(set,name)=>set.metrics.find(m=>m.name===name)?.value||0;report.performance={condition:'20-second paused original-video fixture, overlay active; translation double, renderer metrics only',elapsedMs:Date.now()-idleStart,rendererTaskSeconds:metric(perfAfter,'TaskDuration')-metric(perfBefore,'TaskDuration'),rendererJSHeapBytes:metric(perfAfter,'JSHeapUsedSize'),platform:process.platform,architecture:process.arch};
+  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await shadow(root=>getComputedStyle(root.querySelector('#top')).transitionDuration),'0s');await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.evaluate(()=>document.querySelector('main').requestFullscreen());await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>document.querySelector('#mandarin-lens-root').parentNode===document.fullscreenElement),true);await page.screenshot({path:path.join(output,'v2-fullscreen.png')});await page.evaluate(()=>document.exitFullscreen());
+  for(const [name,brightness]of [['bright',4],['dark',.15]]){await page.evaluate(value=>document.querySelector('video:not(#hidden-ad)').style.filter=`brightness(${value})`,brightness);await page.screenshot({path:path.join(output,`v2-${name}.png`)});}await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').style.filter='none');
+  report.checks.push('Reduced motion disables transitions; fullscreen player-container anchoring and bright/dark original-media screenshots verified');
+  // V2: exercise actual storage worker, review page and offline paired-caption route.
+  const vocabularyPage=await context.newPage();await vocabularyPage.goto(`chrome-extension://${id}/vocabulary.html`);
+  await vocabularyPage.waitForFunction(()=>!document.querySelector('#count').textContent.includes('Loading'));
+  await vocabularyPage.locator('#practiceOpen').click();await vocabularyPage.locator('#practiceQuestion').waitFor({state:'visible'});
+  assert.match(await vocabularyPage.locator('#practiceQuestion').textContent(),/你好/);await vocabularyPage.locator('#practiceReveal').click();assert.match(await vocabularyPage.locator('#practiceFeedback').textContent(),/hello/);
+  await vocabularyPage.locator('#practiceClose').click();await vocabularyPage.close();report.checks.push('Actual vocabulary page opens an accessible practice dialog and reveals a saved flashcard');
+  const pairedZh=path.join(temporary,'chinese.srt'),pairedEn=path.join(temporary,'english.srt');await fs.writeFile(pairedZh,'1\n00:00:00,000 --> 00:00:02,000\n我想喝咖啡。\n');await fs.writeFile(pairedEn,'1\n00:00:00,000 --> 00:00:02,000\nI would like coffee.\n');
+  await popup.evaluate(async tabId=>chrome.scripting.executeScript({target:{tabId},func:()=>{globalThis.Translator=undefined;}}),tabId);
+  const {root:pairedTree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});await cdp.send('DOM.setFileInputFiles',{nodeId:findInput(pairedTree).nodeId,files:[pairedZh,pairedEn]});
+  await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.pause();v.currentTime=.2;});await page.waitForTimeout(300);
+  assert.match(await shadow(root=>root.querySelector('#translated').textContent),/咖啡/);assert.match(await shadow(root=>root.querySelector('#original').textContent),/would like/);
+  report.checks.push('Two real SRT files pair and play bilingual captions with Translator explicitly absent');
+  await popup.evaluate(()=>chrome.storage.local.set({mode:'watch',interactionMode:'click',resumeOnDismiss:false}));await page.waitForTimeout(100);
+  await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').play());await shadow(root=>root.querySelector('.word').click());assert.equal(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').paused),false);
+  await shadow(root=>root.querySelector('#details .detailBtns button:last-child').click());
+  await popup.evaluate(()=>chrome.storage.local.set({mode:'learn',resumeOnDismiss:true}));await page.waitForTimeout(100);await shadow(root=>root.querySelector('.word').click());assert.equal(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').paused),true);
+  await shadow(root=>root.querySelector('#details .detailBtns button:last-child').click());await page.waitForFunction(()=>!document.querySelector('video:not(#hidden-ad)').paused);
+  await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.pause();v.currentTime=.1;v.playbackRate=1.25;});await page.waitForTimeout(150);
+  await popup.evaluate(()=>chrome.storage.local.set({repeatCount:1,repeatSpeed:.75}));await page.waitForTimeout(100);await shadow(root=>root.querySelector('[aria-label="Replay current subtitle"]').click());assert.equal(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').playbackRate),.75);
+  await page.waitForFunction(()=>document.querySelector('video:not(#hidden-ad)').playbackRate===1.25,{},{timeout:8000});
+  report.checks.push('Watch does not pause, Learn pauses and optionally resumes, and finite sentence replay restores the previous speed');
+  await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.pause();v.currentTime=.1;});await page.waitForTimeout(100);await shadow(root=>root.querySelector('#shadowSentence').click());
+  for(let n=0;n<80;n++){if(await shadow(root=>!root.querySelector('#shadowPractice').hidden))break;await page.waitForTimeout(100);}
+  assert.equal(await shadow(root=>root.querySelector('#shadowPractice').hidden),false);assert.equal(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').paused),true);assert.equal(await shadow(root=>root.querySelector('#original').style.display),'none');
+  await page.screenshot({path:path.join(output,'v2-shadowing.png')});await shadow(root=>root.querySelector('#shadowPractice button').click());assert.equal(await shadow(root=>root.querySelector('#original').style.display),'block');
+  report.checks.push('Shadowing listens once, pauses with English hidden, and reveals meaning only when requested');
   await shadow(root=>root.querySelector('[aria-label="Close Mandarin Lens"]').click());await page.locator('#mandarin-lens-root').waitFor({state:'detached'});report.checks.push('Overlay close removes host in actual extension runtime');
-  await inject(['content.js']);await page.locator('#mandarin-lens-root').waitFor();if(!await popup.locator('#learningData').evaluate(el=>el.open))await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.accept());await popup.locator('#deleteData').click();await page.locator('#mandarin-lens-root').waitFor({state:'detached'});assert.equal(await popup.evaluate(async()=>Object.keys(await chrome.storage.local.get(null)).length),0);report.checks.push('Confirmed data deletion clears extension storage and closes active overlay');
+  await inject(['content.js']);await page.locator('#mandarin-lens-root').waitFor();if(!await popup.locator('#learningData').evaluate(el=>el.open))await popup.getByText('Learning & data',{exact:true}).click();popup.once('dialog',dialog=>dialog.accept());await popup.locator('#deleteData').click();await page.locator('#mandarin-lens-root').waitFor({state:'detached'});assert.deepEqual(await popup.evaluate(async()=>Object.keys(await chrome.storage.local.get(null))),['dataRevision']);report.checks.push('Confirmed data deletion clears extension storage and closes active overlay');
   assert.equal(report.errors.length,0);assert.deepEqual(await fs.readFile(path.join(root,'manifest.json')),sourceManifest);assert.equal(createHash('sha256').update(await fs.readFile(archive)).digest('hex'),packageSha256);report.checks.push('Release ZIP and original manifest unchanged by temporary test permissions');report.passed=true;
  }catch(error){report.passed=false;report.failure=error.stack;throw error;}
  finally{await fs.writeFile(path.join(output,'browser-results.json'),JSON.stringify(report,null,2)+'\n');if(context)await context.close();await new Promise(resolve=>server.close(resolve));await fs.rm(temporary,{recursive:true,force:true});}

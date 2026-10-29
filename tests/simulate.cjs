@@ -7,14 +7,15 @@ const os=require('node:os');
 const assert=require('node:assert/strict');
 const {performance}=require('node:perf_hooks');
 const context=vm.createContext({Intl,crypto:globalThis.crypto,TextEncoder});
-for(const file of ['data/pinyin.js','core.js','preprocess.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
-const {MandarinLensCore:C,MandarinLensPreprocess:P}=context;
+for(const file of ['data/pinyin.js','data/lexicon.js','core.js','preprocess.js','learning.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
+const {MandarinLensCore:C,MandarinLensPreprocess:P,MandarinLensLearning:L}=context;
 let seed=20261028;
 const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
 const latencies=[],failures=[],outcomes={timedCaptionJourneys:0,liveCaptionFallbacks:0,noCaptionFallbacks:0,modelUnavailableFallbacks:0,interruptedJourneys:0};
 const start=performance.now(),cpu=process.cpuUsage(),heapStart=process.memoryUsage().heapUsed;
 for(let session=0;session<10000;session++){
  try{
+  const learning=L.preferences({mode:random()<.5?'watch':'learn',interactionMode:random()<.5?'hover':'click',repeatCount:1+Math.floor(random()*3)});assert(['watch','learn'].includes(learning.mode));const reviewed=L.grade({word:'茶',meaning:'tea',pinyin:'chá'},random()<.25?'Again':'Good');assert(reviewed.reviewHistory.length===1);
   const direction=random()<.5?'en-zh':'zh-en',captionState=Math.floor(random()*3),modelAvailable=random()>.2;
   const interrupted=random()<.25,captionCount=10+Math.floor(random()*150),speed=[.5,1,1.5,2][Math.floor(random()*4)];
   const size=12+Math.floor(random()*37),mode=['watch','learn','practice'][Math.floor(random()*3)];
