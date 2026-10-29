@@ -116,16 +116,26 @@
     }
     return readings.join(' ').replace(/\s+([.,!?。，？！；：、])/gu,'$1').replace(/\s+/gu,' ').trim();
   }
+  const knownWords = new Set(wordKeys);
   function segmentChinese(text) {
     const value = normalize(text);
     if (!value) return [];
-    if (segmenter) return Array.from(segmenter.segment(value), part => part.segment);
-    const words=[];
-    for(let i=0;i<value.length;){
-      const word=wordKeys.find(word=>value.startsWith(word,i)) || String.fromCodePoint(value.codePointAt(i));
-      words.push(word);i+=word.length;
+    // Intl.Segmenter can combine separately useful beginner words (e.g. 我想).
+    // Preserve dictionary phrases like 咖啡, while splitting unfamiliar Han-only chunks.
+    function splitKnownWords(chunk) {
+      const words=[];
+      for(let i=0;i<chunk.length;){
+        const word=wordKeys.find(candidate=>chunk.startsWith(candidate,i)) || String.fromCodePoint(chunk.codePointAt(i));
+        words.push(word);i+=word.length;
+      }
+      return words;
     }
-    return words;
+    if (segmenter) {
+      return Array.from(segmenter.segment(value), part => part.segment).flatMap(chunk =>
+        /^[\u3400-\u9fff\uf900-\ufaff]+$/u.test(chunk) && !knownWords.has(chunk)
+          ? splitKnownWords(chunk) : [chunk]);
+    }
+    return splitKnownWords(value);
   }
   const meaning = (word) => typeof word==='string' ? own(DEFINITIONS,word) : '';
   function compactAppearance(values){
