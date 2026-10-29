@@ -145,6 +145,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   assert.match(await shadow(root=>root.querySelector('#prepStatus').textContent),/1\/3/);assert.equal(await shadow(root=>root.querySelector('#loop').disabled),true);
   await shadow(root=>root.querySelector('#prepareRow button').click());
   await popup.waitForFunction(async()=>Object.entries(await chrome.storage.local.get(null)).some(([key,value])=>key.startsWith('prepared:')&&value.cues?.length===1));
+  assert.match(await shadow(root=>root.querySelector('#prepStatus').textContent),/1\/3/);
   await page.waitForTimeout(350);
   assert.equal(await popup.evaluate(async()=>Object.entries(await chrome.storage.local.get(null)).find(([key])=>key.startsWith('prepared:'))[1].cues.length),1);
   await shadow(root=>root.querySelector('#prepareRow button').click());

@@ -17,7 +17,7 @@
     dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],mediaInitialized:false,mediaSource:null,mediaObject:null,captionSeenAt: 0,
     observer: null, captionFrame: null, hoverTimer: null, leaveTimer: null, wordPinned: false,
     sourceCues: null, sourceUrl: null, activatedAt: 0, prepared: null, preparedUrl: null, preparing: false, prepareToken: 0,
-    preparationStatus:'not-prepared',preparePaused:false, partial:[], activeCacheKey:null, sessionUrl:location.href, prepareProgress: 0, prepareTotal: 0, prepareSource: '', prepareCoverage: null, lastCue: null,
+    cacheWarning:false,preparationStatus:'not-prepared',preparePaused:false, partial:[], activeCacheKey:null, sessionUrl:location.href, prepareProgress: 0, prepareTotal: 0, prepareSource: '', prepareCoverage: null, lastCue: null,
   };
 
   const host = document.createElement('div');
@@ -188,7 +188,7 @@
   async function savePrepared(key,cues){
     if(!key||!cues.length||state.closed)return;
     const token=state.prepareToken,revision=state.dataRevision,cacheRevision=state.cacheRevision;
-    try{if(token!==state.prepareToken)return;await chrome.runtime.sendMessage({action:'cache-save',revision,cacheRevision,key,cues});}catch{/* Cache failures never stop playback. */}
+    try{if(token!==state.prepareToken)return;const result=await chrome.runtime.sendMessage({action:'cache-save',revision,cacheRevision,key,cues});if(token===state.prepareToken&&!state.closed)state.cacheWarning=!result?.ok;}catch{if(token===state.prepareToken&&!state.closed)state.cacheWarning=true;}if(!state.closed)updatePrepareUi();
   }
   function renderTranscript(){
     const query=transcriptSearch.value.trim().toLowerCase();const cues=(state.prepared||[]).filter(c=>!query||c.text.toLowerCase().includes(query)||c.translation.toLowerCase().includes(query));
@@ -297,6 +297,7 @@
     if(state.preparing){prepStatus.textContent=`${state.preparePaused?'Paused':'Preparing'} ${state.prepareProgress}/${state.prepareTotal} lines · ${state.prepareTotal?Math.floor(state.prepareProgress/state.prepareTotal*100):0}%`;
     }else if(state.prepared){prepStatus.textContent=`Ready · ${state.prepared.length} timed lines${state.prepareCoverage===false?' · partial track':state.prepareCoverage==null?' · coverage unknown':''}`;
     }else if(['failed','unsupported'].includes(state.preparationStatus)){prepStatus.textContent=state.preparationStatus==='failed'?'Failed · retry preparation to resume saved lines':'Unsupported · import captions instead';}else{prepStatus.textContent=state.partial.length?`Partially prepared · ${state.partial.length}/${state.prepareTotal} lines`:'Not prepared · import captions or prepare an accessible track';}
+    if(state.cacheWarning)prepStatus.textContent+=' · Cache unavailable: session only; interruption may lose progress';
   }
   function render(){
     updatePrepareUi();
@@ -420,7 +421,7 @@
     try{await prepareVideoJob();}catch{if(!state.closed){invalidatePrepared();info('Could not prepare captions on this page. Try an HTTPS video page and prepare again.');}}
   }
   async function prepareVideoJob(){
-    if(state.preparing){const key=state.activeCacheKey,completed=state.partial.slice();invalidatePrepared();state.partial=completed;state.preparationStatus=completed.length?'partial':'not-prepared';updatePrepareUi();info('Preparation canceled. Completed lines can resume when you prepare again.');await savePrepared(key,completed);return;}
+    if(state.preparing){const key=state.activeCacheKey,completed=state.partial.slice(),total=state.prepareTotal;invalidatePrepared();state.partial=completed;state.prepareTotal=total;state.prepareProgress=completed.length;state.preparationStatus=completed.length?'partial':'not-prepared';updatePrepareUi();info('Preparation canceled. Completed lines can resume when you prepare again.');await savePrepared(key,completed);return;}
     if(state.sourceCues?.every(c=>c.translation)&&state.sourceUrl===location.href){state.prepared=state.sourceCues;state.preparedUrl=location.href;state.enabled=true;setCta(false);checkCaptions();updatePrepareUi();return;}
     if(!state.enabled || !state.translator){info('Select Start learning first, then prepare the video.');return;}
     const url=location.href;
@@ -432,7 +433,7 @@
     }
     if(source.cues.length>4000){info('Subtitle track is too long (maximum 4,000 cues).');return;}
     const token=++state.prepareToken;
-    stopLoop();state.partial=[];state.preparing=true;state.preparePaused=false;updatePrepareUi();
+    stopLoop();state.cacheWarning=false;state.partial=[];state.preparing=true;state.preparePaused=false;updatePrepareUi();
     const key=await P.cacheKey(videoIdentity(),state.direction,source.cues);
     if(token!==state.prepareToken||state.closed)return;
     state.activeCacheKey='prepared:'+key;
