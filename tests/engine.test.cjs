@@ -26,6 +26,12 @@ test('phrase-aware pinyin distinguishes common polyphonic contexts',()=>{
 test('fallback segmentation groups known words without Intl.Segmenter',()=>{
  const {C:fallback}=load({Intl:{}});assert.deepEqual(plain(fallback.segmentChinese('我喜欢咖啡。')),['我','喜欢','咖啡','。']);
 });
+test('Intl segmentation splits beginner words without breaking known phrases',()=>{
+ const fakeIntl={Segmenter:class {segment(){return [{segment:'我想'},{segment:'喝'},{segment:'咖啡'},{segment:'。'}];}}};
+ const {C:segmented}=load({Intl:fakeIntl});
+ assert.deepEqual(plain(segmented.segmentChinese('我想喝咖啡。')),['我','想','喝','咖啡','。']);
+ assert.deepEqual(plain(C.segmentChinese('我想喝咖啡。')).filter(part=>/[\u3400-\u9fff]/u.test(part)),['我','想','喝','咖啡']);
+});
 test('SRT and VTT timestamps parse safely',()=>{
  assert.equal(P.parseClock('01:02:03,045'),3723.045);assert.equal(P.parseClock('120:03'),7203);
  for(const value of ['01:60:00','01:99','-1:20','1:2','not a clock',null])assert.equal(P.parseClock(value),null);
