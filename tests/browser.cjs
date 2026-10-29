@@ -189,7 +189,8 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await shadow(root=>getComputedStyle(root.querySelector('#top')).transitionDuration),'0s');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.evaluate(()=>document.querySelector('main').requestFullscreen());await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>document.querySelector('#mandarin-lens-root').parentNode===document.fullscreenElement),true);await page.screenshot({path:path.join(output,'v2-fullscreen.png')});await page.evaluate(()=>document.exitFullscreen());
   for(const [name,brightness]of [['bright',4],['dark',.15]]){await page.evaluate(value=>document.querySelector('video:not(#hidden-ad)').style.filter=`brightness(${value})`,brightness);await page.screenshot({path:path.join(output,`v2-${name}.png`)});}await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').style.filter='none');
-  report.checks.push('Reduced motion disables transitions; fullscreen player-container anchoring and bright/dark original-media screenshots verified');
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:2,mobile:false});assert.equal(await page.evaluate(()=>devicePixelRatio),2);assert.ok(await shadow(root=>root.querySelector('#main').getBoundingClientRect().height<=66));await page.screenshot({path:path.join(output,'v2-scale-2.png'),clip:{x:390,y:480,width:500,height:210}});await cdp.send('Emulation.clearDeviceMetricsOverride');await page.setViewportSize({width:1281,height:800});await page.setViewportSize({width:1280,height:800});
+  report.checks.push('Reduced motion disables transitions; 2× display-scale emulation, fullscreen player-container anchoring and bright/dark original-media screenshots verified');
   // V2: exercise actual storage worker, review page and offline paired-caption route.
   const vocabularyPage=await context.newPage();await vocabularyPage.goto(`chrome-extension://${id}/vocabulary.html`);
   await vocabularyPage.waitForFunction(()=>!document.querySelector('#count').textContent.includes('Loading'));
@@ -202,6 +203,11 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.evaluate(()=>{const v=document.querySelector('video:not(#hidden-ad)');v.pause();v.currentTime=.2;});await page.waitForTimeout(300);
   assert.match(await shadow(root=>root.querySelector('#translated').textContent),/咖啡/);assert.match(await shadow(root=>root.querySelector('#original').textContent),/would like/);
   report.checks.push('Two real SRT files pair and play bilingual captions with Translator explicitly absent');
+  await popup.evaluate(()=>chrome.storage.local.set({showEnglish:false}));await page.waitForTimeout(100);assert.equal(await shadow(root=>root.querySelector('#original').style.display),'none');
+  await popup.evaluate(()=>chrome.storage.local.set({showEnglish:true,direction:'zh-en'}));await page.waitForTimeout(100);await shadow(root=>root.querySelector('#prepareRow button').click());await page.waitForTimeout(100);assert.match(await shadow(root=>root.querySelector('#original').textContent),/咖啡/);
+  await popup.evaluate(()=>chrome.storage.local.set({showEnglish:false}));await page.waitForTimeout(100);assert.equal(await shadow(root=>root.querySelector('#translated').style.display),'none');
+  await popup.evaluate(()=>chrome.storage.local.set({showEnglish:true,direction:'en-zh'}));await page.waitForTimeout(100);await shadow(root=>root.querySelector('#prepareRow button').click());await page.waitForTimeout(100);
+  report.checks.push('English visibility is independent in both directions, and paired captions retain their language mapping after direction changes');
   await popup.evaluate(()=>chrome.storage.local.set({mode:'watch',interactionMode:'click',resumeOnDismiss:false}));await page.waitForTimeout(100);
   await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').play());await shadow(root=>root.querySelector('.word').click());assert.equal(await page.evaluate(()=>document.querySelector('video:not(#hidden-ad)').paused),false);
   await shadow(root=>root.querySelector('#details .detailBtns button:last-child').click());

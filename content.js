@@ -10,7 +10,7 @@
   }
 
   const state = {
-    ...L.DEFAULTS, direction: 'en-zh', showPinyin: true, showOriginal: true, fontSize: 18,
+    ...L.DEFAULTS, direction: 'en-zh', showPinyin: true, showOriginal: true, showEnglish:true, fontSize: 18,
     hanziSize:12, englishSize:12, textOpacity:100, horizontal:50, spacing:2, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 0, position: 8, pauseOnWord: true, autoPrepare: true,
     current: '', translation: '', enabled: false, translator: null, pendingTranslation: null,
     generation: 0, dataRevision:0,cacheRevision:0,cache: new Map(), closed: false, selected: '',
@@ -171,7 +171,7 @@
   const transcript=document.createElement('section');transcript.id='transcript';transcript.setAttribute('aria-label','Timed transcript');const transcriptSearch=document.createElement('input');transcriptSearch.type='search';transcriptSearch.placeholder='Search prepared captions';transcriptSearch.setAttribute('aria-label','Search prepared captions');const transcriptLines=document.createElement('div');transcript.append(transcriptSearch,transcriptLines);
   surface.append(controlToggle,top,prepRow,main,prefs,status);panel.append(surface,transcript);shadow.append(style,panel,details,prefs);
 
-  const extraDefaults={hanziSize:12,englishSize:12,textOpacity:100,horizontal:50,spacing:2,backgroundBlur:0,timingOffset:0,fontFamily:'system',showHanzi:true,toneColors:false};
+  const extraDefaults={hanziSize:12,englishSize:12,textOpacity:100,horizontal:50,spacing:2,backgroundBlur:0,timingOffset:0,fontFamily:'system',showHanzi:true,showEnglish:true,toneColors:false};
   function applyExtraPrefs(values){
     const ranges={hanziSize:[10,32],englishSize:[10,32],textOpacity:[40,100],horizontal:[10,90],spacing:[0,16],backgroundBlur:[0,16],timingOffset:[-5,5]};
     for(const key of Object.keys(extraDefaults)){
@@ -310,7 +310,7 @@
     // Chinese characters + pinyin always appear above English, in either translation direction.
     main.insertBefore(state.direction==='en-zh'?translated:original,main.firstChild);
     main.insertBefore(state.direction==='en-zh'?original:translated,(state.direction==='en-zh'?translated:original).nextSibling);
-    original.style.display=state.showOriginal?'block':'none';
+    original.style.display=state.showOriginal?'block':'none';translated.style.display='block';if(!state.showEnglish||state.shadowHideEnglish)(state.direction==='en-zh'?original:translated).style.display='none';
     busy.classList.toggle('show',Boolean(state.enabled && state.current && !state.translation));
     replay.hidden=!(state.enabled && state.prepared && state.lastCue);loop.hidden=replay.hidden&&!state.loopCue;loop.setAttribute('aria-pressed',String(Boolean(state.loopCue)));loop.setAttribute('aria-label',state.loopCue?'Stop looping subtitle':'Loop current subtitle');loop.title=state.loopCue?'Stop looping subtitle':'Loop current subtitle';
     if(!state.current)return;
@@ -320,7 +320,7 @@
       if(state.direction==='en-zh')chineseLine(translated,state.translation);
       else translated.textContent=state.translation;
     }
-    if(state.shadowHideEnglish)(state.direction==='en-zh'?original:translated).style.display='none';else translated.style.display='block';positionDetails();
+    positionDetails();
   }
   const cacheKey=(t)=>`${state.direction}:${t}`;
   // One translation at a time per Translator instance. Coalesce fast captions into
