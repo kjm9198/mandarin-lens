@@ -5,23 +5,23 @@
   "passed": 10000,
   "failed": 0,
   "outcomes": {
-    "timedCaptionJourneys": 2662,
-    "liveCaptionFallbacks": 2635,
-    "noCaptionFallbacks": 2727,
-    "modelUnavailableFallbacks": 1976,
-    "interruptedJourneys": 664
+    "timedCaptionJourneys": 2625,
+    "liveCaptionFallbacks": 2712,
+    "noCaptionFallbacks": 2661,
+    "modelUnavailableFallbacks": 2002,
+    "interruptedJourneys": 669
   },
   "failures": [],
   "measurements": {
     "scope": "Node timestamp lookup only; not translation or Chrome rendering latency",
-    "lookupSamples": 53240,
-    "lookupP50Ms": 0.00012499999999704414,
-    "lookupP95Ms": 0.00020799999998644125,
-    "elapsedMs": 489.974916,
-    "cpuUserMs": 525.079,
-    "cpuSystemMs": 7.576,
-    "heapStartBytes": 7859048,
-    "heapEndBytes": 13942016
+    "lookupSamples": 52500,
+    "lookupP50Ms": 0.000125000000011255,
+    "lookupP95Ms": 0.0002089999999839165,
+    "elapsedMs": 566.111584,
+    "cpuUserMs": 603.657,
+    "cpuSystemMs": 7.651,
+    "heapStartBytes": 17124920,
+    "heapEndBytes": 26660136
   },
   "environment": {
     "node": "v24.13.0",

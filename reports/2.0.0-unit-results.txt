@@ -1,0 +1,42 @@
+
+> mandarin-lens@2.0.0 test
+> node --test tests/*.test.cjs
+
+✔ normalization is bounded and does not stringify arbitrary objects (0.376458ms)
+✔ dictionary lookups do not expose inherited properties (0.199958ms)
+✔ phrase-aware pinyin distinguishes common polyphonic contexts (0.411292ms)
+✔ fallback segmentation groups known words without Intl.Segmenter (12.061959ms)
+✔ Intl segmentation splits beginner words without breaking known phrases (9.852458ms)
+✔ SRT and VTT timestamps parse safely (0.126584ms)
+✔ SRT/VTT imports normalize formatting as inert text and skip metadata (0.355125ms)
+✔ cue validator rejects malformed values and sorts valid cues (0.061417ms)
+✔ imports reject oversized or too many subtitles instead of pretending complete (6.8625ms)
+✔ subtitle lookup handles gaps, exact ends, seeks and overlaps (0.154667ms)
+✔ native track selection excludes metadata and wrong-language tracks (0.133292ms)
+✔ cache key distinguishes transcript, direction, video and settings (3.431ms)
+✔ coverage estimate does not mark a short video complete from an opening cue (0.088542ms)
+✔ main video selection excludes hidden players and favors substantial visible media (0.072167ms)
+✔ equally sized videos prefer playback but keep the current selection on ties (0.092916ms)
+✔ live captions exclude metadata and wrong language and normalize inert text (0.09825ms)
+✔ live source prefers explicit language and selected matching track with bounded deduplication (0.044708ms)
+✔ compact migration updates only the exact previous default appearance (0.081833ms)
+✔ licensed lexicon aliases traditional and marks numbered neutral tones (0.062084ms)
+✔ context notes disclose unsupported grammar and recognize wanting an action (0.123041ms)
+✔ bounded learning preferences and review history preserve legacy data (1.943917ms)
+✔ offline practice uses saved answers and discloses missing sentence context (0.1555ms)
+✔ bilingual caption pairing reuses matching lines and reports omissions (0.232458ms)
+✔ accelerated 30-, 60- and 120-minute timelines remain synchronized across seeks (5.299417ms)
+✔ serialized simultaneous word saves preserve every tab contribution (4.391167ms)
+✔ deletion rejects late writes from the previous data revision (1.043792ms)
+✔ cache clearing invalidates pending checkpoints and keeps vocabulary (1.221542ms)
+✔ worker rejects foreign senders, destructive content requests and invalid imports (0.72025ms)
+✔ concurrent review grades are based on the latest stored review (0.585792ms)
+✔ patches preserve concurrent additions and reject private source URLs (0.4695ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 106.569375

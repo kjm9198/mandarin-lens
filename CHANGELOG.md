@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0 — 29 October 2026
+
+- Integrate PR #1: beginner segmentation, punctuation on Hanzi, explicit Context, accessible compact actions and preparation layout. Ordinary clicks now select words; Alt-click selects characters.
+- Licensed 6,500-headword CC-CEDICT subset, traditional aliases, numbered-tone conversion, additional polyphonic overrides and optional limited phrase tone changes.
+- Watch/Learn preferences, click-only lookup, optional resume, line spacing, alignment, outline/shadow, local-voice speed/repetition and popup Stop.
+- Reuse aligned bilingual subtitle files without a model. Finite slow sentence replay restores speed. Shadowing pauses for practice and hides/reveals English without recording or scoring speech.
+- Vocabulary sorting, recent/known states, bounded review history and five offline practice formats; preserve legacy words.
+- Event-driven, sender-validated persistence worker serializes multi-tab changes; revision tokens reject stale saves after deletion/cache clearing. No new permissions, network code, tracking or capture.
+- Offline transcription is clearly disabled pending a packaged, measured recognizer. See V2 reports for actual checks and untested cases.
+
 ## 1.3.0 — 29 October 2026
 
 Redesigned the video overlay around compact subtitles. Word explanations are small anchored popovers outside the subtitle layout; hover has no action row or context, pinning reveals compact actions, and context expands only on request. Replaced the permanent branded toolbar with one explicit ··· control. Added smaller/lighter 12/18/12 subtitle defaults, transparent background and tighter spacing, with one-time migration of exact old defaults that preserves custom choices and vocabulary. Verified fixed subtitle geometry with hover/pin and bounded popovers at narrow viewport widths.

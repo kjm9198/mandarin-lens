@@ -1,7 +1,7 @@
 'use strict';
 /** Local subtitle parsers and page caption discovery. No network or page code execution. */
 (() => {
-  const MAX_CUES=4000, PIPELINE_VERSION='1.0.0';
+  const MAX_CUES=4000, PIPELINE_VERSION='2.0.0';
   const normalize = value => (typeof value==='string'?value:'').slice(0,10000).replace(/\s+/gu, ' ').trim().slice(0, 600);
   function parseClock(value) {
     const s=(typeof value==='string'?value:'').trim().replace(',', '.');
@@ -141,9 +141,18 @@
     if(!globalThis.crypto?.subtle)throw new Error('Secure local cache is unavailable in this browser.');
     if(typeof videoId!=='string' || !['en-zh','zh-en'].includes(direction))throw new Error('Invalid subtitle cache identity.');
     const safeSettings=Object.fromEntries(Object.entries(settings || {}).filter(([key,value])=>['string','number','boolean'].includes(typeof value)).sort(([a],[b])=>a.localeCompare(b)));
-    const payload=JSON.stringify([PIPELINE_VERSION,videoId.slice(0,2048),direction,safeSettings,validCues(cues)]);
+    const payload=JSON.stringify([PIPELINE_VERSION,videoId.slice(0,2048),direction,safeSettings,validCues(cues),cues.map(c=>typeof c.translation==='string'?c.translation.slice(0,600):'') ]);
     const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload));
     return PIPELINE_VERSION+':'+Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
   }
-  globalThis.MandarinLensPreprocess=Object.freeze({PIPELINE_VERSION,MAX_CUES,selectVideo,activeCaption,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
+  function pairCues(first,second,direction='en-zh'){
+    const a=validCues(first),b=validCues(second);if(!a.length||!b.length)throw Error('Both caption files need timed lines');
+    const isChinese=items=>items.slice(0,30).filter(c=>/[\p{Script=Han}]/u.test(c.text)).length>Math.min(3,items.length/2);
+    if(isChinese(a)===isChinese(b))throw Error('Choose one Chinese and one English subtitle file');
+    const zh=isChinese(a)?a:b,en=isChinese(a)?b:a,out=[];let j=0;
+    for(const c of zh){while(j<en.length&&en[j].start<c.start-.35)j++;const e=en[j];if(e&&Math.abs(e.start-c.start)<=.35&&Math.abs(e.end-c.end)<=.5){out.push({start:c.start,end:c.end,chinese:c.text,english:e.text,text:direction==='en-zh'?e.text:c.text,translation:direction==='en-zh'?c.text:e.text});j++;}}
+    if(!out.length)throw Error('These caption timings do not align closely enough to pair safely');
+    return {cues:out,matched:out.length,total:Math.max(a.length,b.length)};
+  }
+  globalThis.MandarinLensPreprocess=Object.freeze({pairCues,PIPELINE_VERSION,MAX_CUES,selectVideo,activeCaption,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
 })();
