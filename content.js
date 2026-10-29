@@ -573,7 +573,7 @@
     state.translator?.destroy?.();state.translator=null;
     state.enabled=false;state.translation='';state.selected='';state.wordPinned=false;details.classList.remove('show');
     setCta(true);render();
-    info('Select Start learning to load the chosen language pair.');
+    if(state.sourceCues?.[0]?.chinese){state.prepared=state.sourceCues;state.preparedUrl=state.sourceUrl;state.enabled=true;state.prepareCoverage=P.coverage(state.sourceCues,currentVideo()?.duration).complete;setCta(false);checkCaptions();renderTranscript();info('Paired captions ready in the selected direction. No translation model needed.');}else info('Select Start learning to load the chosen language pair.');
   }
   function hideHoverSoon(){
     if(state.wordPinned)return;
