@@ -78,7 +78,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   await page.mouse.click(wordRect.x,wordRect.y);await page.waitForTimeout(100);
   const pinned=await shadow(root=>{const d=root.querySelector('#details'),b=d.getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {height:b.height,width:b.width,pinned:d.classList.contains('pinned'),mainTop:m.top,mainHeight:m.height};});
   assert.equal(pinned.pinned,true);assert.ok(pinned.height<=160&&pinned.width<=260,JSON.stringify(pinned));assert.ok(Math.abs(pinned.mainTop-compactBefore.top)<.5);
-  await page.screenshot({path:path.join(output,'compact-pinned.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());await page.screenshot({path:path.join(output,'v2-context.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());
+  await page.screenshot({path:path.join(output,'compact-pinned.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());assert.ok(await shadow(root=>root.querySelector('#details').getBoundingClientRect().height<=280));await page.screenshot({path:path.join(output,'v2-context.png')});await shadow(root=>root.querySelector('#details .detailBtns button[aria-label="Show sentence context"]').click());
   await page.screenshot({path:path.join(output,'compact-detail.png'),clip:{x:390,y:480,width:500,height:190}});
   for(const width of [540,320]){
     await page.setViewportSize({width,height:600});await page.waitForTimeout(100);

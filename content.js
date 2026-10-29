@@ -95,7 +95,7 @@
     #details{position:fixed;margin:0;width:max-content;max-width:260px;min-width:120px;padding:7px 9px;border-radius:8px;background:#142336f5;color:#f1f6ff;border:1px solid #ffffff26;box-shadow:0 3px 12px #0005;z-index:5;font:12px/1.3 system-ui,-apple-system,sans-serif;max-height:220px;overflow:auto}
     #detailHeading{font-size:15px;font-weight:650}#detailPinyin{font-size:12px;color:#bedcff;margin-left:6px}#detailMeaning{font-size:12px;margin-top:3px;line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
     #detailContext,#detailHint,.detailBtns{display:none}#details.pinned .detailBtns{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.detailBtns button{font-size:11px;font-weight:600;padding:5px 9px;border:0;border-radius:6px;background:#ffffff18;color:#eef5ff;min-height:32px}
-    #details.expanded #detailContext{display:block;font-size:11px;color:#c0cfdf;margin-top:6px}#details.expanded #detailMeaning{display:block;overflow:visible}#details.expanded{max-width:min(280px,90vw)}
+    #detailContext button{font:600 11px system-ui;min-height:32px;min-width:32px;padding:5px 8px;border:0;border-radius:6px;background:#ffffff18;color:#eef5ff;cursor:pointer}#detailContext button:disabled{opacity:.45;cursor:default}#details.expanded #detailContext{display:block;font-size:11px;color:#c0cfdf;margin-top:6px}#details.expanded #detailMeaning{display:block;overflow:visible}#details.expanded{max-width:min(280px,90vw)}
     #status{font-size:11px;max-width:min(320px,85vw);padding:6px 8px;border-radius:6px}#busy{font-size:9px}
     @media(max-width:600px){#main{padding:2px 4px}#controlToggle{right:-18px;width:18px}}
   `;  const panel = document.createElement('section'); panel.id = 'panel'; panel.setAttribute('aria-label', 'Mandarin Lens subtitles');
@@ -202,7 +202,7 @@
     const anchor=state.detailAnchor?.isConnected?state.detailAnchor.getBoundingClientRect():main.getBoundingClientRect();
     const bounds=host.getBoundingClientRect();prefs.style.left=Math.max(8,bounds.left+8)+'px';prefs.style.top=Math.max(8,bounds.top+8)+'px';prefs.style.maxHeight=Math.max(60,Math.min(innerHeight-16,bounds.height-16))+'px';const left=Math.max(8,bounds.left+4),right=Math.min(innerWidth-8,bounds.right-4),top=Math.max(8,bounds.top+4),bottom=Math.min(innerHeight-8,bounds.bottom-4);
     details.style.maxWidth=Math.max(100,Math.min(details.classList.contains('expanded')?280:240,right-left))+'px';
-    details.style.maxHeight=Math.max(40,bottom-top)+'px';details.style.overflowY='auto';const box=details.getBoundingClientRect(),x=Math.max(left,Math.min(right-box.width,anchor.left+anchor.width/2-box.width/2));
+    details.style.maxHeight=Math.max(40,Math.min(280,bottom-top))+'px';details.style.overflowY='auto';const box=details.getBoundingClientRect(),x=Math.max(left,Math.min(right-box.width,anchor.left+anchor.width/2-box.width/2));
     let y=anchor.top-box.height-7;if(y<top)y=anchor.bottom+7;y=Math.max(top,Math.min(bottom-box.height,y));
     details.style.left=x+'px';details.style.top=y+'px';
   }
