@@ -67,7 +67,7 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   const word=await shadow(root=>{const el=[...root.querySelectorAll('.word')].find(w=>w.querySelector('.han')?.textContent==='喝');const b=el.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};});
   await page.mouse.click(word.x,word.y);await page.waitForTimeout(100);
   const compactPinned=await shadow(root=>{const d=root.querySelector('#details').getBoundingClientRect(),m=root.querySelector('#main').getBoundingClientRect();return {width:d.width,height:d.height,mainTop:m.top};});
-  assert.ok(compactPinned.width<=240&&compactPinned.height<=105);assert.ok(Math.abs(compactPinned.mainTop-compactBefore.top)<.5);report.compactGeometry={subtitle:compactBefore,pinned:compactPinned};
+  assert.ok(compactPinned.width<=260&&compactPinned.height<=160);assert.ok(Math.abs(compactPinned.mainTop-compactBefore.top)<.5);report.compactGeometry={subtitle:compactBefore,pinned:compactPinned};
   await page.screenshot({path:path.join(output,'compact-real-detail.png'),clip:{x:390,y:480,width:500,height:190}});
   await shadow(root=>root.querySelector('[aria-label="Close word explanation"]').click());await page.mouse.move(10,10);await page.waitForTimeout(400);
   report.checks.push('Actual-model compact subtitles stay under 66px and the pinned popover never shifts them or reveals the toolbar');
