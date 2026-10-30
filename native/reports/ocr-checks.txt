@@ -1,0 +1,2 @@
+PASS: local OCR recognizes a controlled sentence
+PASS: blank image returns no-text error

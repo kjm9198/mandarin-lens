@@ -1,0 +1,11 @@
+PASS: save, duplicate prevention, Chinese category/pinyin, Vietnamese tone distinction, persistence, manual category, spaced review, segmentation, untrusted category validation, owner-only permissions
+PASS: installed-model discovery and local-only endpoint validation (3 MLX folders)
+Testing real local model: Qwen3.5-2B-4bit
+FIRST_TEXT_SECONDS: 2.0066440105438232
+TOTAL_SECONDS: 2.0955089330673218
+OUTPUT: **银行** (yín háng) refers to a financial institution that handles deposits, loans, and payments.
+
+**Example:** 小明去**银行**取钱 (Xiǎo míng qù yín háng qǔ qián).
+
+*Note: "Bank" is a loanword, while "银行" is the Chinese term for the same concept.*
+

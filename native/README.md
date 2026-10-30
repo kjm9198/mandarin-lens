@@ -1,44 +1,37 @@
-# Mandarin Lens native development build
+# Mandarin Lens — native private development build
 
-Build with Xcode's command line tools on Apple Silicon: `./native/build.sh`.
-The result is `native/build/Mandarin Lens.app`. Copy it into `~/Applications` and open it. This is an ad-hoc signed private development build, not notarized.
+SwiftUI and AppKit menu-bar utility for Apple Silicon, macOS 15+. Tested on macOS 27 on an M5 Pro with 48 GB; other hardware and OS versions are not independently verified.
 
-The menu-bar icon opens a floating note that joins all Spaces. Its opacity slider, target language and Control/Option/Command lookup preference persist across launches. Tap the selected modifier and click accessible text in another app. One activation handles one click. Escape cancels lookup while the note has focus; arbitrary shortcut recording is not implemented yet. The Arm lookup button is an alternative activation.
+## Build and install
 
-Enable Accessibility using Allow access before using word capture. Selection is preferred; otherwise a bounded range around the clicked location is tokenized. Apps that do not expose the required Accessibility attributes need selected text or manual paste. Secure text fields are rejected. This is not universal capture.
+From the repository root, run `native/build.sh`. Copy `native/build/Mandarin Lens.app` to `~/Applications` and open it. This is an ad-hoc signed private development build, not notarized. Generate the private DMG with `native/package.sh`. The DMG is generated locally; model files and the Python runtime are not bundled. Translation uses Apple Translation, which may request language-pack installation. The tested MLX runtime lives in `~/Library/Application Support/Mandarin Lens/mlx-runtime` and was installed using Python 3.12 and `pip install mlx-vlm huggingface_hub`.
 
-English, Vietnamese and Polish targets use Apple Translation with automatic source detection. Apple controls supported pairs and installed packs; first use may require a language-pack download. Tested on this Mac: English → Vietnamese and English → Polish. Other directions are not yet verified.
+## Everyday use
 
-Successful translations are stored locally, limited to 500 entries, with owner-only file permissions. Delete individual items from History's context menu. The assistant receives the eight latest entries as reference text and uses the separately installed Qwen3.5 2B MLX model and Python runtime under Application Support/Mandarin Lens. It has no tools, network server or remote inference fallback. It uses offline Hugging Face settings. This is not a network-disconnection certification. Model responses in Polish and Vietnamese remain unreliable in earlier direct tests. Example sentences are generated, not dictionary-verified. Chat conversation persistence and follow-up memory are not implemented.
+- Tap the configured modifier, then click an accessible word. Choose Control, Option or Command in settings.
+- Select text in another app and press Control–Shift–T. Screen area capture is Control–Shift–S; Entire display is available in Capture. Accessibility/Screen Recording permissions may need approval after updating an ad-hoc signed build. Clipboard contents are not modified.
+- Translation targets: English, Vietnamese, Polish, Simplified Chinese and Traditional Chinese. Pair availability depends on Apple packs. Tested pairs include English → Vietnamese, Polish, Simplified Chinese and Simplified Chinese → English. Other pairs remain unverified.
+- Choose Save word after translating. Pick a token from the original or translation, get its own translation, edit its meaning, and save it to Words. The original sentence is restored afterward.
+- Words offers search, category filtering, manual categories, installed-voice pronunciation, JSON export, examples and review. Meanings are user-saved translations, not an authoritative lexical dictionary. Pinyin uses system transliteration and can depend on context.
+- New words receive a rule-based category suggestion. Uncertain items stay Unsorted. Categorize all uses the selected local model in batches of eight, validates category names and IDs, persists completed batches and preserves manual categories. AI categorization is fallible and editable.
+- Review: reveal the meaning, then Again (10 minutes) or Remembered (initially one day, doubling to 30 days).
+- Learn uses up to 12 saved words, four recent translations and six in-memory conversation turns. Chats are not persisted. Clear with New question. Translation history and saved words are persistent local JSON files with owner-only permissions; corrupt vocabulary files are preserved instead of overwritten.
+- The question-mark button reopens the four-step tutorial. New installations show it on first launch.
 
-Verified 30 October 2026 on this M5 Pro: native compilation, ad-hoc signing, application launch, real Apple English → Vietnamese and English → Polish translation, both results persisted in history, and a real local-model answer displayed in the native chat. Screenshots are in screenshots/. Control-click capture, appearance/transparency interactions, menu navigation, all-Spaces behavior, restart persistence of preferences and broad UI accessibility still need interactive acceptance. These are not claimed as passed.
+## Models
 
-Not yet included: launch-at-login, Chrome native messaging/shared vocabulary, Chinese target, private mode, dictionary retrieval, export, spaced review, full hardware adaptation, complete multilingual quality corpus, DMG notarization. This is an initial native development build, not the full 3.0 acceptance release.
+Choose model is accessible from Learn or note settings. Discovery scans installed model directories and user-chosen folders. It does not download weights or execute model-provided code. The installed models discovered on this machine include Qwen 3.5 2B MLX, custom Qwen 3.5 9B MLX, custom Qwen 3.8 27B MLX and a Gemma 4 31B GGUF catalogue entry.
 
-## Compact interface update
+Automatic uses the smallest installed MLX model on 16–24 GB machines; on this 48 GB machine it chooses the tested 9B model. This is a conservative size heuristic, not a complete memory-pressure manager or a universal accuracy ranking. One local AI request runs at a time, with bounded prompts, output and a two-minute deadline. Models run in a subprocess and unload on exit. Models exceeding 8 GB of weight files are refused on machines with 24 GB or less. Small-model multilingual quality is limited; neither candidate is certified as the best model available.
 
-The floating note now opens at 392 × 440 points (minimum 360 × 420), with a shared custom header and Translate / History / Learn navigation. Shortcut and permission controls live in an anchored settings popover. Opacity remains reachable in the footer on every page. History supports inline search and reopening saved translations; learning includes suggested questions and a bounded composer. The menu-bar panel uses the same compact visual identity. The welcome window was removed to avoid duplicate windows.
+MLX folders run directly with offline Hugging Face settings and no remote-code option. Custom quantization/runtime formats may be incompatible; untested large models are listed without claiming runtime support. Downloaded GGUF entries require a local server: they cannot be run by the direct MLX provider.
 
-Uses the local Apple design skill, system type and adaptive colors, a teal accent with darker values for light appearance, native focus and context menus, and no decorative transitions. Reduced Transparency forces full panel opacity while preserving the chosen value for later use. High Contrast strengthens the composer boundary.
+For LM Studio/Bionic, enable their local OpenAI-compatible server, enter its port, and Connect. Only `127.0.0.1` endpoints are constructed, redirects are rejected, and the app opens no inference listener. A token, if required by the server, can be saved to Keychain. The server on this machine required a token, so authenticated real-server inference remains unverified. The adapter was tested against a local explicit fixture. Use downloaded local models in the external server; its own routing/LM Link configuration is outside Lens's control. Lens's direct MLX inference was tested with network access denied at the OS sandbox layer.
 
-Design verification: compiled and installed on this Mac; inspected actual screenshots of translation in light appearance, history at 360 × 420 in dark appearance, local chat output and the settings popover. Re-ran a real Apple English → Polish translation and a real local model generation. Fixed text truncation found in settings screenshot inspection. Screenshots: `screenshots/redesign-*.png`. Broader VoiceOver, keyboard navigation, menu-bar pointer interactions and cross-app capture acceptance remain pending; the design update does not establish those results.
+## Privacy and limits
 
-## Selection, screen text and editable opacity
+No analytics, accounts, remote AI endpoints or cloud sync are added. Local prompts are bounded; AI has no command/file/system tools. Screen captures occur only on explicit request, are OCR'd with Apple Vision, and temporary images are removed. Captures are bounded to 16,000 characters. Secure text fields are rejected by Accessibility capture; inaccessible/protected surfaces and OCR errors remain possible. Real cross-app capture permission acceptance and multi-display behavior still need user validation.
 
-The footer percentage is now editable (35–100% opacity), alongside the live slider. Settings includes a larger slider. macOS Reduced Transparency still takes precedence.
+Private mode, Chrome native messaging/shared vocabulary, launch-at-login, dictionary datasets, full memory/thermal scheduling and complete multilingual quality evaluation are not included. Speech playback, broad VoiceOver/keyboard interaction, 16 GB hardware performance and all translation pairs are not certified by the current checks.
 
-Capture controls are available on Translate and in the menu bar:
-- Selected text: select a sentence in another app and press Control–Shift–T, or use Selected text. The last active external app is restored before reading its focused accessible selection. Clipboard contents are not modified.
-- Word: activate the configured modifier or Capture → Word under pointer, then click the word.
-- Screen area: Capture → Screen area or Control–Shift–S opens macOS's interactive region selector; Escape cancels.
-- Entire display: captures the display currently containing the pointer after hiding Lens, then performs local Apple Vision OCR. Only explicitly initiated captures are read. Temporary screenshots are removed after OCR or cancellation. No continuous capture or remote OCR.
-
-Screen capture requires Screen Recording permission for the app; selected text requires Accessibility. Protected/inaccessible apps can prevent selection or screen capture. OCR is fallible and full-screen reading order may differ from document order. Captured/selected text is bounded to 16,000 characters; the translated text enters the existing local history. Capturing the screen is intentional and can include visible sensitive text, so use a region for a smaller scope.
-
-Verification: compiled and installed updated app on M5 Pro; local Vision OCR recognized a controlled image containing a known English sentence and rejected a blank image. Re-ran actual English → Polish Apple Translation in the installed UI and inspected the new capture controls and numeric opacity field screenshot (`screenshots/capture-update.png`). Interactive cross-app selection, real screen capture permissions, region cancellation and multi-display behavior still require user acceptance; they are not established by the synthetic OCR test.
-
-Reproduce OCR smoke checks:
-```
-xcrun swiftc -target arm64-apple-macos15.0 -parse-as-library native/Sources/MandarinLens/ScreenText.swift native/Tests/OCRSmoke.swift -framework Vision -framework AppKit -o /tmp/lens-ocr-smoke
-/tmp/lens-ocr-smoke
-```
+See `reports/LEARNING-UPDATE.md` for test results, measurements, screenshots and reproducible checks.

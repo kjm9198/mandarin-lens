@@ -1,0 +1,3 @@
+PASS: corrupt vocabulary file is preserved instead of overwritten
+PASS: save, duplicate prevention, Chinese category/pinyin, Vietnamese tone distinction, persistence, manual category, spaced review, segmentation, untrusted category validation, owner-only permissions
+PASS: installed-model discovery and local-only endpoint validation (3 MLX folders, 4 total entries)

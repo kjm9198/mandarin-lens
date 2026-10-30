@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 private enum LensPage: String, CaseIterable {
-    case translate = "Translate", history = "History", learn = "Learn"
-    var symbol: String { switch self { case .translate: "character.bubble"; case .history: "clock"; case .learn: "sparkle" } }
+    case translate = "Translate", words = "Words", history = "History", learn = "Learn"
+    var symbol: String { switch self { case .translate: "character.bubble"; case .words: "bookmark"; case .history: "clock"; case .learn: "sparkle" } }
 }
 struct Note: View {
     @EnvironmentObject var lens: Lens
@@ -13,6 +13,9 @@ struct Note: View {
     @State private var page: LensPage = CommandLine.arguments.contains("--chat-smoke") ? .learn : CommandLine.arguments.contains("--history-preview") ? .history : .translate
     @State private var preferences = false
     @State private var search = ""
+    @State private var tutorial = CommandLine.arguments.contains("--tutorial-preview") || (!UserDefaults.standard.bool(forKey: "onboardingComplete") && !CommandLine.arguments.contains("--skip-tutorial"))
+    @State private var showModels = false
+    @State private var draftContext: WordDraftContext?
     @State private var copied = false
     @FocusState private var editing: Bool
     private var accent: Color { scheme == .dark ? Color(red: 0.28, green: 0.80, blue: 0.77) : Color(red: 0.0, green: 0.40, blue: 0.42) }
@@ -24,12 +27,18 @@ struct Note: View {
             Group {
                 switch page {
                 case .translate: translator
+                case .words: WordsView(vocabulary: lens.vocabulary, models: lens.models) { word in
+                    lens.question = "Explain the word \(word.term) (meaning: \(word.meaning)) and give one natural sentence. For Chinese include Hanzi and tone-mark pinyin."; page = .learn; lens.chat()
+                }
                 case .history: history
                 case .learn: learning
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             footer
         }
+        .sheet(isPresented: $tutorial) { TutorialView(lens: lens) }
+        .sheet(isPresented: $showModels) { ModelsView(models: lens.models) }
+        .sheet(item: $draftContext) { context in WordDraftView(lens: lens, vocabulary: lens.vocabulary, term: context.translated, meaning: context.source, source: context.source, translated: context.translated, originalTarget: context.target, meaningTarget: ["en", "vi", "pl", "zh-Hans", "zh-Hant"].contains(WordTools.language(context.source)) ? WordTools.language(context.source) : lens.explanationLanguage) }
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(accent)
         .frame(minWidth: 340, minHeight: 380)
@@ -37,6 +46,8 @@ struct Note: View {
         .onChange(of: reduceTransparency) { _, value in lens.panel?.alphaValue = value ? 1 : lens.opacity }
         .onAppear {
             if reduceTransparency { lens.panel?.alphaValue = 1 }
+            if CommandLine.arguments.contains("--models-preview") { showModels = true }
+            if CommandLine.arguments.contains("--words-preview") { page = .words }
             if CommandLine.arguments.contains("--settings-preview") { DispatchQueue.main.async { preferences = true } }
         }
         .onExitCommand { lens.armed = false; editing = false }
@@ -56,12 +67,13 @@ struct Note: View {
                 .frame(width: 34, height: 34).background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 1) {
                 Text("Mandarin Lens").font(.system(size: 14, weight: .semibold))
-                Text(lens.armed ? "Ready. Click a word." : "A little understanding, always close.")
+                Text(lens.armed ? "Ready. Click a word." : "Chinese · Vietnamese · Polish")
                     .font(.system(size: 10)).foregroundStyle(lens.armed ? accent : .secondary)
             }
             Spacer(minLength: 3)
             Button { lens.armed.toggle() } label: { Image(systemName: lens.armed ? "cursorarrow.click.2" : "cursorarrow.click").foregroundStyle(lens.armed ? accent : Color.secondary).frame(width: 24, height: 28) }
                 .buttonStyle(.plain).help(lens.armed ? "Cancel word lookup" : "Look up a word").accessibilityLabel(lens.armed ? "Cancel word lookup" : "Look up a word")
+            Button { tutorial = true } label: { Image(systemName: "questionmark.circle").frame(width: 20, height: 28) }.buttonStyle(.plain).help("Tutorial").accessibilityLabel("Open tutorial")
             Button { preferences.toggle() } label: { Image(systemName: "slider.horizontal.3").frame(width: 28, height: 28) }
                 .buttonStyle(.plain).help("Note settings").accessibilityLabel("Note settings")
                 .popover(isPresented: $preferences, arrowEdge: .bottom) { settings }
@@ -71,11 +83,11 @@ struct Note: View {
         HStack(spacing: 4) {
             ForEach(LensPage.allCases, id: \.self) { item in
                 Button { page = item } label: {
-                    Label(item.rawValue, systemImage: item.symbol).font(.system(size: 11, weight: .semibold))
+                    Text(item.rawValue).font(.system(size: 11, weight: .semibold))
                         .frame(maxWidth: .infinity).padding(.vertical, 8)
                         .foregroundStyle(page == item ? Color.primary : Color.secondary)
                         .background(page == item ? Color(nsColor: .controlBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 7))
-                }.buttonStyle(.plain).accessibilityAddTraits(page == item ? .isSelected : [])
+                }.buttonStyle(.plain).accessibilityLabel(item.rawValue).accessibilityAddTraits(page == item ? .isSelected : [])
             }
         }.padding(4).background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, 16).padding(.bottom, 12)
@@ -102,6 +114,8 @@ struct Note: View {
                     Spacer()
                     Image(systemName: "arrow.right").font(.system(size: 10)).foregroundStyle(.tertiary)
                     Menu {
+                        Button("中文 · Simplified") { lens.target = "zh-Hans" }
+                        Button("繁體中文 · Traditional") { lens.target = "zh-Hant" }
                         Button("English") { lens.target = "en" }
                         Button("Tiếng Việt") { lens.target = "vi" }
                         Button("Polski") { lens.target = "pl" }
@@ -111,7 +125,10 @@ struct Note: View {
                 ZStack(alignment: .topLeading) {
                     if lens.input.isEmpty { Text("A word, a thought, a sentence…").foregroundStyle(.tertiary).padding(.top, 7).padding(.leading, 4).allowsHitTesting(false) }
                     TextEditor(text: $lens.input).font(.system(size: 16)).scrollContentBackground(.hidden)
-                        .frame(height: 76).focused($editing).accessibilityLabel("Text to translate")
+                        .frame(height: 56).focused($editing).accessibilityLabel("Text to translate")
+                }
+                if lens.input.range(of: "\\p{Han}", options: .regularExpression) != nil {
+                    Text(lens.input.applyingTransform(.mandarinToLatin, reverse: false) ?? "").font(.system(size: 11)).foregroundStyle(.secondary).textSelection(.enabled).help("System pinyin; pronunciation depends on context")
                 }
                 HStack {
                     if !lens.input.isEmpty {
@@ -131,8 +148,15 @@ struct Note: View {
                     }.padding(.vertical, 14)
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack { caption("TRANSLATION"); Spacer(); if lens.output == "Translating…" { ProgressView().controlSize(.mini) } }
+                        HStack {
+                            caption("TRANSLATION"); Spacer()
+                            if lens.output == "Translating…" { ProgressView().controlSize(.mini) }
+                            if lens.canSaveWord { Button { draftContext = WordDraftContext(source: lens.input, translated: lens.output, target: lens.target) } label: { Label("Save word", systemImage: "bookmark") }.font(.system(size: 11, weight: .medium)).buttonStyle(.plain).foregroundStyle(accent).accessibilityLabel("Save word") }
+                        }
                         Text(lens.output).font(.system(size: 19, weight: .medium, design: .rounded)).textSelection(.enabled).lineSpacing(4).frame(maxWidth: .infinity, alignment: .leading)
+                        if lens.output.range(of: "\\p{Han}", options: .regularExpression) != nil {
+                            Text(lens.output.applyingTransform(.mandarinToLatin, reverse: false) ?? "").font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled).help("System pinyin; pronunciation depends on context")
+                        }
                         if lens.output != "Translating…" {
                             HStack(spacing: 14) {
                                 Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output, forType: .string); copied = true } label: { Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc") }
@@ -193,9 +217,9 @@ struct Note: View {
             VStack(spacing: 8) {
                 HStack(alignment: .center, spacing: 8) {
                     TextField("Ask about your words…", text: $lens.question, axis: .vertical).lineLimit(1...3).textFieldStyle(.plain).font(.system(size: 12)).onSubmit { lens.chat() }
-                    Button { if lens.busy { lens.process?.terminate() } else { lens.chat() } } label: { Image(systemName: lens.busy ? "stop.fill" : "arrow.up").font(.system(size: 11, weight: .bold)).frame(width: 26, height: 26).foregroundStyle(.white).background(accent, in: Circle()) }.buttonStyle(.plain).accessibilityLabel(lens.busy ? "Stop answer" : "Send question").disabled(!lens.busy && lens.question.isEmpty)
+                    Button { if lens.busy { lens.stopChat() } else { lens.chat() } } label: { Image(systemName: lens.busy ? "stop.fill" : "arrow.up").font(.system(size: 11, weight: .bold)).frame(width: 26, height: 26).foregroundStyle(.white).background(accent, in: Circle()) }.buttonStyle(.plain).accessibilityLabel(lens.busy ? "Stop answer" : "Send question").disabled(!lens.busy && lens.question.isEmpty)
                 }.padding(10).background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(contrast == .increased ? 0.5 : 0.12)))
-                HStack { Text("Uses your 8 most recent translations"); Spacer(); if !lens.answer.isEmpty { Button("New question") { lens.question = ""; lens.answer = "" }.buttonStyle(.plain).disabled(lens.busy) } }.font(.system(size: 9)).foregroundStyle(.secondary)
+                HStack { Button("Choose model") { showModels = true }.buttonStyle(.plain); Spacer(); if !lens.answer.isEmpty { Button("New question") { lens.question = ""; lens.answer = ""; lens.chatTurns = [] }.buttonStyle(.plain).disabled(lens.busy) } }.font(.system(size: 9)).foregroundStyle(.secondary)
             }.padding(.horizontal, 16).padding(.bottom, 12)
         }
     }
@@ -213,6 +237,8 @@ struct Note: View {
     }
     private var settings: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Button("Choose your local model…") { preferences = false; showModels = true }.controlSize(.small)
+            Picker("Explain in", selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
             Text("Make yourself at home.").font(.system(size: 15, weight: .semibold, design: .rounded))
             Picker("Lookup key", selection: $lens.trigger) { ForEach(["Control", "Option", "Command"], id: \.self) { Text($0) } }
             Text("Tap the key, then click a word in another app.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -229,7 +255,7 @@ struct Note: View {
         }.padding(20).frame(width: 260)
     }
     private func caption(_ text: String) -> some View { Text(text).font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.secondary) }
-    private func languageName(_ code: String) -> String { code == "vi" ? "Tiếng Việt" : code == "pl" ? "Polski" : "English" }
+    private func languageName(_ code: String) -> String { code.hasPrefix("zh") ? (code == "zh-Hant" ? "繁體中文" : "中文") : code == "vi" ? "Tiếng Việt" : code == "pl" ? "Polski" : "English" }
     private func empty(_ title: String, detail: String, symbol: String) -> some View {
         VStack(alignment: .leading, spacing: 10) { Image(systemName: symbol).font(.system(size: 25, weight: .light)).foregroundStyle(accent); Text(title).font(.system(size: 18, weight: .medium, design: .rounded)); Text(detail).font(.system(size: 12)).foregroundStyle(.secondary) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(24)
     }
