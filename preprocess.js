@@ -137,6 +137,25 @@
     }
     return result;
   }
+  // Repeated DOM observations of the same caption must not postpone its deadline.
+  // Reset on seeks and source changes so an old timer cannot revive stale text.
+  function liveCaptionCoalescer(emit,{setTimer=setTimeout,clearTimer=clearTimeout}={}){
+    let pending='',lastRaw='',timer=null;
+    function reset(){if(timer!==null)clearTimer(timer);pending='';lastRaw='';timer=null;}
+    function flush(){timer=null;const text=pending;pending='';if(text)emit(text);}
+    function push(value,{hasCurrent=false}={}){
+      const text=normalize(value);if(!text||text===lastRaw)return;
+      const isPunct=/[.?!。？！…]["'”’」』）》】\s]*$/u.test(text);
+      const isLongClause=text.split(/\s+/u).length>=8||text.length>=45;
+      const isNewSegment=lastRaw&&!text.startsWith(lastRaw)&&!lastRaw.startsWith(text);
+      lastRaw=text;
+      if(timer!==null){clearTimer(timer);timer=null;}
+      if(isPunct||isLongClause){pending='';emit(text);return;}
+      if(isNewSegment&&pending)emit(pending);
+      pending=text;timer=setTimer(flush,hasCurrent?550:350);
+    }
+    return {push,reset};
+  }
   async function cacheKey(videoId,direction,cues,settings={}){
     if(!globalThis.crypto?.subtle)throw new Error('Secure local cache is unavailable in this browser.');
     if(typeof videoId!=='string' || !['en-zh','zh-en'].includes(direction))throw new Error('Invalid subtitle cache identity.');
@@ -154,5 +173,5 @@
     if(!out.length)throw Error('These caption timings do not align closely enough to pair safely');
     return {cues:out,matched:out.length,total:Math.max(a.length,b.length)};
   }
-  globalThis.MandarinLensPreprocess=Object.freeze({pairCues,PIPELINE_VERSION,MAX_CUES,selectVideo,activeCaption,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
+  globalThis.MandarinLensPreprocess=Object.freeze({pairCues,PIPELINE_VERSION,MAX_CUES,selectVideo,activeCaption,liveCaptionCoalescer,cacheKey,parseClock,parseSubtitleFile,validCues,nativeCues,transcriptCues,readPageCues,coverage,atTime});
 })();

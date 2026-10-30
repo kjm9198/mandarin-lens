@@ -499,28 +499,12 @@
     }
     renderTranscript();updatePrepareUi();
   }
-  let livePending='',liveTimer=null,liveLastRaw='';
+  const liveCaptions=P.liveCaptionCoalescer(text=>updateCaption(text));
   function handleLiveCaption(rawText){
     const text=C.normalize(rawText);
     if(!text)return;
-    if(!state.sentenceMode){updateCaption(text);return;}
-    const isPunct=/[.?!。？！…]["'”’」』）》】\s]*$/u.test(text);
-    const words=text.split(/\s+/).filter(Boolean);
-    const isLongClause=words.length>=8||text.length>=45;
-    const isNewSegment=liveLastRaw&&!text.startsWith(liveLastRaw)&&!liveLastRaw.startsWith(text);
-    liveLastRaw=text;
-    if(isPunct||isLongClause){
-      clearTimeout(liveTimer);liveTimer=null;livePending='';updateCaption(text);
-    }else if(isNewSegment){
-      clearTimeout(liveTimer);liveTimer=null;
-      if(livePending)updateCaption(livePending);
-      livePending=text;
-      liveTimer=setTimeout(()=>{if(livePending){updateCaption(livePending);livePending='';}},550);
-    }else{
-      livePending=text;clearTimeout(liveTimer);
-      const delay=state.current?550:350;
-      liveTimer=setTimeout(()=>{if(livePending){updateCaption(livePending);livePending='';}},delay);
-    }
+    if(!state.sentenceMode){liveCaptions.reset();updateCaption(text);return;}
+    liveCaptions.push(text,{hasCurrent:Boolean(state.current)});
   }
   function updateCaption(raw, translated=null){
     const text=C.normalize(raw);
@@ -536,11 +520,13 @@
   }
   function checkCaptions(event){
     if(state.closed)return;
+    if(event?.type==='seeking'||event?.type==='emptied'||event?.type==='loadstart')liveCaptions.reset();
     if(event?.type==='play')state.pausedForWord=null;
     attach();bindVideo();syncYouTube();
     if(state.prepared&&state.nativePreparedSignature!==null&&state.nativePreparedSignature!==undefined&&state.nativePreparedSignature!==nativeSignature()){invalidatePrepared();state.current='';state.translation='';info('Caption track changed. Prepare the newly selected captions again.');render();}
-    if(state.sessionUrl!==location.href){state.sessionUrl=location.href;state.generation++;invalidatePrepared();state.current='';state.translation='';state.selected='';details.classList.remove('show');render();}
+    if(state.sessionUrl!==location.href){liveCaptions.reset();state.sessionUrl=location.href;state.generation++;invalidatePrepared();state.current='';state.translation='';state.selected='';details.classList.remove('show');render();}
     if(state.prepared && state.preparedUrl===location.href){
+      liveCaptions.reset();
       const video=currentVideo();
       if(video&&state.loopCue){
         const start=Math.max(0,state.loopCue.start+state.timingOffset),end=state.loopCue.end+state.timingOffset;
@@ -560,6 +546,7 @@
     if(state.sourceCues && state.sourceUrl!==location.href){state.sourceCues=null;state.sourceUrl=null;}
     if(!state.enabled)return;
     const text=getClipText();
+    if(!text)liveCaptions.reset();
     if(text)handleLiveCaption(text);
     else if(state.current && Date.now()-state.captionSeenAt > 3500){
       if(!state.wordPinned && !state.isHovering && !details.classList.contains('show')){
@@ -608,7 +595,7 @@
     }
   }
   function resetTranslation(){
-    state.generation++;invalidatePrepared();
+    liveCaptions.reset();state.generation++;invalidatePrepared();
     if(state.sourceCues?.[0]?.chinese)state.sourceCues=state.sourceCues.map(c=>({...c,text:state.direction==='en-zh'?c.english:c.chinese,translation:state.direction==='en-zh'?c.chinese:c.english}));
     state.translator?.destroy?.();state.translator=null;
     state.enabled=false;state.translation='';state.selected='';state.wordPinned=false;details.classList.remove('show');
@@ -689,7 +676,7 @@
   }
   function closeOverlay(){
     state.closed=true;youtube?.close();invalidatePrepared();
-    clearTimeout(state.watchTimer);clearTimeout(liveTimer);liveTimer=null;livePending='';liveLastRaw='';unbindVideo();
+    clearTimeout(state.watchTimer);liveCaptions.reset();unbindVideo();
     state.observer?.disconnect();cancelAnimationFrame(state.captionFrame);
     clearTimeout(state.hoverTimer);clearTimeout(state.leaveTimer);
     document.removeEventListener('fullscreenchange',attach);window.removeEventListener('resize',attach);window.removeEventListener('scroll',attach,true);
