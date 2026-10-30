@@ -7,3 +7,7 @@ output/
 .env.*
 *.pem
 *.key
+
+native/build/
+
+native/.build/
