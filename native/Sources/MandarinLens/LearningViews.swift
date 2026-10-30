@@ -6,6 +6,7 @@ struct WordDraftContext: Identifiable {
     let source: String
     let translated: String
     let target: String
+    var context = ""
 }
 struct WordDraftView: View {
     @Environment(\.dismiss) var dismiss
@@ -15,6 +16,7 @@ struct WordDraftView: View {
     @State var meaning: String
     let source: String
     let translated: String
+    var originalContext = ""
     let originalTarget: String
     @State var meaningTarget: String
     @State private var fromTranslation = true
@@ -30,11 +32,12 @@ struct WordDraftView: View {
             TextField("Word or phrase", text: $term).textFieldStyle(.roundedBorder)
             TextField("Meaning", text: $meaning, axis: .vertical).lineLimit(2...4).textFieldStyle(.roundedBorder)
             Picker("Meaning in", selection: $meaningTarget) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans"); Text("繁體中文").tag("zh-Hant") }
+            if vocabulary.status.hasPrefix("Could not") { Text(vocabulary.status).font(.caption).foregroundStyle(.red) }
             HStack {
-                Button("Translate this word") { lens.target = meaningTarget; lens.input = term; lens.translate() }.disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Translate this word") { lens.input = term; lens.target = meaningTarget; lens.translate() }.disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Spacer()
                 Button("Cancel") { dismiss() }
-                Button("Save word") { vocabulary.save(term: term, meaning: meaning, target: meaningTarget); dismiss() }.buttonStyle(.borderedProminent).disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Save word") { if vocabulary.save(term: term, meaning: meaning, target: meaningTarget) { dismiss() } }.buttonStyle(.borderedProminent).disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }.controlSize(.small)
         }.padding(22).frame(width: 340).tint(.teal)
         .onChange(of: term) { _, value in
@@ -42,7 +45,7 @@ struct WordDraftView: View {
             else if value == source { meaning = translated }
             else { meaning = lens.input == value && lens.canSaveWord ? lens.output : "" }
         }
-        .onDisappear { lens.input = source; lens.output = translated; lens.target = originalTarget }
+        .onDisappear { lens.restoreTranslation(source: source, translated: translated, language: originalTarget, context: originalContext) }
         .onChange(of: lens.output) { _, _ in if lens.input == term && lens.canSaveWord { meaning = lens.output } }
     }
 }
@@ -53,6 +56,7 @@ struct WordsView: View {
     @State private var search = ""
     @State private var category = "All"
     @State private var practice = false
+    @State private var speakingWord: SavedWord?
     @State private var reveal = false
     @StateObject private var speaker = WordSpeaker()
     @State private var organizeTask: Task<Void, Never>?
@@ -90,6 +94,7 @@ struct WordsView: View {
                                 HStack {
                                     Menu(word.category.rawValue) { ForEach(WordCategory.allCases, id: \.self) { item in Button(item.rawValue) { vocabulary.categorize(word.id, as: item) } } }.menuStyle(.borderlessButton).fixedSize().font(.system(size: 10))
                                     Spacer()
+                                    Button("Speak & practise") { speakingWord = word }.font(.system(size: 10)).buttonStyle(.plain).foregroundStyle(.teal)
                                     Button("Example & usage") { ask(word) }.font(.system(size: 10)).buttonStyle(.plain).foregroundStyle(.teal)
                                 }
                             }.padding(.vertical, 12).contextMenu { Button("Delete word", role: .destructive) { vocabulary.words.removeAll { $0.id == word.id }; vocabulary.persist() } }
@@ -99,6 +104,7 @@ struct WordsView: View {
                 }
             }
         }.onDisappear { organizeTask?.cancel() }
+            .sheet(item: $speakingWord) { word in SpeakingPracticeView(word: word, models: models) }
     }
     @ViewBuilder private var review: some View {
         if let word = due {
@@ -115,17 +121,18 @@ struct WordsView: View {
     }
 }
 struct ModelsView: View {
+    var embedded = false
     @ObservedObject var models: LocalModels
     @Environment(\.dismiss) var dismiss
     @State private var token = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("Choose your local AI").font(.system(size: 19, weight: .semibold, design: .rounded)); Spacer(); Button("Done") { dismiss() } }
+            HStack { Text("Choose your local AI").font(.system(size: 19, weight: .semibold, design: .rounded)); Spacer(); if !embedded { Button("Done") { dismiss() } } }
             Text("Chat and categorization run on this Mac. Translation uses Apple's installed language packs.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     Button { models.selected = "auto" } label: { HStack { Image(systemName: models.selected == "auto" ? "checkmark.circle.fill" : "circle"); VStack(alignment: .leading) { Text("Automatic").fontWeight(.semibold); Text("\(models.automatic?.displayName ?? "No installed model")").font(.caption).lineLimit(2) }; Spacer() } }.buttonStyle(.plain)
-                    Text("16 GB Macs default to the smallest installed model. Bigger models are optional; size alone doesn't prove accuracy.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text("Automatic uses the smallest installed MLX model for faster replies. Larger models may improve quality but need more time and memory.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     Divider()
                     ForEach(models.models) { model in
                         Button { models.selected = model.id } label: {
@@ -134,7 +141,16 @@ struct ModelsView: View {
                     }
                 }.padding(.vertical, 4)
             }.frame(height: 240)
-            HStack { Button("Find installed models") { models.discoverFiles(); Task { await models.refreshServer() } }; Button("Choose model folder…") { models.addFolder() } }.controlSize(.small)
+            HStack { Button("Find installed models") { Task { await models.scanFiles(); await models.refreshServer() } }; Button("Choose model folder…") { models.addFolder() } }.controlSize(.small)
+            Divider()
+            Text("Download a local model").font(.headline)
+            HStack {
+                Button("Download 2B · about 2 GB") { Task { await models.installModel("Qwen3.5-2B-4bit") } }
+                Button("Download 4B · about 3 GB") { Task { await models.installModel("Qwen3.5-4B-4bit") } }
+            }.controlSize(.small).disabled(models.installing)
+            if models.installing { HStack { ProgressView().controlSize(.small); Button("Cancel download") { models.installJob?.cancel() } } }
+            Button(models.speechAvailable ? "Offline speech model installed" : "Download offline speech · about 500 MB") { Task { await models.installModel("whisper-small-asr-fp16") } }.disabled(models.installing || models.speechAvailable).controlSize(.small)
+            Text("Downloads use Hugging Face. Your questions and vocabulary are never sent there. Existing downloads resume when retried.").font(.caption).foregroundStyle(.secondary)
             Divider()
             HStack { Text("LM Studio / Bionic port").font(.caption); TextField("1234", value: $models.port, format: .number.grouping(.never)).textFieldStyle(.roundedBorder).frame(width: 70); Button("Connect") { Task { await models.refreshServer() } } }.controlSize(.small)
             HStack { SecureField("Optional local API token", text: $token).textFieldStyle(.roundedBorder); Button("Save") { models.saveToken(token); token = "" } }.controlSize(.small)
@@ -161,7 +177,7 @@ struct TutorialView: View {
                     Picker("Translate into", selection: $lens.target) { Text("中文 · Simplified").tag("zh-Hans"); Text("繁體中文 · Traditional").tag("zh-Hant"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("English").tag("en") }
                     Picker("Explain in", selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
                 case 1:
-                    Text("Tap your lookup key and click a word. Highlight a sentence and press ⌃⇧T. For text in images, use Capture → Screen area (⌃⇧S).")
+                    Text("Point at a word and press Option–Space. For a sentence, select it and point inside the selection. Escape dismisses lookup. Use Open full app for your dictionary and chat. For images, explicitly choose Capture → Screen area.")
                     Text("Allow Accessibility or Screen Recording only when you use those features. Paste works without either permission.").foregroundStyle(.secondary)
                 case 2:
                     Text("Choose Save word after translating. Pick a single word from the sentence, translate its meaning, then save. Your words get suggested categories immediately.")

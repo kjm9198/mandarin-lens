@@ -70,13 +70,14 @@ enum WordTools {
             catch { loadFailed = true; status = "Could not read saved words. The original file is preserved; restore a backup before saving." }
         }
     }
-    func save(term: String, meaning: String, target: String, sourceLanguage: String? = nil) {
-        guard !loadFailed else { return }
-        let term = String(term.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120))
-        guard !term.isEmpty, !meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        guard !words.contains(where: { $0.term.compare(term, options: [.caseInsensitive]) == .orderedSame && $0.targetLanguage == target }) else { status = "Already in My words."; return }
-        words.insert(SavedWord(term: term, meaning: String(meaning.prefix(1000)), sourceLanguage: sourceLanguage ?? WordTools.language(term), targetLanguage: target, category: WordTools.suggest(term, meaning)), at: 0)
-        if persist() { status = "Saved to My words." }
+    @discardableResult func save(term: String, meaning: String, target: String, sourceLanguage: String? = nil) -> Bool {
+        guard !loadFailed else { return false }
+        let term = String(term.trimmingCharacters(in: .whitespacesAndNewlines).prefix(4000))
+        guard !term.isEmpty, !meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard !words.contains(where: { $0.term.compare(term, options: [.caseInsensitive]) == .orderedSame && $0.targetLanguage == target }) else { status = "Already in My words."; return true }
+        words.insert(SavedWord(term: term, meaning: String(meaning.prefix(16000)), sourceLanguage: sourceLanguage ?? WordTools.language(term), targetLanguage: target, category: WordTools.suggest(term, meaning)), at: 0)
+        if persist() { status = "Saved to My words."; return true }
+        words.removeFirst(); return false
     }
     @discardableResult func persist() -> Bool {
         guard !loadFailed else { return false }

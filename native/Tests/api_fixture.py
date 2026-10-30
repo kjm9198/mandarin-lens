@@ -17,8 +17,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         assert self.path == "/v1/chat/completions"
         payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        assert payload["model"] == "fixture-only" and payload["stream"] is False
-        self.reply({"choices": [{"message": {"content": "Local adapter fixture passed."}}]})
+        assert payload["model"] == "fixture-only" and payload["stream"] is True
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.end_headers()
+        for text in ["Local adapter ", "fixture passed."]:
+            event = {"choices": [{"delta": {"content": text}}]}
+            self.wfile.write(("data: " + json.dumps(event) + "\n\n").encode())
+            self.wfile.flush()
+        self.wfile.write(b"data: [DONE]\n\n")
 
     def reply(self, payload):
         self.send_response(200)

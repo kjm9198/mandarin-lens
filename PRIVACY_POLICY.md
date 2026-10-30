@@ -25,3 +25,13 @@ Vocabulary exports are explicit downloads. Importing subtitles does not upload t
 Video websites retain their own privacy policies. GitHub and any static website host process ordinary requests under their policies, separately from extension processing. Clicking a source, download, support, or documentation link connects to the relevant provider. The extension does not add analytics to those requests.
 
 Contact the maintainer through the project's repository for privacy questions. Do not post private captions, browser data, or credentials in a public issue. Changes to this policy accompany changes to the actual product behavior.
+
+## Separately built native macOS app
+
+The private native app stores vocabulary, review progress, categories, translation history and chat conversations in local application-support files with owner-only permissions. Preferences use macOS defaults; optional local-server tokens use Keychain. It does not share the extension's browser storage or sync these stores to a service.
+
+A global shortcut reads text under the pointer through Accessibility, after macOS approval. Secure fields are rejected. Accurate text bounds may be outlined temporarily. Screenshots are taken only for explicitly requested region/display OCR and removed after local Apple Vision processing. There is no automatic full-screen fallback.
+
+Apple Translation uses on-device language packs. Direct MLX chat, categorization and speech recognition run locally. The optional server adapter accepts only loopback endpoints and rejects redirects; the external server's own model routing remains under the user's control. Download buttons fetch model files from Hugging Face, which receives ordinary download requests. Questions, vocabulary and audio are not sent with those downloads. Inference uses offline settings and telemetry is disabled.
+
+Optional speaking practice uses on-device Apple recognition when supported or a downloaded local speech model. Microphone recording is limited to 12 seconds. Temporary audio files are owner-only and deleted after recognition, cancellation or leaving the practice screen. Audio is not added to chat history or exported vocabulary. This compares recognized words; it does not certify pronunciation, accent or Mandarin tones. App removal does not automatically delete files in Application Support, exported files, Keychain tokens or separately installed models.

@@ -1,0 +1,39 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/5] Write swift-version--58304C5D6DBC2206.txt
+[3/7] Emitting module MandarinLens
+[4/7] Compiling MandarinLens SpeakingPractice.swift
+[5/8] Compiling MandarinLens LearningViews.swift
+[5/10] Write Objects.LinkFileList
+[6/10] Linking MandarinLens
+[7/10] Applying MandarinLens
+[9/11] Emitting module MandarinLensTests
+[9/11] Write Objects.LinkFileList
+[10/11] Linking MandarinLensPackageTests
+Build complete! (2.76s)
+Test Suite 'All tests' started at 2026-10-30 23:46:46.307.
+Test Suite 'All tests' passed at 2026-10-30 23:46:46.307.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1743
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test chatPersistenceAndToneDistinctions() started.
+◇ Test shortcutRepeatLatch() started.
+◇ Test placementAcrossOriginsAndScale() started.
+◇ Test chineseScriptMatchesChosenTarget() started.
+◇ Test registrationConflictAndCleanup() started.
+◇ Test tokenAndSelectionChoice() started.
+◇ Test failedSaveIsNotReportedAsSaved() started.
+◇ Test conversationUsesRolesAndLatestQuestionWithinBound() started.
+◇ Test staleTranslationCannotSaveWrongWord() started.
+✔ Test shortcutRepeatLatch() passed after 0.001 seconds.
+✔ Test placementAcrossOriginsAndScale() passed after 0.001 seconds.
+✔ Test conversationUsesRolesAndLatestQuestionWithinBound() passed after 0.001 seconds.
+✔ Test tokenAndSelectionChoice() passed after 0.003 seconds.
+✔ Test registrationConflictAndCleanup() passed after 0.020 seconds.
+✔ Test failedSaveIsNotReportedAsSaved() passed after 0.027 seconds.
+✔ Test chineseScriptMatchesChosenTarget() passed after 0.036 seconds.
+✔ Test chatPersistenceAndToneDistinctions() passed after 0.044 seconds.
+✔ Test staleTranslationCannotSaveWrongWord() passed after 0.046 seconds.
+✔ Test run with 9 tests in 0 suites passed after 0.047 seconds.

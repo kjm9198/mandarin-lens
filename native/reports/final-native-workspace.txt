@@ -1,0 +1,9 @@
+PASS native save-sheet word-specific translation and original-sentence restoration (3.4; unchanged logic in final build).
+PASS final 3.5 学习 → Study, pinyin and persisted Saved state.
+PASS full workspace ↔ compact controls and preserved My words entry.
+PASS native chat user question, assistant response, persistent history and live generation.
+PASS navigation to Local models during active inference: 0.133 seconds for this single UI sample.
+PASS final 3.6 full workspace, compact window, local-model management and speaking-practice sheet rendered; no recording started.
+PASS final 3.7 speaking sheet Close and restored-window Escape; fullscreen 1920x1080 entry and 980x732 exit; full/compact mode and model UI verified. Screenshot capture must not use restore-window for compact because reopen deliberately opens the full app.
+PASS final 3.7 TextEdit pointer 学习 → Study with pinyin and existing Saved state; ordinary Option alone did not activate lookup.
+PASS final 3.7 five rapid Option–Space activations produced one lookup window; pin off outside click on controlled TextEdit text dismissed it.

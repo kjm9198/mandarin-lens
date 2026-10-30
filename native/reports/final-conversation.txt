@@ -1,0 +1,8 @@
+CHUNKS 35
+**学习 (xué xí)**
+**To study / to learn**
+
+**Example sentence:**
+He is **learning** Chinese.
+(他正在学习中文。)
+PASS structured multi-turn response addresses the latest Chinese word.

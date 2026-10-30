@@ -1,0 +1,6 @@
+Speech authorization: 0
+Microphone authorization: 3
+zh-CN available true on-device false
+en-US available true on-device true
+vi-VN available true on-device true
+pl-PL available true on-device false

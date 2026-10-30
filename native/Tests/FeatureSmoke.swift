@@ -40,6 +40,16 @@ import Foundation
         do { _ = try models.api("models"); fatalError("Invalid port accepted") } catch { }
         models.port = 1234
         print("PASS: installed-model discovery and local-only endpoint validation (\(models.models.filter { !$0.server }.count) MLX folders, \(models.models.count) total entries)")
+        if CommandLine.arguments.contains("--switch") {
+            models.selected = "auto"
+            let task = Task { try await models.generate("Write twenty Chinese practice sentences with pinyin and English.") }
+            try await Task.sleep(for: .milliseconds(150))
+            models.selected = models.models.first(where: { !$0.server })!.id
+            do { _ = try await task.value; fatalError("Switching models must cancel the previous inference") } catch { }
+            precondition(!models.busy)
+            models.selected = "auto"
+            print("PASS: changing the model cancels in-flight inference and releases the scheduler")
+        }
         if CommandLine.arguments.contains("--cancel") {
             models.selected = "auto"
             let task = Task { try await models.generate("Write 100 example sentences about learning Chinese.") }
@@ -69,7 +79,9 @@ import Foundation
             models.port = 28078; await models.refreshServer()
             precondition(models.models.contains { $0.id == "api:fixture-only" })
             models.selected = "api:fixture-only"
-            let response = try await models.generate("Test only: hello")
+            var chunks: [String] = []
+            let response = try await models.generate("Test only: hello") { chunks.append($0) }
+            precondition(chunks.count == 2, "API text must arrive incrementally")
             precondition(response == "Local adapter fixture passed.")
             print("PASS: local API model discovery and completion protocol (explicit test fixture, not real LM Studio inference)")
         }

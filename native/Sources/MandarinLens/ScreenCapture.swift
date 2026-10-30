@@ -3,20 +3,7 @@ import ApplicationServices
 
 extension Lens {
     func captureSelection() {
-        guard AXIsProcessTrusted() else { permission(); output = "Allow Accessibility, then select text and press Control–Shift–T."; show(); return }
-        armed = false
-        panel?.orderOut(nil)
-        let previous = previousApplication
-        previous?.activate()
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(250))
-            let system = AXUIElementCreateSystemWide()
-            guard let raw = attribute(system, kAXFocusedUIElementAttribute), CFGetTypeID(raw) == AXUIElementGetTypeID() else { output = "Select text in another app first, then press Control–Shift–T."; show(); return }
-            let element = unsafeBitCast(raw, to: AXUIElement.self)
-            guard (attribute(element, kAXSubroleAttribute) as? String) != kAXSecureTextFieldSubrole else { output = "Protected text cannot be translated."; show(); return }
-            guard let selected = attribute(element, kAXSelectedTextAttribute) as? String, !selected.isEmpty else { output = "No selected text is available. Try Capture → Screen area."; show(); return }
-            input = String(selected.prefix(16000)); show(); translate()
-        }
+        capture(selectionOnly: true)
     }
     func captureScreen(entireDisplay: Bool) {
         guard !capturing else { return }
@@ -25,7 +12,7 @@ extension Lens {
             output = "Allow Screen Recording for Mandarin Lens in System Settings → Privacy & Security, then try Capture again."
             show(); return
         }
-        armed = false; capturing = true
+        capturing = true
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("mandarin-lens-\(UUID().uuidString).png")
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")

@@ -1,0 +1,50 @@
+[
+  {
+    "case": "primary top left",
+    "frame": [
+      57,
+      89,
+      340,
+      252
+    ],
+    "target": "beautiful",
+    "screen": 0,
+    "scale": 2
+  },
+  {
+    "case": "primary bottom right",
+    "frame": [
+      979,
+      500,
+      340,
+      252
+    ],
+    "target": "coffee",
+    "screen": 0,
+    "scale": 2
+  },
+  {
+    "case": "external top right",
+    "frame": [
+      2899,
+      28,
+      340,
+      252
+    ],
+    "target": "coffee",
+    "screen": 1,
+    "scale": 2
+  },
+  {
+    "case": "external bottom right",
+    "frame": [
+      2899,
+      640,
+      340,
+      252
+    ],
+    "target": "coffee",
+    "screen": 1,
+    "scale": 2
+  }
+]

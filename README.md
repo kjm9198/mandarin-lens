@@ -4,6 +4,10 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 [Download the ZIP](https://github.com/kjm9198/mandarin-lens/releases/latest) · [Website](https://kjm9198.github.io/mandarin-lens/) · [Report a bug](https://github.com/kjm9198/mandarin-lens/issues)
 
+## Private native macOS app
+
+The separate native Mandarin Lens 3.7 app adds Option–Space word lookup, a personal dictionary, local chat and optional offline speaking practice. See [native setup](native/README.md) and the [native acceptance report](native/reports/LEARNING-UPDATE.md). Its development DMG is generated locally; no native public binary release is published here. The extension version above is unchanged.
+
 ## Install locally or share with a friend
 
 1. For this local 2.1.1 build, extract `dist/mandarin-lens-2.1.1.zip` into a permanent folder, or use the generated `dist/mandarin-lens/` folder. Public GitHub releases retain their published version until a new release is uploaded.

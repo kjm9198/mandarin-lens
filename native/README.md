@@ -1,37 +1,49 @@
-# Mandarin Lens — native private development build
+# Mandarin Lens 3.7 — native private build
 
-SwiftUI and AppKit menu-bar utility for Apple Silicon, macOS 15+. Tested on macOS 27 on an M5 Pro with 48 GB; other hardware and OS versions are not independently verified.
+SwiftUI/AppKit for Apple Silicon, macOS 15+. Current verification: macOS 27, M5 Pro, 48 GB. Other hardware and OS versions have not been independently validated.
 
 ## Build and install
 
-From the repository root, run `native/build.sh`. Copy `native/build/Mandarin Lens.app` to `~/Applications` and open it. This is an ad-hoc signed private development build, not notarized. Generate the private DMG with `native/package.sh`. The DMG is generated locally; model files and the Python runtime are not bundled. Translation uses Apple Translation, which may request language-pack installation. The tested MLX runtime lives in `~/Library/Application Support/Mandarin Lens/mlx-runtime` and was installed using Python 3.12 and `pip install mlx-vlm huggingface_hub`.
+Run `native/build.sh` from the repository root. Copy `native/build/Mandarin Lens 3.7.app` to `~/Applications` and open it. `native/package.sh` creates `native/build/MandarinLens-3.7-private.dmg` with the app and Applications shortcut. It uses an available Apple Development signing identity, or ad-hoc signing if none exists. Set `LENS_SIGNING_IDENTITY` to select a certificate. This is a private development build, not notarized or a public binary release.
+
+Versioned app names distinguish installations. Builds 3.1–3.7 intentionally share the approved `studio.kamihi.mandarinlens.v31` identity and development signature to retain permission grants. Quit the previous version before opening another. Only one instance may use the shared stores. Dictionary, review progress, categories, translation history and chat history remain in `~/Library/Application Support/Mandarin Lens`. Preferences migrate from the original app; API tokens remain in the same Keychain service.
+
+The DMG does not bundle model weights or Python. The current Mac has Python 3.12 with `mlx-vlm 0.7.11`, `mlx-audio 0.6.3` and `huggingface_hub` in `~/Library/Application Support/Mandarin Lens/mlx-runtime`. A fresh Mac needs a compatible local runtime or a local LM Studio/Bionic server. Apple Translation may separately request language packs.
 
 ## Everyday use
 
-- Tap the configured modifier, then click an accessible word. Choose Control, Option or Command in settings.
-- Select text in another app and press Control–Shift–T. Screen area capture is Control–Shift–S; Entire display is available in Capture. Accessibility/Screen Recording permissions may need approval after updating an ad-hoc signed build. Clipboard contents are not modified.
-- Translation targets: English, Vietnamese, Polish, Simplified Chinese and Traditional Chinese. Pair availability depends on Apple packs. Tested pairs include English → Vietnamese, Polish, Simplified Chinese and Simplified Chinese → English. Other pairs remain unverified.
-- Choose Save word after translating. Pick a token from the original or translation, get its own translation, edit its meaning, and save it to Words. The original sentence is restored afterward.
-- Words offers search, category filtering, manual categories, installed-voice pronunciation, JSON export, examples and review. Meanings are user-saved translations, not an authoritative lexical dictionary. Pinyin uses system transliteration and can depend on context.
-- New words receive a rule-based category suggestion. Uncertain items stay Unsorted. Categorize all uses the selected local model in batches of eight, validates category names and IDs, persists completed batches and preserves manual categories. AI categorization is fallible and editable.
-- Review: reveal the meaning, then Again (10 minutes) or Remembered (initially one day, doubling to 30 days).
-- Learn uses up to 12 saved words, four recent translations and six in-memory conversation turns. Chats are not persisted. Clear with New question. Translation history and saved words are persistent local JSON files with owner-only permissions; corrupt vocabulary files are preserved instead of overwritten.
-- The question-mark button reopens the four-step tutorial. New installations show it on first launch.
+- Point at a word, then press **Option–Space**. No click or prior selection is required in compatible apps. A selection is preferred only when the pointer lies inside it. The app under the pointer supplies the text, even when another application has focus.
+- A 340 × 252 point lookup shows the exact text, relevant pinyin, translation/progress/error, Save/Saved, target language, Open full app and Compact. Accurate Accessibility bounds produce a click-through outline. Unsupported or protected surfaces receive an honest fallback; lookup never silently captures a screen.
+- Escape dismisses lookup and restores focus. An outside click dismisses it when **Keep floating windows above other apps** is off. When enabled, the companion stays above other apps and quick lookup remains open after outside clicks. Clicks clear its old highlight.
+- Settings offers Option–Space, Control–Option–Space and Option–Shift–Space, native conflict feedback, persistent opacity, explanation language and permission controls. Modifier keys alone never activate lookup.
+- **Open full app** opens a larger workspace with Translator, My words, History, Learn, Local models and Settings/tutorial. The window supports macOS full screen. **Compact** opens the smaller companion. Expanding preserves the word, translation and captured context.
+- In the full translator, Save word uses an immutable presentation snapshot. Select a token, translate its own meaning, edit it and save; dismissing restores the original pair/context. Duplicate prevention preserves Vietnamese tone distinctions. A failed disk write does not report Saved.
+- My words retains search, categories, validated local-AI categorization, review, pronunciation, examples and JSON export. Pinyin is system transliteration, not an authoritative pronunciation dictionary.
+- Learn displays user and assistant messages, live model output, Stop, New chat and local Chat history. Context is bounded to recent messages, a limited vocabulary sample and captured text. Chat history is persistent, owner-only JSON; corrupt chat files are preserved.
+- Speaking practice is optional. Apple on-device recognition is used where available; the downloaded Whisper small model supplies an offline fallback. Recording is limited to 12 seconds; temporary clips are deleted after recognition/cancellation. Recognized words are compared with the entry, accepting Simplified/Traditional spelling equivalence while preserving Vietnamese tones. This does **not** grade accent, Mandarin tones or pronunciation quality. Short-word recognition can be wrong.
 
-## Models
+## Local models
 
-Choose model is accessible from Learn or note settings. Discovery scans installed model directories and user-chosen folders. It does not download weights or execute model-provided code. The installed models discovered on this machine include Qwen 3.5 2B MLX, custom Qwen 3.5 9B MLX, custom Qwen 3.8 27B MLX and a Gemma 4 31B GGUF catalogue entry.
+Local models has explicit downloads for Qwen 3.5 2B, Qwen 3.5 4B and Whisper small speech recognition, plus installed-model discovery and custom folders. Downloads use Hugging Face; prompts, vocabulary and audio are not sent there. Downloads can be cancelled and resumed. Speech models are stored separately and cannot accidentally become the chat model.
 
-Automatic uses the smallest installed MLX model on 16–24 GB machines; on this 48 GB machine it chooses the tested 9B model. This is a conservative size heuristic, not a complete memory-pressure manager or a universal accuracy ranking. One local AI request runs at a time, with bounded prompts, output and a two-minute deadline. Models run in a subprocess and unload on exit. Models exceeding 8 GB of weight files are refused on machines with 24 GB or less. Small-model multilingual quality is limited; neither candidate is certified as the best model available.
+Automatic uses the smallest installed MLX chat model. One chat/categorization request runs at a time. The worker keeps weights resident between requests, streams JSON-framed text, bounds prompts/output and has a two-minute deadline. Stop and model switching cancel the running request; stale results cannot replace newer requests. Models over 8 GB of weight files are refused on machines with 24 GB or less. This is a conservative guard, not a complete memory-pressure manager or an accuracy ranking.
 
-MLX folders run directly with offline Hugging Face settings and no remote-code option. Custom quantization/runtime formats may be incompatible; untested large models are listed without claiming runtime support. Downloaded GGUF entries require a local server: they cannot be run by the direct MLX provider.
+Direct MLX inference uses offline Hugging Face settings and no remote-code option. GGUF catalogue entries require a compatible local server. The optional API adapter constructs only `127.0.0.1` URLs, rejects redirects and streams responses; tokens stay in Keychain. Real authenticated LM Studio/Bionic inference remains unverified. The adapter's protocol is tested against an explicit local fixture.
 
-For LM Studio/Bionic, enable their local OpenAI-compatible server, enter its port, and Connect. Only `127.0.0.1` endpoints are constructed, redirects are rejected, and the app opens no inference listener. A token, if required by the server, can be saved to Keychain. The server on this machine required a token, so authenticated real-server inference remains unverified. The adapter was tested against a local explicit fixture. Use downloaded local models in the external server; its own routing/LM Link configuration is outside Lens's control. Lens's direct MLX inference was tested with network access denied at the OS sandbox layer.
+## Verification and limits
 
-## Privacy and limits
+See [the acceptance report](reports/LEARNING-UPDATE.md) for native journeys, actual display geometry, screenshots, automated tests and model-quality limits. No 16 GB hardware, mixed-DPI display, broad VoiceOver or human pronunciation certification is claimed. Region/display OCR remains explicit and uses local Apple Vision. No cloud inference, analytics, mandatory accounts, subscriptions or sync were added.
 
-No analytics, accounts, remote AI endpoints or cloud sync are added. Local prompts are bounded; AI has no command/file/system tools. Screen captures occur only on explicit request, are OCR'd with Apple Vision, and temporary images are removed. Captures are bounded to 16,000 characters. Secure text fields are rejected by Accessibility capture; inaccessible/protected surfaces and OCR errors remain possible. Real cross-app capture permission acceptance and multi-display behavior still need user validation.
+Reproduce automated checks:
 
-Private mode, Chrome native messaging/shared vocabulary, launch-at-login, dictionary datasets, full memory/thermal scheduling and complete multilingual quality evaluation are not included. Speech playback, broad VoiceOver/keyboard interaction, 16 GB hardware performance and all translation pairs are not certified by the current checks.
+```sh
+cd native
+swift test
+cd ..
+xcrun swiftc -target arm64-apple-macos15.0 -parse-as-library native/Sources/MandarinLens/LocalModels.swift native/Sources/MandarinLens/ModelWorker.swift native/Sources/MandarinLens/Vocabulary.swift native/Tests/FeatureSmoke.swift -framework AppKit -framework NaturalLanguage -framework Security -o /tmp/lens-feature-smoke
+python3 native/Tests/api_fixture.py
+sandbox-exec -p '(version 1)(allow default)(deny network*)' /tmp/lens-feature-smoke --cancel --switch
+sandbox-exec -p '(version 1)(allow default)(deny network*)' /usr/bin/python3 native/Tests/worker_smoke.py
+```
 
-See `reports/LEARNING-UPDATE.md` for test results, measurements, screenshots and reproducible checks.
+`Tests/NativeDriver.swift`, `Tests/TargetFixture.swift` and `Tests/native_edges.py` support real installed-app acceptance. The edge test requires two connected displays and four visible fixture text windows; it is not a headless substitute for cross-app UI testing. Never grant macOS permissions programmatically. Microphone practice requires the user's permission and real voice for human acceptance.
