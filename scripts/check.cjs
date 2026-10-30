@@ -4,9 +4,12 @@ const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8'));
 assert.equal(manifest.version,JSON.parse(fs.readFileSync('package.json','utf8')).version);assert.equal(manifest.manifest_version,3);
 assert.deepEqual([...manifest.permissions].sort(),['activeTab','scripting','storage'].sort());
 assert.deepEqual(manifest.background,{service_worker:'storage-worker.js'});
-assert.ok(!manifest.host_permissions&&!manifest.content_scripts&&!manifest.web_accessible_resources&&!manifest.externally_connectable);
+assert.deepEqual(manifest.host_permissions,['https://www.youtube.com/*','https://m.youtube.com/*']);
+assert.deepEqual(manifest.optional_host_permissions,['https://*/*','http://*/*']);
+assert.deepEqual(manifest.content_scripts,[{matches:manifest.host_permissions,js:['site-prompt.js'],run_at:'document_start'}]);
+assert.ok(!manifest.web_accessible_resources&&!manifest.externally_connectable);
 assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'none'; base-uri 'none'; connect-src 'none'");
-for(const file of ['content.js','core.js','preprocess.js','popup.js','vocabulary.js','vocabulary-practice.js','data/pinyin.js','data/lexicon.js','learning.js','storage-worker.js']){
+for(const file of ['youtube-captions.js','site-prompt.js','site-worker.js','content.js','core.js','preprocess.js','popup.js','vocabulary.js','vocabulary-practice.js','data/pinyin.js','data/lexicon.js','learning.js','storage-worker.js']){
   execFileSync(process.execPath,['--check',file]);const text=fs.readFileSync(file,'utf8');
   for(const unsafe of [/\binnerHTML\b/,/\beval\s*\(/,/new\s+Function\b/,/\bfetch\s*\(/,/\bXMLHttpRequest\b/,/\bWebSocket\b/,/AKIA[0-9A-Z]{16}/,/gh[pousr]_[A-Za-z0-9]{20,}/,/-----BEGIN .*PRIVATE KEY-----/])assert.ok(!unsafe.test(text),`${file} failed source check ${unsafe}`);
 }

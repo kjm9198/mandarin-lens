@@ -4,7 +4,7 @@ from pathlib import Path
 import hashlib,json,zipfile,shutil
 root=Path(__file__).resolve().parents[1]
 out=root/'dist';out.mkdir(exist_ok=True)
-files=['manifest.json','content.js','core.js','preprocess.js','popup.html','popup.css','popup.js','vocabulary.html','vocabulary.css','vocabulary.js','vocabulary-practice.js','help.html','data/pinyin.js','data/lexicon.js','data/lexicon-provenance.json','learning.js','storage-worker.js','icons/16.png','icons/48.png','icons/128.png','LICENSE','THIRD_PARTY_NOTICES.md','licenses/UNICODE-LICENSE.txt','licenses/CC-BY-SA-4.0.txt','licenses/CC-CEDICT-NOTICE.md','PRIVACY_POLICY.md','PERMISSIONS.md']
+files=['youtube-captions.js','site-prompt.js','site-worker.js','manifest.json','content.js','core.js','preprocess.js','popup.html','popup.css','popup.js','vocabulary.html','vocabulary.css','vocabulary.js','vocabulary-practice.js','help.html','data/pinyin.js','data/lexicon.js','data/lexicon-provenance.json','learning.js','storage-worker.js','icons/16.png','icons/48.png','icons/128.png','LICENSE','THIRD_PARTY_NOTICES.md','licenses/UNICODE-LICENSE.txt','licenses/CC-BY-SA-4.0.txt','licenses/CC-CEDICT-NOTICE.md','PRIVACY_POLICY.md','PERMISSIONS.md']
 version=json.loads((root/'manifest.json').read_text())['version']
 stage=out/'mandarin-lens';stage.mkdir(exist_ok=True)
 for old in stage.rglob('*'):

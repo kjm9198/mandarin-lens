@@ -1,3 +1,21 @@
+# 2.1.1 · 30 October 2026
+
+- Showcase whole sentences by buffering streaming captions into complete sentences/clauses; eliminate 1-word expanding jitter.
+- Hover protection keeps subtitle and definition cards open during inspection; pause video on hover so words can be studied comfortably.
+- Fixed video prompt choices closing Mandarin Lens on YouTube SPA navigation; added dismissible '×' button and compact pill mode.
+- Redesigned extension popup with modern card-based hierarchy, subtitle style presets, and expanded settings.
+- Start the YouTube CC feed automatically instead of requiring a manual CC toggle.
+- Replace native YouTube subtitle text while displaying Mandarin Lens captions; preserve the source caption DOM.
+- Save automatic-CC and replacement preferences, with native-caption restoration on failure, opt-out and stop.
+- Distinguish waiting for speech from a video without an available CC track.
+
+# 2.1.0 · 30 October 2026
+
+- Automatic per-video YouTube choice: Learn once, Always here, Skip video and Off here.
+- Persistent per-website Ask/Always/Off and optional pause while asking; individual optional website grants.
+- Reopen control, same-tab video changes, existing local-model auto-start and preserved live customization.
+- First-time translation still requires Chrome model activation; no audio transcription or universal compatibility claim.
+
 # Changelog
 
 ## 2.0.0 — 29 October 2026

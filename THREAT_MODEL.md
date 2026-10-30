@@ -6,7 +6,7 @@ Reviewed architecture: Manifest V3 extension with a popup, isolated injected con
 
 | Asset | Boundary and protection |
 | --- | --- |
-| Browser capabilities | Chrome grants temporary current-tab access after the user activates the extension. No global host permissions are required. |
+| Browser capabilities | Chrome grants temporary current-tab access after an extension action. Required YouTube host access runs the packaged video-choice prompt; other hosts are optional and requested individually. The prompt reads video presence before caption processing begins. |
 | Captions and imported subtitles | Website DOM, HTML5 text tracks, transcript panels, and local subtitle files are untrusted inputs. Text rendering prevents them from becoming executable markup. |
 | Saved learning data | Extension-scoped `chrome.storage.local` holds ordinary preferences, saved words, review history, and prepared subtitle caches. The preparation key is a SHA-256 digest of normalized video identity, source captions, direction, and pipeline version. Captions remain plaintext locally; this is not an encrypted secrets vault. |
 | Translation results | Browser model output is untrusted text. It is normalized before display and cached only within bounded application limits. |

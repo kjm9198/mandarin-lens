@@ -30,12 +30,12 @@ const root=path.resolve(__dirname,'..'),output=path.join(root,'output/playwright
   const browserCdp=await context.browser().newBrowserCDPSession();for(const old of (await browserCdp.send('Extensions.getExtensions')).extensions){await browserCdp.send('Extensions.uninstall',{id:old.id});}const {id}=await browserCdp.send('Extensions.loadUnpacked',{path:extension});
   const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/popup.html`);await popup.locator('#start:not([disabled])').waitFor();
   report.extensionLoading='Official CDP Extensions.loadUnpacked over Playwright debugging pipe, isolated temporary profile';report.browser=context.browser().version();report.extensionVersion=manifest.version;
-  await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:true}));
+  await popup.evaluate(()=>chrome.storage.local.set({autoPrepare:true,'site:127.0.0.1':{mode:'off',pause:false}}));
   const page=await context.newPage();page.on('pageerror',error=>report.errors.push(error.message));await page.goto(`http://127.0.0.1:${server.address().port}/video`);
   const target=await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1/'))?.id).catch(()=>null);
   const tabId=target || await popup.evaluate(async()=> (await chrome.tabs.query({})).find(tab=>tab.url?.startsWith('http://127.0.0.1:')).id);
   async function inject(files){return popup.evaluate(async({tabId,files})=>chrome.scripting.executeScript({target:{tabId},files}),{tabId,files});}
-  await inject(['data/pinyin.js','data/lexicon.js','core.js','preprocess.js','learning.js','content.js']);await page.locator('#mandarin-lens-root').waitFor();
+  await inject(['data/pinyin.js','data/lexicon.js','core.js','preprocess.js','learning.js','youtube-captions.js','content.js']);await page.locator('#mandarin-lens-root').waitFor();
   const cdp=await context.newCDPSession(page);
   async function shadowObject(){const {root:tree}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});function find(node){if(node.attributes?.includes('mandarin-lens-root'))return node;for(const child of [...(node.children||[]),...(node.shadowRoots||[])]){const found=find(child);if(found)return found;}}const host=find(tree);assert(host?.shadowRoots?.[0]);return (await cdp.send('DOM.resolveNode',{nodeId:host.shadowRoots[0].nodeId})).object.objectId;}
   async function shadow(fn,arg){const objectId=await shadowObject();const result=await cdp.send('Runtime.callFunctionOn',{objectId,functionDeclaration:`function(arg){return (${fn.toString()})(this,arg)}`,arguments:[{value:arg}],returnByValue:true,awaitPromise:true,userGesture:true});if(result.exceptionDetails)throw Error(JSON.stringify(result.exceptionDetails));return result.result.value;}

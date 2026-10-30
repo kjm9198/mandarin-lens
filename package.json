@@ -1,6 +1,6 @@
 {
   "name": "mandarin-lens",
-  "version": "2.0.0",
+  "version": "2.1.1",
   "private": true,
   "description": "Local-first Mandarin learning subtitles for desktop Chrome",
   "license": "MIT",
@@ -12,6 +12,8 @@
     "check": "node scripts/check.cjs",
     "test:model": "node tests/real-model.cjs",
     "test:real-extension": "node tests/real-extension.cjs",
-    "site": "python3 scripts/site.py"
+    "site": "python3 scripts/site.py",
+    "test:sites": "npm run build && node tests/site-prompt.cjs",
+    "test:youtube": "npm run build && node tests/youtube-captions.cjs"
   }
 }

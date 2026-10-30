@@ -9,11 +9,13 @@
     return;
   }
 
+  const youtube=globalThis.MandarinLensYouTube?.create(document,location.hostname);
+  let youtubeStatus='waiting';
   const state = {
     ...L.DEFAULTS, direction: 'en-zh', showPinyin: true, showOriginal: true, showEnglish:true, fontSize: 18,
-    hanziSize:12, englishSize:12, textOpacity:100, horizontal:50, spacing:2, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 0, position: 8, pauseOnWord: true, autoPrepare: true,
+    hanziSize:12, englishSize:12, textOpacity:100, horizontal:50, spacing:2, backgroundBlur:0, timingOffset:0, fontFamily:'system', showHanzi:true, toneColors:false, opacity: 0, position: 8, pauseOnWord: true, autoPrepare: true, sentenceMode: true, isHovering: false, isHoveringDetails: false,
     current: '', translation: '', enabled: false, translator: null, pendingTranslation: null,
-    generation: 0, dataRevision:0,cacheRevision:0,cache: new Map(), closed: false, selected: '',
+    settingsLoaded:false,generation: 0, dataRevision:0,cacheRevision:0,cache: new Map(), closed: false, selected: '',
     dismissWordFocus:false,loopCue:null,loopSeeking:false,reverseTranslator: null, reverseCreating: null, watchTimer: null, boundVideo:null,boundTracks:[],mediaInitialized:false,mediaSource:null,mediaObject:null,captionSeenAt: 0,
     observer: null, captionFrame: null, hoverTimer: null, leaveTimer: null, wordPinned: false,
     sourceCues: null, sourceUrl: null, activatedAt: 0, prepared: null, preparedUrl: null, preparing: false, prepareToken: 0,
@@ -134,6 +136,10 @@
   const detailClose=document.createElement('button');detailClose.textContent='×';detailClose.setAttribute('aria-label','Close word explanation');
   const more=document.createElement('button');more.textContent='Context';more.title='Show sentence context';more.setAttribute('aria-label','Show sentence context');more.setAttribute('aria-expanded','false');
   detailButtons.append(sound,save,resume,more,detailClose);details.append(detailHeader,detailMeaning,detailContext,detailHint,detailButtons);
+  details.addEventListener('pointerenter',()=>{state.isHovering=true;state.isHoveringDetails=true;clearTimeout(state.leaveTimer);});
+  details.addEventListener('pointerleave',()=>{state.isHoveringDetails=false;state.isHovering=false;hideHoverSoon();});
+  surface.addEventListener('pointerenter',()=>{state.isHovering=true;});
+  surface.addEventListener('pointerleave',()=>{state.isHovering=false;hideHoverSoon();});
   main.append(original,translated,busy,cta);
   const prepRow=document.createElement('div');prepRow.id='prepareRow';
   const prepareButton=document.createElement('button');prepareButton.textContent='Prepare video first';prepareButton.title='Translate available timed subtitle cues in advance (requires an accessible full transcript or SRT/VTT)';
@@ -167,6 +173,9 @@
   const positionSlider=document.createElement('input');positionSlider.id='position';positionSlider.type='range';positionSlider.min='4';positionSlider.max='40';positionSlider.step='1';positionSlider.value='12';
   positionLabel.append(positionOutput,positionSlider);
   prefs.append(prefsTitle,setupHint,presets,prefLang,prefPinyin,prefOriginal,autoPrep,pauseLabel,sizeLabel,opacityLabel,positionLabel);
+  const autoYoutubeLabel=document.createElement('label');autoYoutubeLabel.className='toggle';const autoYoutubeBox=document.createElement('input');autoYoutubeBox.type='checkbox';autoYoutubeLabel.append(autoYoutubeBox,document.createTextNode(' Turn on YouTube CC automatically'));
+  const replaceYoutubeLabel=document.createElement('label');replaceYoutubeLabel.className='toggle';const replaceYoutubeBox=document.createElement('input');replaceYoutubeBox.type='checkbox';replaceYoutubeLabel.append(replaceYoutubeBox,document.createTextNode(' Replace YouTube captions with Mandarin Lens'));
+  if(/(^|\.)youtube\.com$/i.test(location.hostname))prefs.append(autoYoutubeLabel,replaceYoutubeLabel);
   const status = document.createElement('div');status.id = 'status';status.setAttribute('role','status');status.textContent = 'Turn on the video’s CC captions to start.';
   const transcript=document.createElement('section');transcript.id='transcript';transcript.setAttribute('aria-label','Timed transcript');const transcriptSearch=document.createElement('input');transcriptSearch.type='search';transcriptSearch.placeholder='Search prepared captions';transcriptSearch.setAttribute('aria-label','Search prepared captions');const transcriptLines=document.createElement('div');transcript.append(transcriptSearch,transcriptLines);
   surface.append(controlToggle,top,prepRow,main,prefs,status);panel.append(surface,transcript);shadow.append(style,panel,details,prefs);
@@ -218,7 +227,7 @@
   function info(message){
     if(status.textContent===message)return;
     status.textContent=message;
-    status.classList.toggle('show', !state.enabled || (!/^Prepared \d/u.test(message) && /error|unavailable|download|waiting|initializ|model|not supported|press|prepar|no captions|turn on CC/i.test(message)));
+    status.classList.toggle('show', !state.enabled || (!/^Prepared \d/u.test(message) && /error|unavailable|download|waiting|initializ|model|not supported|press|prepar|no captions|no available CC|turn on CC/i.test(message)));
   }
   function applyAppearance(){
     main.style.rowGap=state.lineSpacing+'px';main.style.textAlign=state.textAlign;main.style.textShadow=state.textShadow==='none'?'none':state.textShadow==='outline'?'-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000':'0 1px 3px #000,0 0 2px #000';panel.style.setProperty('--ml-size', `${state.fontSize}px`);
@@ -299,8 +308,13 @@
     }else if(['failed','unsupported'].includes(state.preparationStatus)){prepStatus.textContent=state.preparationStatus==='failed'?'Failed · retry preparation to resume saved lines':'Unsupported · import captions instead';}else{prepStatus.textContent=state.partial.length?`Partially prepared · ${state.partial.length}/${state.prepareTotal} lines`:'Not prepared · import captions or prepare an accessible track';}
     if(state.cacheWarning)prepStatus.textContent+=' · Cache unavailable: session only; interruption may lose progress';
   }
+  function syncYouTube(){
+    if(!state.settingsLoaded||state.closed)return;
+    const showing=state.enabled&&Boolean((original.textContent&&original.style.display!=='none')||(translated.textContent&&translated.style.display!=='none'));
+    youtubeStatus=youtube?.sync(currentVideo(),{autoEnable:state.autoYoutubeCC,replace:state.replaceYoutubeCC,showingReplacement:showing})?.status||'inactive';
+  }
   function render(){
-    updatePrepareUi();
+    updatePrepareUi();autoYoutubeBox.checked=state.autoYoutubeCC;replaceYoutubeBox.checked=state.replaceYoutubeCC;
     directionLabel.textContent=state.direction==='en-zh'?'EN → 中文':'中文 → EN';
     select.value=state.direction;checkbox.checked=state.showPinyin;originalBox.checked=state.showOriginal;autoPrepBox.checked=state.autoPrepare;pauseBox.checked=state.pauseOnWord;
     applyAppearance();
@@ -313,14 +327,14 @@
     original.style.display=state.showOriginal?'block':'none';translated.style.display='block';if(!state.showEnglish||state.shadowHideEnglish)(state.direction==='en-zh'?original:translated).style.display='none';
     busy.classList.toggle('show',Boolean(state.enabled && state.current && !state.translation));
     replay.hidden=!(state.enabled && state.prepared && state.lastCue);loop.hidden=replay.hidden&&!state.loopCue;loop.setAttribute('aria-pressed',String(Boolean(state.loopCue)));loop.setAttribute('aria-label',state.loopCue?'Stop looping subtitle':'Loop current subtitle');loop.title=state.loopCue?'Stop looping subtitle':'Loop current subtitle';
-    if(!state.current)return;
+    if(!state.current){syncYouTube();return;}
     if(state.direction==='zh-en')chineseLine(original,state.current,true);
     else original.textContent=state.current;
     if(state.translation){
       if(state.direction==='en-zh')chineseLine(translated,state.translation);
       else translated.textContent=state.translation;
     }
-    positionDetails();
+    positionDetails();syncYouTube();
   }
   const cacheKey=(t)=>`${state.direction}:${t}`;
   // One translation at a time per Translator instance. Coalesce fast captions into
@@ -485,6 +499,29 @@
     }
     renderTranscript();updatePrepareUi();
   }
+  let livePending='',liveTimer=null,liveLastRaw='';
+  function handleLiveCaption(rawText){
+    const text=C.normalize(rawText);
+    if(!text)return;
+    if(!state.sentenceMode){updateCaption(text);return;}
+    const isPunct=/[.?!。？！…]["'”’」』）》】\s]*$/u.test(text);
+    const words=text.split(/\s+/).filter(Boolean);
+    const isLongClause=words.length>=8||text.length>=45;
+    const isNewSegment=liveLastRaw&&!text.startsWith(liveLastRaw)&&!liveLastRaw.startsWith(text);
+    liveLastRaw=text;
+    if(isPunct||isLongClause){
+      clearTimeout(liveTimer);liveTimer=null;livePending='';updateCaption(text);
+    }else if(isNewSegment){
+      clearTimeout(liveTimer);liveTimer=null;
+      if(livePending)updateCaption(livePending);
+      livePending=text;
+      liveTimer=setTimeout(()=>{if(livePending){updateCaption(livePending);livePending='';}},550);
+    }else{
+      livePending=text;clearTimeout(liveTimer);
+      const delay=state.current?550:350;
+      liveTimer=setTimeout(()=>{if(livePending){updateCaption(livePending);livePending='';}},delay);
+    }
+  }
   function updateCaption(raw, translated=null){
     const text=C.normalize(raw);
     if(!text)return;
@@ -492,7 +529,7 @@
     if(text===state.current && nextTranslation===state.translation)return;
     state.current=text;state.translation=nextTranslation;
     state.captionSeenAt=Date.now();
-    if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}
+    if(!state.wordPinned && !state.isHovering && !details.classList.contains('show')){clearTimeout(state.hoverTimer);details.classList.remove('show');}
     render();
     if(state.enabled && translated===null){status.classList.remove('show');if(!state.preparing)void translateLatest();}
     else if(!state.enabled)info('Captions found! Press Start learning to show Chinese and pinyin.');
@@ -500,7 +537,7 @@
   function checkCaptions(event){
     if(state.closed)return;
     if(event?.type==='play')state.pausedForWord=null;
-    attach();bindVideo();
+    attach();bindVideo();syncYouTube();
     if(state.prepared&&state.nativePreparedSignature!==null&&state.nativePreparedSignature!==undefined&&state.nativePreparedSignature!==nativeSignature()){invalidatePrepared();state.current='';state.translation='';info('Caption track changed. Prepare the newly selected captions again.');render();}
     if(state.sessionUrl!==location.href){state.sessionUrl=location.href;state.generation++;invalidatePrepared();state.current='';state.translation='';state.selected='';details.classList.remove('show');render();}
     if(state.prepared && state.preparedUrl===location.href){
@@ -523,13 +560,16 @@
     if(state.sourceCues && state.sourceUrl!==location.href){state.sourceCues=null;state.sourceUrl=null;}
     if(!state.enabled)return;
     const text=getClipText();
-    if(text)updateCaption(text);
-    else if(state.current && Date.now()-state.captionSeenAt > 1100){
-      state.current='';state.translation='';
-      if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}
-      render();
+    if(text)handleLiveCaption(text);
+    else if(state.current && Date.now()-state.captionSeenAt > 3500){
+      if(!state.wordPinned && !state.isHovering && !details.classList.contains('show')){
+        state.current='';state.translation='';
+        clearTimeout(state.hoverTimer);
+        details.classList.remove('show');
+        render();
+      }
     } else if(!state.current && state.enabled && Date.now()-state.activatedAt>2600){
-      info('No captions detected. Turn on CC in the video, or import an SRT/VTT file. Audio-only transcription is not available yet.');
+      info(youtubeStatus==='unavailable'?'YouTube has no available CC track for this video. Import an SRT/VTT file or try another captioned video.':youtubeStatus==='waiting'?'Waiting for YouTube’s CC feed. Captions appear when speech starts; if this video has no CC track, import an SRT/VTT file.':youtubeStatus==='enabled'?'Waiting for the next YouTube caption. Play the video; silent sections have no captions.':'No captions detected. Turn on CC in the video, or import an SRT/VTT file. Audio-only transcription is not available yet.');
     } else if(!state.current && !state.enabled)info('Turn on CC and press Start learning.');
   }
   function setCta(show){cta.classList.toggle('show',show);}
@@ -560,7 +600,7 @@
       if(state.autoPrepare && currentVideo()?.paused){const found=state.sourceCues?.length?{cues:state.sourceCues}:P.readPageCues(document,currentVideo(),state.direction);if(found.cues?.length)void prepareVideo();}
     }catch(error){
       if(state.closed||startGeneration!==state.generation)return;
-      state.enabled=false;
+      state.enabled=false;render();
       setCta(true);
       info(`Chrome could not start the local model: ${error.message || 'device/language pack unavailable'}. No cloud fallback.`);
     }finally{
@@ -578,12 +618,27 @@
   function hideHoverSoon(){
     if(state.wordPinned)return;
     clearTimeout(state.leaveTimer);
-    state.leaveTimer=setTimeout(()=>{if(!state.wordPinned){clearTimeout(state.hoverTimer);details.classList.remove('show');}},340);
+    state.leaveTimer=setTimeout(()=>{
+      if(!state.wordPinned && !state.isHoveringDetails){
+        clearTimeout(state.hoverTimer);
+        details.classList.remove('show');
+        if(state.pausedForWord && !state.wordPinned){
+          state.pausedForWord.play().catch(()=>{});
+          state.pausedForWord=null;
+        }
+      }
+    },400);
   }
   async function showWord(word,pinned,anchor){
     if(anchor){if(state.detailAnchor!==anchor)state.detailAnchor?.removeAttribute('aria-describedby');state.detailAnchor=anchor;anchor.setAttribute('aria-describedby','detailMeaning');}
-    if(pinned){state.wordPinned=true;const video=currentVideo();if(state.mode==='learn' && state.pauseOnWord && video && !video.paused){state.pausedForWord=video;video.pause();resume.hidden=false;}else resume.hidden=true;}
+    if(pinned)state.wordPinned=true;
     else if(state.wordPinned)return;
+    const video=currentVideo();
+    if(((pinned && state.mode==='learn') || (!pinned && state.pauseOnWord)) && video && !video.paused){
+      state.pausedForWord=video;
+      video.pause();
+      resume.hidden=false;
+    }else if(pinned) resume.hidden=true;
     state.selected=word;
     detailHeading.textContent=word;
     detailPinyin.textContent=C.pinyinFor(word);
@@ -633,8 +688,8 @@
     synth.cancel();synth.speak(utterance);
   }
   function closeOverlay(){
-    state.closed=true;invalidatePrepared();
-    clearTimeout(state.watchTimer);unbindVideo();
+    state.closed=true;youtube?.close();invalidatePrepared();
+    clearTimeout(state.watchTimer);clearTimeout(liveTimer);liveTimer=null;livePending='';liveLastRaw='';unbindVideo();
     state.observer?.disconnect();cancelAnimationFrame(state.captionFrame);
     clearTimeout(state.hoverTimer);clearTimeout(state.leaveTimer);
     document.removeEventListener('fullscreenchange',attach);window.removeEventListener('resize',attach);window.removeEventListener('scroll',attach,true);
@@ -647,7 +702,7 @@
   function open(){
     if(state.closed)return;
     attach();panel.hidden=false;
-    void chrome.storage.local.get({direction:'en-zh',showPinyin:true,showOriginal:true,fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,pauseOnWord:true,autoPrepare:true,...extraDefaults,...L.DEFAULTS,compactLayoutVersion:0,dataRevision:0,cacheEpoch:0}).then(async v=>{
+    return chrome.storage.local.get({direction:'en-zh',showPinyin:true,showOriginal:true,fontSize:18,hanziSize:12,englishSize:12,opacity:0,position:8,pauseOnWord:true,autoPrepare:true,...extraDefaults,...L.DEFAULTS,compactLayoutVersion:0,dataRevision:0,cacheEpoch:0}).then(async v=>{
       Object.assign(state,L.preferences(v));state.dataRevision=v.dataRevision;state.cacheRevision=v.cacheEpoch;
       const patch=C.compactAppearance(v);if(Object.keys(patch).length){await chrome.storage.local.set(patch);Object.assign(v,patch);}
       if(state.closed)return;
@@ -656,7 +711,7 @@
       state.showPinyin=Boolean(v.showPinyin);state.showOriginal=Boolean(v.showOriginal);
       state.fontSize=Math.max(14,Math.min(42,Number(v.fontSize)||26));
       state.opacity=Math.max(0,Math.min(80,Number.isFinite(Number(v.opacity))?Number(v.opacity):12));
-      applyExtraPrefs(v);state.position=Math.max(4,Math.min(40,Number(v.position)||12));state.pauseOnWord=Boolean(v.pauseOnWord);state.autoPrepare=Boolean(v.autoPrepare);render();
+      applyExtraPrefs(v);state.position=Math.max(4,Math.min(40,Number(v.position)||12));state.pauseOnWord=Boolean(v.pauseOnWord);state.autoPrepare=Boolean(v.autoPrepare);state.settingsLoaded=true;render();checkCaptions();
     }).catch(()=>{if(!state.closed)info('Settings could not load. Reopen Mandarin Lens to retry.');});
   }
   pausePrepare.addEventListener('click',()=>{state.preparePaused=!state.preparePaused;if(!state.preparePaused){state.resumePrepare?.();state.resumePrepare=null;}updatePrepareUi();if(state.preparePaused)void savePrepared(state.activeCacheKey,state.partial.slice());});
@@ -688,6 +743,8 @@
   resume.addEventListener('click',()=>{const video=currentVideo();if(video)void video.play().catch(()=>info('Press Play on the video to continue.'));resume.hidden=true;});
   autoPrepBox.addEventListener('change',()=>{state.autoPrepare=autoPrepBox.checked;void chrome.storage.local.set({autoPrepare:state.autoPrepare});});
   pauseBox.addEventListener('change',()=>{state.pauseOnWord=pauseBox.checked;void chrome.storage.local.set({pauseOnWord:state.pauseOnWord});});
+  autoYoutubeBox.addEventListener('change',()=>{state.autoYoutubeCC=autoYoutubeBox.checked;syncYouTube();void chrome.storage.local.set({autoYoutubeCC:state.autoYoutubeCC});});
+  replaceYoutubeBox.addEventListener('change',()=>{state.replaceYoutubeCC=replaceYoutubeBox.checked;syncYouTube();void chrome.storage.local.set({replaceYoutubeCC:state.replaceYoutubeCC});});
   close.addEventListener('click',closeOverlay);
   cta.addEventListener('click',startLocalTranslation);
   details.addEventListener('pointerenter',()=>clearTimeout(state.leaveTimer));
@@ -738,7 +795,7 @@
   };
   chrome.storage.onChanged?.addListener(onStorageChanged);
   document.addEventListener('fullscreenchange',attach);window.addEventListener('resize',attach,{passive:true});window.addEventListener('scroll',attach,{passive:true,capture:true});
-  globalThis.__mandarinLensInstance={open,close:closeOverlay,snapshot:()=>({enabled:state.enabled,mode:state.mode,status:status.textContent,preparing:state.preparing,completed:state.prepareProgress,total:state.prepareTotal})};
+  globalThis.__mandarinLensInstance={open,start:startLocalTranslation,close:closeOverlay,snapshot:()=>({enabled:state.enabled,mode:state.mode,status:status.textContent,preparing:state.preparing,completed:state.prepareProgress,total:state.prepareTotal})};
   setCta(true);
   open();
   // Captions often mutate several times per second. React on the next animation frame,
@@ -750,14 +807,14 @@
         const element=nodes[i];if(element.nodeType===1&&(element.matches('video,source')||element.querySelector('video,source')))return true;
       }
       const node=m.target.nodeType===1?m.target:m.target.parentElement;
-      return node?.closest?.('.ytp-caption-window-container');
+      return node?.closest?.('.ytp-caption-window-container,.ytp-subtitles-button');
     }))return;
     state.captionFrame=requestAnimationFrame(()=>{state.captionFrame=null;checkCaptions();});
   });
-  state.observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true});
+  state.observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','aria-disabled','disabled']});
   // Fallback for sites with native HTML5 TextTracks (not rendered as DOM nodes).
   function tick(){if(state.closed)return;checkCaptions();state.watchTimer=setTimeout(tick,state.enabled && state.prepared && !currentVideo()?.paused?100:1500);}
   state.watchTimer=setTimeout(tick,1500);
-  info('1. Turn on CC in the video.  2. Press Start learning. For no-delay playback, prepare the transcript first.');
+  info(/(^|\.)youtube\.com$/i.test(location.hostname)?'YouTube CC starts automatically. Press Start learning if Chrome needs its local language pack.':'1. Turn on CC in the video.  2. Press Start learning. For no-delay playback, prepare the transcript first.');
   checkCaptions();
 })();

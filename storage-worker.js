@@ -1,6 +1,6 @@
 'use strict';
 /* Event-driven persistence coordinator. No network, capture, polling or external connection. */
-importScripts('learning.js','preprocess.js');
+importScripts('learning.js','preprocess.js','site-worker.js');
 let queue=Promise.resolve();
 const L=globalThis.MandarinLensLearning,P=globalThis.MandarinLensPreprocess;
 const PAGE_ACTIONS=new Set(['patch','review','delete-all','cache-clear']);
@@ -45,6 +45,7 @@ async function mutate(message){
   const vocabulary=[...map.values()];await chrome.storage.local.set({vocabulary});return {vocabulary};
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+  if(message?.action?.startsWith('site-'))return false;
   try{checkMessage(message,sender);}catch(error){sendResponse({ok:false,error:error.message});return false;}
   const result=queue.then(()=>mutate(message));queue=result.catch(()=>{});
   result.then(value=>sendResponse({ok:true,...value}),error=>sendResponse({ok:false,error:error.message}));return true;

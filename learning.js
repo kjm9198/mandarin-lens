@@ -2,11 +2,11 @@
 /** Bounded learning metadata and review helpers. No model, capture, network or HTML execution. */
 (() => {
   const DAY=86400000;
-  const DEFAULTS=Object.freeze({mode:'watch',interactionMode:'hover',resumeOnDismiss:false,lineSpacing:2,textShadow:'soft',textAlign:'center',toneSandhi:false,pronunciationRate:.8,pronunciationRepeats:1,repeatSpeed:.75,repeatCount:2});
+  const DEFAULTS=Object.freeze({mode:'watch',interactionMode:'hover',resumeOnDismiss:false,autoYoutubeCC:true,replaceYoutubeCC:true,sentenceMode:true,pauseOnHover:true,lineSpacing:2,textShadow:'soft',textAlign:'center',toneSandhi:false,pronunciationRate:.8,pronunciationRepeats:1,repeatSpeed:.75,repeatCount:2});
   function preferences(value={}){
     const out={...DEFAULTS};
     for(const key of ['mode','interactionMode','textShadow','textAlign']){const choices={mode:['watch','learn'],interactionMode:['hover','click'],textShadow:['soft','outline','none'],textAlign:['left','center','right']};if(choices[key].includes(value[key]))out[key]=value[key];}
-    for(const key of ['resumeOnDismiss','toneSandhi'])if(typeof value[key]==='boolean')out[key]=value[key];
+    for(const key of ['resumeOnDismiss','toneSandhi','autoYoutubeCC','replaceYoutubeCC','sentenceMode','pauseOnHover'])if(typeof value[key]==='boolean')out[key]=value[key];
     for(const [key,min,max]of [['lineSpacing',0,12],['pronunciationRate',.5,1.2],['pronunciationRepeats',1,3],['repeatSpeed',.5,1],['repeatCount',1,3]]){const n=Number(value[key]);if(value[key]!==undefined&&Number.isFinite(n))out[key]=Math.max(min,Math.min(max,n));}
     out.repeatCount=Math.round(out.repeatCount);out.pronunciationRepeats=Math.round(out.pronunciationRepeats);return out;
   }

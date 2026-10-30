@@ -64,3 +64,8 @@ Word explanations remain safe text nodes inside the closed extension shadow tree
 ## Version 2.0 follow-up
 
 See [reports/2.0.0-SECURITY.md](../reports/2.0.0-SECURITY.md) for the current worker trust boundary, concurrent-write/deletion fixes, actual regression evidence and remaining risks. Previous findings above describe their release-time state; V2 replaces tab-local vocabulary/cache mutations with sender-validated serialized worker operations.
+
+
+## Version 2.1 website controls
+
+Required YouTube host access now runs a packaged video-choice script. Optional HTTP/HTTPS host declarations support individual user-requested website grants and persistent prompt registration. See PERMISSIONS.md and PRIVACY_POLICY.md for the current scope. Worker site-start requests require this extension sender, a top-level tab and HTTP/HTTPS. No webpage message bridge or external message handler is added. Caption scripts remain isolated and local. This update is locally installed, not a store-reviewed or published release.

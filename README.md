@@ -1,4 +1,4 @@
-# Mandarin Lens 2.0
+# Mandarin Lens 2.1.1
 
 Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, local-first, open source. No account, analytics, subscription, server or API key.
 
@@ -6,12 +6,24 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 ## Install locally or share with a friend
 
-1. Download `mandarin-lens-2.0.0.zip` from the release and extract it into a permanent folder.
+1. For this local 2.1.1 build, extract `dist/mandarin-lens-2.1.1.zip` into a permanent folder, or use the generated `dist/mandarin-lens/` folder. Public GitHub releases retain their published version until a new release is uploaded.
 2. In desktop Chrome open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the extracted folder containing `manifest.json`.
-3. Open a captioned video, turn on CC, click Mandarin Lens, then **Start learning**. On the video, press **Start learning** to authorize Chrome's local language pack. This second click is required for Chrome's model activation.
+3. Open a captioned YouTube video. Mandarin Lens enables its CC feed automatically when you start learning. Mandarin Lens asks before each video by default. Choose **Learn once**, **Always here**, **Skip video**, or **Off here**. On first setup, press **Start learning** on the video to authorize Chrome’s local language pack. Already available packs can start automatically with **Always here**.
 4. Chrome may download a language pack. Its size is controlled by Chrome and is not included in this ZIP. Availability depends on your browser, device and language pair.
 
 Send the same ZIP to someone else; they follow the same steps. No Chrome Web Store account or fee is needed. This is an unpacked extension, not a Chrome Web Store reviewed or automatically updated installation. Managed browsers may prohibit unpacked extensions. Keep the extracted folder; deleting it breaks installation. For updates replace its files and press **Reload** on the extensions page, then refresh video tabs. Back up vocabulary first. Chrome 138+ desktop is the API baseline, not a guarantee of model availability; mobile Chrome is not supported.
+
+## YouTube CC replacement
+
+Starting Mandarin Lens enables the current YouTube player’s CC button automatically. YouTube remains the caption source; its subtitle text is made transparent and hidden from assistive technology only while Mandarin Lens actually displays replacement text. The caption DOM is preserved for reading. If translation fails or no replacement is visible, native text is restored. Stopping restores the original CC switch when Mandarin Lens changed it. No player internals or network transcript fetch is used.
+
+Both **Turn on YouTube CC automatically** and **Replace YouTube captions with Mandarin Lens** default to on and can be changed in the popup’s **YouTube captions** section or the on-video settings. Videos without an available CC track still need an imported subtitle file. Auto activation does not add captions to videos that have none.
+
+## Website preferences
+
+YouTube gets a small prompt automatically, including new videos opened without a full page reload. By default the video pauses while you choose. The extension popup’s **When to run on this website** section offers **Ask for each video**, **Always start here**, **Off**, and a pause-before-video switch. For other HTTP/HTTPS websites, open the popup on that site and save a preference; Chrome requests access to that website only. Automatic discovery supports visible top-level HTML video, not cross-origin embedded players. No global website permission is granted by default.
+
+A small **文 Mandarin Lens** button reopens your choice after skipping or starting. **Off here** removes it; use the extension popup to re-enable that site. Caption fonts, sizes, visible layers, placement, opacity and playback settings remain available in the popup and update active overlays. The first language-pack download still requires the visible Start learning click. Captionless videos require matching SRT/VTT files; this does not transcribe audio.
 
 ## What changed
 
@@ -58,11 +70,12 @@ npm run simulate
 npm run check
 npm run build
 npm run test:browser
+npm run test:sites
 ```
 
 Packaging needs Python 3. Browser tests need the `playwright` npm package and a compatible installed Chromium (`npm install --no-save playwright`, then `npx playwright install chromium` if unavailable). They can use the Codex bundled runtime when present. `CHROMIUM_EXECUTABLE` can point to an existing compatible Chromium. Tests use a disposable profile with test-only localhost permissions and an inert discovery worker, never the user's browser profile. See [testing report](reports/1.3.0-TESTING.md).
 
-Build output: `dist/mandarin-lens-2.0.0.zip`, unpacked `dist/mandarin-lens/`, SHA-256 checksums and a package inventory. The ZIP uses an explicit file allowlist and fixed timestamps. Run the build twice to verify deterministic output. Source stays readable; no minification hides behavior.
+Build output: `dist/mandarin-lens-2.1.1.zip`, unpacked `dist/mandarin-lens/`, SHA-256 checksums and a package inventory. The ZIP uses an explicit file allowlist and fixed timestamps. Run the build twice to verify deterministic output. Source stays readable; no minification hides behavior.
 
 ## Project layout
 
