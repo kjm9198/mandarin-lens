@@ -32,13 +32,18 @@ struct Entry: Codable, Identifiable {
     }
     func show() {
         if panel == nil {
-            let p = NSPanel(contentRect: NSRect(x: 240, y: 240, width: 480, height: 620), styleMask: [.titled, .closable, .resizable, .utilityWindow], backing: .buffered, defer: false)
+            let p = NSPanel(contentRect: NSRect(x: 240, y: 240, width: 392, height: 440), styleMask: [.titled, .closable, .resizable, .utilityWindow], backing: .buffered, defer: false)
             p.title = "Mandarin Lens"
+            p.titlebarAppearsTransparent = true
+            p.titleVisibility = .hidden
+            p.isMovableByWindowBackground = true
             p.level = .floating
             p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             p.isReleasedWhenClosed = false
             p.contentView = NSHostingView(rootView: Note().environmentObject(self))
-            p.minSize = NSSize(width: 420, height: 480)
+            p.minSize = NSSize(width: 360, height: 420)
+            if CommandLine.arguments.contains("--light-preview") { p.appearance = NSAppearance(named: .aqua) }
+            if CommandLine.arguments.contains("--small-preview") { p.setContentSize(NSSize(width: 360, height: 420)) }
             p.alphaValue = opacity
             panel = p
         }
@@ -155,57 +160,6 @@ struct Entry: Codable, Identifiable {
         do { try p.run() } catch { busy = false; answer = error.localizedDescription }
     }
 }
-struct Note: View {
-    @EnvironmentObject var lens: Lens
-    @State private var tab = CommandLine.arguments.contains("--chat-smoke") ? 2 : 0
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Mandarin Lens", systemImage: "character.bubble").font(.headline)
-                Spacer()
-                Button(lens.armed ? "Click a word…" : "Arm lookup") { lens.armed.toggle() }
-            }
-            HStack {
-                Picker("Lookup key", selection: $lens.trigger) { ForEach(["Control", "Option", "Command"], id: \.self) { Text($0) } }.frame(width: 210)
-                Button("Allow access") { lens.permission() }.help("Enable Accessibility for word lookup in other apps")
-            }
-            HStack { Image(systemName: "circle.lefthalf.filled"); Slider(value: $lens.opacity, in: 0.35...1).accessibilityLabel("Note opacity"); Text("\(Int(lens.opacity * 100))%") }
-                .onChange(of: lens.opacity) { _, value in lens.panel?.alphaValue = value }
-            Picker("View", selection: $tab) { Text("Translate").tag(0); Text("History").tag(1); Text("Learn & chat").tag(2) }.pickerStyle(.segmented)
-            if tab == 0 {
-                TextEditor(text: $lens.input).font(.body).frame(minHeight: 90).accessibilityLabel("Text to translate")
-                HStack {
-                    Picker("Translate into", selection: $lens.target) { Text("English").tag("en"); Text("Vietnamese").tag("vi"); Text("Polish").tag("pl") }
-                    Button("Translate") { lens.translate() }.keyboardShortcut(.return, modifiers: .command)
-                }
-                ScrollView { Text(lens.output).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(8) }.frame(minHeight: 100)
-                HStack {
-                    Button("Copy") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output, forType: .string) }
-                    Button("Example sentence") { lens.question = "Give one everyday example sentence using: \(lens.input). Explain in \(lens.target)."; tab = 2; lens.chat() }
-                }
-                Text("Apple Translation may ask to install a language pack. Saved translations remain on this Mac.").font(.caption).foregroundStyle(.secondary)
-            } else if tab == 1 {
-                List(lens.history) { entry in
-                    VStack(alignment: .leading) { Text(entry.source); Text(entry.translation).foregroundStyle(.secondary) }
-                        .contextMenu { Button("Use again") { lens.input = entry.source; tab = 0 }; Button("Delete") { lens.history.removeAll { $0.id == entry.id }; lens.persist() } }
-                }
-            } else {
-                Text("Assistant uses your eight most recent saved translations. AI answers can be wrong.").font(.caption).foregroundStyle(.secondary)
-                TextField("Ask about your words…", text: $lens.question).onSubmit { lens.chat() }
-                HStack { Button("Ask") { lens.chat() }.disabled(lens.busy); if lens.busy { Button("Stop") { lens.process?.terminate() } } }
-                ScrollView { Text(.init(lens.answer)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-            }
-            Spacer(minLength: 0)
-        }.padding(16).frame(minWidth: 390, minHeight: 440)
-        .onExitCommand { lens.armed = false }
-        .translationTask(lens.configuration) { session in
-            let source = lens.input
-            let language = lens.target
-            do { let result = try await session.translate(source); if lens.input == source && lens.target == language { lens.record(result.targetText, source: source, language: language) } }
-            catch { lens.output = "Translation unavailable: \(error.localizedDescription). Check installed language packs." }
-        }
-    }
-}
 @main struct MandarinLensApp: App {
     @StateObject private var lens: Lens
     init() {
@@ -223,14 +177,7 @@ struct Note: View {
     }
     var body: some Scene {
         MenuBarExtra("Mandarin Lens", systemImage: "character.bubble") {
-            Button("Show floating note") { lens.show() }
-            Button(lens.armed ? "Cancel word lookup" : "Arm word lookup") { lens.armed.toggle() }
-            Button("Accessibility permission") { lens.permission() }
-            Divider()
-            Button("Quit") { NSApp.terminate(nil) }
-        }
-        Window("Mandarin Lens", id: "welcome") {
-            VStack(spacing: 16) { Image(systemName: "character.bubble").font(.largeTitle); Text("Mandarin Lens").font(.title); Text("Translate a word. Keep it close. Learn it in context."); Button("Open floating note") { lens.show() } }.padding(40)
-        }
+            LensMenu().environmentObject(lens)
+        }.menuBarExtraStyle(.window)
     }
 }
