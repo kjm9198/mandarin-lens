@@ -40,6 +40,7 @@ struct Note: View {
             if CommandLine.arguments.contains("--settings-preview") { DispatchQueue.main.async { preferences = true } }
         }
         .onExitCommand { lens.armed = false; editing = false }
+        .onChange(of: lens.input) { _, _ in page = .translate }
         .translationTask(lens.configuration) { session in
             let source = lens.input, language = lens.target
             do {
@@ -83,6 +84,20 @@ struct Note: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
+                    Button { lens.captureSelection() } label: { Label("Selected text", systemImage: "text.cursor") }.help("Select text in another app, then press Control–Shift–T")
+                    Spacer()
+                    Menu {
+                        Button("Word under pointer") { lens.armed = true }
+                        Button("Selected text   ⌃⇧T") { lens.captureSelection() }
+                        Divider()
+                        Button("Screen area…   ⌃⇧S") { lens.captureScreen(entireDisplay: false) }
+                        Button("Entire display") { lens.captureScreen(entireDisplay: true) }
+                    } label: { Label(lens.capturing ? "Reading screen…" : "Capture", systemImage: "viewfinder") }.menuStyle(.borderlessButton).fixedSize().disabled(lens.capturing)
+                }.font(.system(size: 11, weight: .medium)).buttonStyle(.plain).foregroundStyle(accent)
+                if lens.input.isEmpty && lens.output != "Select text, then arm lookup and click it." {
+                    Text(lens.output).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
                     caption("AUTO DETECT")
                     Spacer()
                     Image(systemName: "arrow.right").font(.system(size: 10)).foregroundStyle(.tertiary)
@@ -111,7 +126,7 @@ struct Note: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Image(systemName: "cursorarrow.click").font(.system(size: 24, weight: .light)).foregroundStyle(accent)
                         Text("Meet your next word.").font(.system(size: 17, weight: .medium, design: .rounded))
-                        Text("Tap \(lens.trigger), then click a word. Or type something above.").font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(3)
+                        Text("Tap \(lens.trigger) and click a word. Select a sentence with ⌃⇧T, or capture text anywhere on screen.").font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(3)
                         Button(lens.armed ? "Cancel lookup" : "Look up a word") { lens.armed.toggle() }.buttonStyle(.bordered).controlSize(.small)
                     }.padding(.vertical, 14)
                 } else {
@@ -191,7 +206,9 @@ struct Note: View {
             Spacer()
             Image(systemName: "circle.lefthalf.filled").foregroundStyle(.secondary)
             Slider(value: $lens.opacity, in: 0.35...1).controlSize(.mini).frame(width: 70).accessibilityLabel("Note opacity").disabled(reduceTransparency)
-            Text("\(Int((reduceTransparency ? 1 : lens.opacity) * 100))%").monospacedDigit().font(.system(size: 9)).foregroundStyle(.secondary).frame(width: 26)
+            TextField("Opacity", value: Binding(get: { Int((reduceTransparency ? 1 : lens.opacity) * 100) }, set: { lens.opacity = Double(min(100, max(35, $0))) / 100 }), format: .number)
+                .font(.system(size: 10)).monospacedDigit().frame(width: 34).textFieldStyle(.roundedBorder).controlSize(.mini).disabled(reduceTransparency).accessibilityLabel("Opacity percentage, 35 to 100")
+            Text("%").font(.system(size: 9)).foregroundStyle(.secondary)
         }.padding(.horizontal, 18).padding(.vertical, 10).background(Color.primary.opacity(0.025))
     }
     private var settings: some View {
@@ -199,6 +216,10 @@ struct Note: View {
             Text("Make yourself at home.").font(.system(size: 15, weight: .semibold, design: .rounded))
             Picker("Lookup key", selection: $lens.trigger) { ForEach(["Control", "Option", "Command"], id: \.self) { Text($0) } }
             Text("Tap the key, then click a word in another app.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Divider()
+            Text("Note opacity").font(.system(size: 12, weight: .medium))
+            Slider(value: $lens.opacity, in: 0.35...1).disabled(reduceTransparency).accessibilityLabel("Note opacity")
+            Text(reduceTransparency ? "Reduced Transparency is enabled in macOS." : "Use the footer slider or type a percentage from 35 to 100.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Divider()
             Label("Word lookup access", systemImage: "cursorarrow.click").font(.system(size: 12, weight: .medium))
             Text("Allow Accessibility so Lens can read the word you choose.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -224,6 +245,11 @@ struct LensMenu: View {
             }
             Button { lens.show() } label: { Label("Open floating note", systemImage: "rectangle.on.rectangle").frame(maxWidth: .infinity).padding(.vertical, 4) }.buttonStyle(.borderedProminent).tint(.teal)
             Button { lens.armed.toggle() } label: { HStack { Label(lens.armed ? "Cancel lookup" : "Look up a word", systemImage: "cursorarrow.click"); Spacer(); Text(lens.trigger).font(.caption).foregroundStyle(.secondary) } }.buttonStyle(.plain)
+            Menu("Capture text") {
+                Button("Selected text   ⌃⇧T") { lens.captureSelection() }
+                Button("Screen area…   ⌃⇧S") { lens.captureScreen(entireDisplay: false) }
+                Button("Entire display") { lens.captureScreen(entireDisplay: true) }
+            }
             Divider()
             HStack {
                 Text("\(lens.history.count) saved translations").font(.system(size: 10)).foregroundStyle(.secondary)

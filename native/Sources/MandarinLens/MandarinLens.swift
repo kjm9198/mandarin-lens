@@ -17,6 +17,9 @@ struct Entry: Codable, Identifiable {
     @Published var target = UserDefaults.standard.string(forKey: "target") ?? "vi" { didSet { UserDefaults.standard.set(target, forKey: "target") } }
     @Published var opacity = UserDefaults.standard.object(forKey: "opacity") as? Double ?? 0.94 { didSet { UserDefaults.standard.set(opacity, forKey: "opacity") } }
     @Published var armed = false
+    @Published var capturing = false
+    var previousApplication: NSRunningApplication?
+    var activationObserver: NSObjectProtocol?
     @Published var trigger = UserDefaults.standard.string(forKey: "trigger") ?? "Control" { didSet { UserDefaults.standard.set(trigger, forKey: "trigger") } }
     @Published var history: [Entry] = []
     @Published var question = ""
@@ -47,10 +50,25 @@ struct Entry: Codable, Identifiable {
             p.alphaValue = opacity
             panel = p
         }
+        NSApp.unhide(nil)
         panel?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
     func start() {
+        previousApplication = NSWorkspace.shared.frontmostApplication
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication, app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+            Task { @MainActor in self?.previousApplication = app }
+        }
+        monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard flags == [.control, .shift] else { return }
+            let code = event.keyCode
+            Task { @MainActor in
+                if code == 17 { self?.captureSelection() }
+                if code == 1 { self?.captureScreen(entireDisplay: false) }
+            }
+        } as Any)
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             Task { @MainActor in
                 guard let self else { return }

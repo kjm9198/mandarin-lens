@@ -22,3 +22,23 @@ The floating note now opens at 392 × 440 points (minimum 360 × 420), with a sh
 Uses the local Apple design skill, system type and adaptive colors, a teal accent with darker values for light appearance, native focus and context menus, and no decorative transitions. Reduced Transparency forces full panel opacity while preserving the chosen value for later use. High Contrast strengthens the composer boundary.
 
 Design verification: compiled and installed on this Mac; inspected actual screenshots of translation in light appearance, history at 360 × 420 in dark appearance, local chat output and the settings popover. Re-ran a real Apple English → Polish translation and a real local model generation. Fixed text truncation found in settings screenshot inspection. Screenshots: `screenshots/redesign-*.png`. Broader VoiceOver, keyboard navigation, menu-bar pointer interactions and cross-app capture acceptance remain pending; the design update does not establish those results.
+
+## Selection, screen text and editable opacity
+
+The footer percentage is now editable (35–100% opacity), alongside the live slider. Settings includes a larger slider. macOS Reduced Transparency still takes precedence.
+
+Capture controls are available on Translate and in the menu bar:
+- Selected text: select a sentence in another app and press Control–Shift–T, or use Selected text. The last active external app is restored before reading its focused accessible selection. Clipboard contents are not modified.
+- Word: activate the configured modifier or Capture → Word under pointer, then click the word.
+- Screen area: Capture → Screen area or Control–Shift–S opens macOS's interactive region selector; Escape cancels.
+- Entire display: captures the display currently containing the pointer after hiding Lens, then performs local Apple Vision OCR. Only explicitly initiated captures are read. Temporary screenshots are removed after OCR or cancellation. No continuous capture or remote OCR.
+
+Screen capture requires Screen Recording permission for the app; selected text requires Accessibility. Protected/inaccessible apps can prevent selection or screen capture. OCR is fallible and full-screen reading order may differ from document order. Captured/selected text is bounded to 16,000 characters; the translated text enters the existing local history. Capturing the screen is intentional and can include visible sensitive text, so use a region for a smaller scope.
+
+Verification: compiled and installed updated app on M5 Pro; local Vision OCR recognized a controlled image containing a known English sentence and rejected a blank image. Re-ran actual English → Polish Apple Translation in the installed UI and inspected the new capture controls and numeric opacity field screenshot (`screenshots/capture-update.png`). Interactive cross-app selection, real screen capture permissions, region cancellation and multi-display behavior still require user acceptance; they are not established by the synthetic OCR test.
+
+Reproduce OCR smoke checks:
+```
+xcrun swiftc -target arm64-apple-macos15.0 -parse-as-library native/Sources/MandarinLens/ScreenText.swift native/Tests/OCRSmoke.swift -framework Vision -framework AppKit -o /tmp/lens-ocr-smoke
+/tmp/lens-ocr-smoke
+```
