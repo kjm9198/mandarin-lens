@@ -104,11 +104,11 @@ struct ChineseExampleContent: View {
     @StateObject private var speaker = WordSpeaker()
     var body: some View {
         VStack(alignment: .leading,spacing: 8) {
-            HStack { Text("IN A SENTENCE").font(.caption2.weight(.semibold)).tracking(1).foregroundStyle(.secondary); Spacer(); Button { speaker.speak(example.chinese,language: "zh-Hans") } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).accessibilityLabel("Listen to Chinese example") }
-            Text(example.chinese).font(.system(size: 18,weight: .medium)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
-            Text(example.pinyin).font(.callout).foregroundStyle(.teal).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
-            Text(example.english).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
-            Text("Local AI example · system pinyin").font(.caption2).foregroundStyle(.secondary)
+            HStack { Text("Example sentence").font(.system(size: 12,weight: .semibold)).foregroundStyle(.secondary); Spacer(); Button { speaker.speak(example.chinese,language: "zh-Hans") } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).accessibilityLabel("Listen to Chinese example") }
+            Text(example.chinese).font(.system(size: 18,weight: .regular)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
+            Text(example.pinyin).font(.system(size: 13)).foregroundStyle(Color.lensAccent).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
+            Text(example.english).font(.system(size: 13)).foregroundStyle(.secondary).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
+            Text("Generated example").font(.system(size: 10)).foregroundStyle(.secondary).help("Generated locally. Examples can be inaccurate; pinyin uses system transliteration.")
             if !speaker.status.isEmpty { Text(speaker.status).font(.caption2).foregroundStyle(.secondary) }
         }.onDisappear { speaker.stop() }
     }
@@ -121,7 +121,7 @@ struct CurrentChineseExample: View {
             if let example = lens.usageExample { ChineseExampleContent(example: example) }
             else {
                 VStack(alignment: .leading,spacing: 7) {
-                    Text("IN A SENTENCE").font(.caption2.weight(.semibold)).tracking(1).foregroundStyle(.secondary)
+                    Text("Example sentence").font(.system(size: 12,weight: .semibold)).foregroundStyle(.secondary)
                     Text(lens.exampleStatus.isEmpty ? "Create a Chinese example with English and pinyin." : lens.exampleStatus).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false,vertical: true)
                     if lens.exampleStatus.contains("…") { ProgressView().controlSize(.small) }
                     else { Button("Try example") { lens.beginChineseExample() }.controlSize(.small) }

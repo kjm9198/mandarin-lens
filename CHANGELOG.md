@@ -1,5 +1,14 @@
 # 2.1.1 · 30 October 2026
 
+## Kamihi Lens 4.1.0 — native design update
+
+- Shared adaptive paper, charcoal and Kamihi teal palette, system typography, branded sidebar and compact toolbar.
+- Rebuilt translation workspace, dictionary, history, local-model settings, learning recap and chat presentation.
+- More compact practice selection, clear answer states and fixed Check/Continue controls.
+- Smaller cursor results with prominent Chinese and pinyin; character exploration lives in the action bar.
+- Compact prioritizes the current translation and keeps source editing in an expandable section.
+- Saving through the full save sheet preserves the bilingual example and captured context, including the correct source-language meaning target.
+
 ## Kamihi Lens 4.0.0 — native macOS preview
 
 - Word, sentence and screenshot-area selection with immediate cursor results, Chinese pinyin, Listen, Copy and Save.

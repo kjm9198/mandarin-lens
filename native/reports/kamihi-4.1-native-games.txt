@@ -1,0 +1,8 @@
+PASS native full round: Meaning finder
+PASS native full round: Reverse recall
+PASS native full round: Listen & choose
+PASS native full round: Pinyin path
+PASS native full round: Word builder
+PASS native full round: Meaning map
+PASS native full round: Memory match
+PASS all seven native game rounds; saved vocabulary/review file unchanged.

@@ -80,43 +80,39 @@ struct LearningRecapView: View {
     @StateObject private var speaker = WordSpeaker()
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading,spacing: 22) {
-                VStack(alignment: .leading,spacing: 8) { Text("Your learning, connected.").font(.system(size: 26,weight: .semibold,design: .rounded)); Text("Turn the words and sentences you actually translated into a small study session.").foregroundStyle(.secondary) }
-                HStack(spacing: 12) {
-                    stat("Translations",value: lens.history.filter { $0.error == nil }.count)
-                    stat("My words",value: lens.vocabulary.words.count)
-                    stat("Favorites",value: lens.history.filter(\.favorite).count)
-                }
-                VStack(alignment: .leading,spacing: 14) {
+            VStack(alignment: .leading,spacing: 26) {
+                LensPageHeading(title: "Learning recap",detail: "Review patterns and useful words from your translation history.")
+                VStack(alignment: .leading,spacing: 18) {
                     Picker("Recap from",selection: $lens.recapScope) { ForEach(RecapScope.allCases,id: \.self) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented).disabled(lens.recapBusy)
-                    HStack { Label("\(lens.recapEntries.count) recent translations in this sample",systemImage: "text.book.closed").font(.caption).foregroundStyle(.secondary); Spacer(); Button(lens.recapBusy ? "Stop recap" : "Create learning recap") { if lens.recapBusy { lens.recapTask?.cancel() } else { lens.summarizeLearning() } }.buttonStyle(.borderedProminent).disabled(!lens.recapBusy && (lens.recapEntries.isEmpty || models.busy)) }
-                    if lens.recapBusy { HStack { ProgressView().controlSize(.small); Text("Your local model is finding connections…").font(.caption).foregroundStyle(.secondary) } }
-                    if !lens.recapDraft.isEmpty { Text(.init(lens.recapDraft)).textSelection(.enabled).lineSpacing(5) }
-                    if !lens.recapStatus.isEmpty { Text(lens.recapStatus).font(.caption).foregroundStyle(.secondary) }
-                    if lens.recapEntries.isEmpty { Text("Translate a few words first, or star an item in History to include it in Favorites.").foregroundStyle(.secondary) }
-                    Text("Up to 20 recent items, bounded to fit your local model. AI recaps can be inaccurate; your original translations stay in History.").font(.caption).foregroundStyle(.secondary)
-                }.padding(20).background(.quaternary.opacity(0.5),in: RoundedRectangle(cornerRadius: 16))
+                    HStack { Text("\(lens.recapEntries.count) translations selected").font(.system(size: 12)).foregroundStyle(.secondary); Spacer(); Button(lens.recapBusy ? "Stop recap" : "Create learning recap") { if lens.recapBusy { lens.recapTask?.cancel() } else { lens.summarizeLearning() } }.buttonStyle(LensButtonStyle(prominent: true,small: true)).disabled(!lens.recapBusy && (lens.recapEntries.isEmpty || models.busy)) }
+                    if lens.recapBusy { HStack { ProgressView().controlSize(.small); Text("Preparing your recap…").font(.system(size: 12)).foregroundStyle(.secondary) } }
+                    if !lens.recapDraft.isEmpty { Divider(); Text(.init(lens.recapDraft)).font(.system(size: 15)).textSelection(.enabled).lineSpacing(6) }
+                    if !lens.recapStatus.isEmpty { Text(lens.recapStatus).font(.system(size: 12)).foregroundStyle(.secondary) }
+                    if lens.recapEntries.isEmpty { Text("Translate a few words, or star items in History to include them in Favorites.").font(.system(size: 13)).foregroundStyle(.secondary) }
+                }.lensSurface()
                 if !lens.recapEntries.isEmpty {
-                    Text("From your history").font(.title3.weight(.semibold))
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220))],alignment: .leading,spacing: 12) {
+                    Text("Included words").font(.system(size: 14,weight: .semibold))
+                    VStack(spacing: 0) {
                         ForEach(Array(lens.recapEntries.filter { $0.source.count < 120 }.prefix(6))) { entry in
-                            VStack(alignment: .leading,spacing: 7) {
-                                HStack { Text(entry.source).font(.headline).lineLimit(2); Spacer(); Button { speaker.speak(entry.source,language: WordTools.language(entry.source)) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).accessibilityLabel("Listen to recap word") }
-                                if !entry.pronunciation.isEmpty { Text(entry.pronunciation).font(.caption).foregroundStyle(.teal).lineLimit(2) }
-                                Text(entry.translation).font(.callout).foregroundStyle(.secondary).lineLimit(3)
-                            }.padding(16).frame(maxWidth: .infinity,alignment: .leading).background(.quaternary.opacity(0.4),in: RoundedRectangle(cornerRadius: 12))
+                            HStack(alignment: .top,spacing: 20) {
+                                VStack(alignment: .leading,spacing: 6) { Text(entry.source).font(.system(size: 16,weight: .medium)).lineLimit(2); if !entry.pronunciation.isEmpty { Text(entry.pronunciation).font(.system(size: 12)).foregroundStyle(Color.lensAccent).lineLimit(2) } }.frame(maxWidth: .infinity,alignment: .leading)
+                                Text(entry.translation).font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(3).frame(maxWidth: .infinity,alignment: .leading)
+                                Button { speaker.speak(entry.source,language: TranslationSource.language(text: entry.source)) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Listen to recap word")
+                            }.padding(.vertical,15)
+                            Divider()
                         }
                     }
                 }
-                if !recaps.status.isEmpty { Text(recaps.status).font(.caption).foregroundStyle(.secondary) }
+                if !recaps.status.isEmpty { Text(recaps.status).font(.system(size: 12)).foregroundStyle(.secondary) }
                 if !recaps.items.isEmpty {
-                    Text("Saved recaps").font(.title3.weight(.semibold))
+                    Text("Saved recaps").font(.system(size: 14,weight: .semibold))
                     ForEach(recaps.items) { recap in
-                        DisclosureGroup { Text(.init(recap.text)).textSelection(.enabled).lineSpacing(5).padding(.top,12) } label: { VStack(alignment: .leading,spacing: 4) { Text(recap.scope.rawValue + " · " + recap.date.formatted(date: .abbreviated,time: .shortened)).fontWeight(.medium); Text("\(recap.sourceIDs.count) translations").font(.caption).foregroundStyle(.secondary) } }.padding(16).background(.quaternary.opacity(0.4),in: RoundedRectangle(cornerRadius: 12))
+                        DisclosureGroup { Text(.init(recap.text)).font(.system(size: 14)).textSelection(.enabled).lineSpacing(5).padding(.top,14) } label: { HStack { Text(recap.scope.rawValue+" · "+recap.date.formatted(date: .abbreviated,time: .shortened)).font(.system(size: 13,weight: .medium)); Spacer(); Text("\(recap.sourceIDs.count) items").font(.system(size: 11)).foregroundStyle(.secondary) } }.padding(.vertical,10)
+                        Divider()
                     }
                 }
-            }.padding(28).frame(maxWidth: 850,alignment: .leading).frame(maxWidth: .infinity,alignment: .topLeading)
-        }
+                Text("Uses up to 20 local history entries. AI recaps can be inaccurate; original translations stay in History.").font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false,vertical: true)
+            }.padding(28).frame(maxWidth: 820,alignment: .leading).frame(maxWidth: .infinity,alignment: .topLeading)
+        }.onDisappear { speaker.stop() }
     }
-    private func stat(_ label: String,value: Int) -> some View { VStack(alignment: .leading,spacing: 4) { Text("\(value)").font(.system(size: 25,weight: .semibold,design: .rounded)); Text(label).font(.caption).foregroundStyle(.secondary) }.frame(maxWidth: .infinity,alignment: .leading).padding(16).background(.teal.opacity(0.07),in: RoundedRectangle(cornerRadius: 13)) }
 }

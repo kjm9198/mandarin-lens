@@ -1,10 +1,10 @@
-# Kamihi Lens 4.0
+# Kamihi Lens 4.1
 
-A native word playground and screen translator for Apple Silicon Macs running macOS 15 or later. The Chrome extension in the repository root is a separate product.
+A native Chinese study workspace and screen translator for Apple Silicon Macs running macOS 15 or later. The Chrome extension in the repository root is a separate product.
 
 ## Install and use
 
-Download the **4.0 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
+Download the **4.1 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
 
 - **Option–Space**: click a word in text, an image or another readable screen surface. A small result near your cursor shows the word, system pinyin for Chinese, translation, Chinese pronunciation playback, Copy and Save. Chinese words also receive an example with a Chinese sentence, tone-mark pinyin and an English translation. Examples are generated with the selected local AI, checked for the requested word, translated with Apple Translation and saved with the history/dictionary entry; unavailable models show a retry action.
 - **Control–Space**: click a sentence. Settings offers Control–Shift–Space when macOS Input Sources reserves the default.
@@ -15,6 +15,7 @@ Download the **4.0 macOS preview** DMG from [Releases](https://github.com/kjm919
 - Results automatically enter **History**, including repeated captures and translation failures. Search source, translation or pinyin, star favorites, and create local AI learning recaps from Today, Last 7 days or Favorites. A missing translation pack or model shows a recoverable message. AI recaps can be wrong.
 - **My words** is your dictionary: open an entry for pinyin, meaning, captured context, Listen, Copy and Example & usage. Search and categories, local JSON export, review, optional speaking practice and Surprise me remain available.
 - **Play** opens seven games inspired by Sproutsly’s language activities: Meaning finder, Reverse recall, Listen & choose, Word builder, Meaning map, Memory match and Pinyin path. Pick a language pair and category. Games use short, distinct saved pairs; insufficient decks show what to save. Word builder reorders letters, Chinese characters or phrase tiles. Answer, Check, feedback and Continue are separate steps. Listening can reveal a transcript; hints and mistakes enter a revisit list. Scores are for that round, with no timer or changes to saved words/review dates. Pinyin is system transliteration, not a reviewed dictionary.
+- The interface uses one adaptive paper/charcoal/teal palette, standard macOS typography, full-width sidebar targets and consistent controls. Compact puts the translation first; expand Original to edit the source. Quiz Check/Continue actions stay visible while the question scrolls.
 - Every sidebar row is clickable across its full width. The full workspace supports macOS full screen and a 760-point minimum width; Compact starts at 410 points and exposes additional sections through **More sections**.
 
 ## Local AI
@@ -29,7 +30,7 @@ Speaking practice is optional and records only after an explicit action and macO
 
 ## Existing data
 
-Version 4 retains `studio.kamihi.mandarinlens.v31`, the existing defaults and Keychain service. Vocabulary, categories, review dates, history, chat, recaps and model files remain in `~/Library/Application Support/Mandarin Lens`. The internal folder name intentionally stays unchanged. Quit the previous app before opening a replacement. No store reset or cloud sync is performed.
+Version 4.1 retains `studio.kamihi.mandarinlens.v31`, the existing defaults and Keychain service. Vocabulary, categories, review dates, history, chat, recaps and model files remain in `~/Library/Application Support/Mandarin Lens`. The internal folder name intentionally stays unchanged. Quit the previous app before opening a replacement. No store reset or cloud sync is performed.
 
 ## Build and verification
 
@@ -39,6 +40,6 @@ swift test --package-path native
 ./native/package.sh
 ```
 
-The package is `native/build/KamihiLens-4.0.0-macOS-arm64.dmg`, with a SHA-256 file. The build uses an Apple Development signing identity when available, or ad-hoc signing otherwise; `LENS_SIGNING_IDENTITY` selects an identity.
+The package is `native/build/KamihiLens-4.1.0-macOS-arm64.dmg`, with a SHA-256 file. The build uses an Apple Development signing identity when available, or ad-hoc signing otherwise; `LENS_SIGNING_IDENTITY` selects an identity.
 
-[4.0 acceptance report](reports/KAMIHI-LENS-4.0.md) separates automated, actual native UI, local-model and delivery evidence. Older reports describe historical behavior. `Tests/NativeDriver.swift` and `Tests/CaptureFixture.swift` support controlled installed-app checks with isolated learning data. No bug-free, broad VoiceOver, all-language, physical microphone, mixed-DPI or clean-machine acceptance is claimed.
+[4.1 design and acceptance](reports/DESIGN-4.1.md) separates automated, actual native UI, local-model and delivery evidence. Older reports describe historical behavior. `Tests/NativeDriver.swift` and `Tests/CaptureFixture.swift` support controlled installed-app checks with isolated learning data. No bug-free, broad VoiceOver, all-language, physical microphone, mixed-DPI or clean-machine acceptance is claimed.

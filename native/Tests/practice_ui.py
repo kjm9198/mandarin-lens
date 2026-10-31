@@ -1,12 +1,13 @@
 """Controlled native UI acceptance. Requires an already open --acceptance-testing app."""
-import hashlib,json,re,subprocess,time
+import hashlib,json,re,subprocess,time,sys
+from collections import Counter
 from pathlib import Path
 D='/tmp/kamihi-native-driver';B='studio.kamihi.mandarinlens.v31'
-root=Path('/tmp/kamihi-4-acceptance-data');path=root/'words.json'
+root=Path(sys.argv[1] if len(sys.argv)>1 else '/tmp/kamihi-4-acceptance-data').absolute();path=root/'words.json'
 processes=subprocess.check_output(['ps','-ax','-o','command='],text=True)
 assert any('Kamihi Lens.app/Contents/MacOS/MandarinLens' in line and '--acceptance-testing' in line and '--test-data-directory '+str(root) in line for line in processes.splitlines()), 'Launch the isolated acceptance app first; personal app state was not touched.'
 words=json.loads(path.read_text());before=hashlib.sha256(path.read_bytes()).hexdigest()
-pinyin={'学':'xué','学习':'xué xí','你好':'nǐ hǎo','咖啡':'kā fēi','朋友':'péng yǒu','美丽':'měi lì','谢谢':'xiè xiè'}
+pinyin={'学':'xué','学习':'xué xí','你好':'nǐ hǎo','咖啡':'kā fēi','朋友':'péng yǒu','美丽':'měi lì','谢谢':'xiè xiè','控制':'kòng zhì'}
 def run(*args):return subprocess.check_output([D,'--app',B,'--window','Kamihi Lens',*args],text=True)
 def state():return run('--dump')
 def click(label):run('--click',label)
@@ -20,11 +21,11 @@ def buttons(s):return re.findall(r'^AXButton (.*)$',s,re.M)
 def start(mode):
  s=state()
  if 'AXButton All games' in s:click('All games')
- elif 'YOUR WORD PLAYGROUND' not in s:click('Play')
- s=wait('YOUR WORD PLAYGROUND');click(next(x for x in buttons(s) if x.startswith(mode+',')))
+ elif 'Pick a game' not in s:click('Play')
+ s=wait('Pick a game');click(next(x for x in buttons(s) if x.startswith(mode+',')))
  return wait('AXButton All games')
 def finish(mode):
- s=wait('A little more familiar.')
+ s=wait('Round complete')
  assert 'AXButton Play again' in s
  print('PASS native full round:',mode,flush=True)
 for mode in ['Meaning finder','Reverse recall','Listen & choose','Pinyin path','Word builder']:
@@ -32,10 +33,18 @@ for mode in ['Meaning finder','Reverse recall','Listen & choose','Pinyin path','
  for i in range(5):
   s=wait(f'AXStaticText {i+1} of 5')
   if mode=='Listen & choose':click('Listen to the word');click('Show text');s=state()
+  instruction={'Meaning finder':'What does this mean?','Reverse recall':'Which word belongs here?','Listen & choose':'Which word did you hear?','Pinyin path':'Which pinyin matches?','Word builder':'Build the word or phrase.'}[mode]
+  question=s.split('AXStaticText '+instruction+'\n',1)[1]
   if mode in ['Reverse recall','Word builder']:
-   word=next(w for w in words if 'AXStaticText '+w['meaning']+'\n' in s)
-  else:word=next(w for w in words if 'AXStaticText '+w['term']+'\n' in s)
+   word=next(w for w in words if 'AXStaticText '+w['meaning']+'\n' in question and (mode!='Word builder' or 2<=len(w['term'])<=16))
+  else:word=next(w for w in words if 'AXStaticText '+w['term']+'\n' in question)
   if mode=='Word builder':
+   for _ in range(50):
+    s=state()
+    available=[x.split(': ',1)[1] for x in buttons(s) if re.match(r'^Tile \d+: ',x)]
+    if not (Counter(word['term'])-Counter(available)):break
+    time.sleep(.05)
+   else:raise AssertionError(('Builder bank did not match the prompt',word,s))
    used=set()
    for ch in word['term']:
     label=next(x for x in buttons(s) if re.match(r'^Tile \d+: ',x) and x.endswith(': '+ch) and x not in used)
@@ -47,7 +56,8 @@ for mode in ['Meaning finder','Reverse recall','Listen & choose','Pinyin path','
    click(choice)
   click('Check answer')
   wait('See result' if i==4 else 'AXButton Continue')
-  if mode=='Meaning finder' and i==0:assert 'A good one to revisit.' in state()
+  if not (mode=='Meaning finder' and i==0):assert 'AXStaticText Correct\n' in state(),(mode,word,state())
+  if mode=='Meaning finder' and i==0:assert 'Correct answer' in state()
   click('See result' if i==4 else 'Continue')
  finish(mode)
 s=start('Meaning map')
@@ -60,7 +70,7 @@ finish('Meaning map')
 s=start('Memory match');known={};matched=set()
 for _ in range(120):
  s=state()
- if 'A little more familiar.' in s:break
+ if 'Round complete' in s:break
  labels=buttons(s)
  visible={}
  for x in labels:

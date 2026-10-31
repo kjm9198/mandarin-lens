@@ -158,7 +158,7 @@ extension Entry {
             panel = p
         }
         panel?.minSize = compact ? NSSize(width: 390,height: 480) : NSSize(width: 760,height: 560)
-        panel?.setContentSize(compact ? NSSize(width: 410, height: 570) : NSSize(width: 980, height: 700))
+        panel?.setContentSize(compact ? NSSize(width: 410, height: 570) : NSSize(width: 1060, height: 760))
         applyWindowPreferences(); NSApp.unhide(nil); panel?.center(); panel?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
         if output == "Translating…", translationRequest?.kind != .area, translationRequest != nil { configurationSeed.invalidate(); configuration = configurationSeed }
     }
@@ -380,6 +380,9 @@ extension Entry {
         // Prevent a second copy from registering another shortcut or writing the same stores.
         let duplicate = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == Bundle.main.bundleIdentifier && $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
         if let duplicate { duplicate.activate(); NSApp.terminate(nil); return }
+        if CommandLine.arguments.contains("--acceptance-testing"), let index = CommandLine.arguments.firstIndex(of: "--appearance-preview"), index+1 < CommandLine.arguments.count {
+            NSApp.appearance = NSAppearance(named: CommandLine.arguments[index+1] == "light" ? .aqua : .darkAqua)
+        }
         let model = Lens.shared; model.start()
         if !CommandLine.arguments.contains("--background") { model.showWorkspace() }
         if CommandLine.arguments.contains("--chat-smoke") { model.showWorkspace(); model.workspacePage = "Learn"; model.question = "Give one short example sentence using hello."; model.chat() }
