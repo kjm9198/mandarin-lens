@@ -1,0 +1,5 @@
+PASS: Escape cancels while preparing/choosing; no late selector resurrection.
+PASS: image-only coffee selects a bounded highlight; Escape clears it; no lookup/app popup.
+PASS: image-only 学习 selects a bounded highlight; Option–Space again clears it.
+PASS: repeated start/cancel leaves no overlays; ordinary Option alone does not activate.
+PASS: explicit app opening retains 学习, translates to Study with pinyin, and clears selection UI.

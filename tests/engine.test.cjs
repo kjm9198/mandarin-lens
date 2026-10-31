@@ -51,6 +51,19 @@ test('subtitle lookup handles gaps, exact ends, seeks and overlaps',()=>{
  const cues=P.validCues([{start:0,end:10,text:'long'},{start:2,end:3,text:'short'},{start:11,end:12,text:'last'}]);
  assert.equal(P.atTime(cues,2.5).text,'short');assert.equal(P.atTime(cues,3).text,'long');assert.equal(P.atTime(cues,10),null);assert.equal(P.atTime(cues,11).text,'last');assert.equal(P.atTime(cues,-1),null);
 });
+test('live captions coalesce repeats and discard pending text on reset',()=>{
+ let next=0;const timers=new Map(),shown=[];
+ const captions=P.liveCaptionCoalescer(text=>shown.push(text),{
+  setTimer(fn,delay){const id=++next;timers.set(id,{fn,delay});return id;},
+  clearTimer(id){timers.delete(id);}
+ });
+ captions.push('Hello');const first=[...timers.keys()][0];
+ captions.push('Hello');assert.deepEqual([...timers.keys()],[first]);
+ captions.push('Hello there');assert.equal(timers.size,1);assert.notEqual([...timers.keys()][0],first);
+ const scheduled=[...timers.entries()][0];timers.delete(scheduled[0]);scheduled[1].fn();assert.deepEqual(shown,['Hello there']);
+ captions.push('A new');captions.reset();assert.equal(timers.size,0);
+ captions.push('After seeking.');assert.deepEqual(shown,['Hello there','After seeking.']);
+});
 test('native track selection excludes metadata and wrong-language tracks',()=>{
  const cue={startTime:0,endTime:1,text:'hello'};
  const video={textTracks:[{kind:'metadata',language:'en',cues:[cue]},{kind:'subtitles',language:'fr',cues:[cue]},{kind:'captions',language:'zh-CN',cues:[{...cue,text:'你好'}]}]};

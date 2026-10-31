@@ -1,0 +1,4 @@
+PASS: save, duplicate prevention, Chinese category/pinyin, Vietnamese tone distinction, persistence, manual category, spaced review, segmentation, untrusted category validation, owner-only permissions
+PASS: installed-model discovery and local-only endpoint validation (3 MLX folders)
+PASS: real local model batch categorization and manual-category preservation
+Categorized 2 words locally. Manual categories kept.

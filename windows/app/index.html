@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kamihi Lens 4.3 — Windows Edition</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="icon.png" alt="Kamihi Lens" class="brand-icon">
+        <div class="brand-text">
+          <span class="brand-name">Kamihi Lens</span>
+          <span class="brand-sub">Chinese Study Workspace</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-group">
+          <div class="nav-heading">Workspace</div>
+          <button class="nav-item active" data-page="translate">
+            <span class="nav-icon">💬</span> Translate
+          </button>
+          <button class="nav-item" data-page="history">
+            <span class="nav-icon">🕒</span> History
+          </button>
+          <button class="nav-item" data-page="notepad">
+            <span class="nav-icon">📝</span> Notepad
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-heading">Study</div>
+          <button class="nav-item" data-page="words">
+            <span class="nav-icon">📖</span> My words
+          </button>
+          <button class="nav-item" data-page="play">
+            <span class="nav-icon">🎮</span> Play
+          </button>
+        </div>
+
+        <div class="nav-spacer"></div>
+
+        <div class="nav-group">
+          <button class="nav-item" data-page="settings">
+            <span class="nav-icon">⚙️</span> Settings
+          </button>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sys-status" id="sidebarStatus">
+          <span class="status-dot"></span>
+          <span class="status-label">Windows 64-bit</span>
+          <span class="status-ver">4.3.0</span>
+        </div>
+        <button class="update-pill" id="sidebarUpdateBtn" style="display: none;">
+          Update ready ↓
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <!-- Top Toolbar -->
+      <header class="topbar">
+        <div class="page-title" id="pageTitle">Translate</div>
+        <div class="topbar-actions">
+          <button class="btn btn-sm" id="checkUpdatesQuickBtn" title="Check for updates">
+            <span>🔄</span> Updates
+          </button>
+          <button class="btn btn-sm btn-ghost" id="themeToggleBtn" title="Toggle dark/light">
+            <span>🌓</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+      <div class="view-container">
+        <!-- 1. TRANSLATE VIEW -->
+        <section class="view active" id="view-translate">
+          <div class="translate-box">
+            <div class="translate-controls">
+              <div class="lang-selector">
+                <label>To:</label>
+                <select id="targetLangSelect" class="select-input">
+                  <option value="zh-Hans" selected>Simplified Chinese</option>
+                  <option value="pl">Polish (Polski)</option>
+                  <option value="en">English</option>
+                  <option value="vi">Vietnamese</option>
+                  <option value="zh-Hant">Traditional Chinese</option>
+                </select>
+                <label style="margin-left: 12px;">+ 2nd language:</label>
+                <select id="secondaryTargetSelect" class="select-input">
+                  <option value="pl" selected>Polish (Polski)</option>
+                  <option value="zh-Hans">Simplified Chinese</option>
+                  <option value="en">English</option>
+                  <option value="vi">Vietnamese</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div class="quick-tips">
+                <span>Tip: Type in English, Polish or Chinese to get instant dual translations.</span>
+              </div>
+            </div>
+
+            <div class="input-card">
+              <textarea id="translateInput" placeholder="Click or paste text here (e.g. 你好, 谢谢, 学习, 咖啡)..." rows="4"></textarea>
+              <div class="input-actions">
+                <button class="btn btn-sm btn-ghost" id="clearInputBtn">Clear</button>
+                <button class="btn btn-sm btn-primary" id="doTranslateBtn">Translate</button>
+              </div>
+            </div>
+
+            <div class="result-card" id="translateResultCard">
+              <div class="result-header">
+                <div class="result-term" id="resultTerm">你好</div>
+                <div class="result-pinyin" id="resultPinyin">nǐ hǎo</div>
+              </div>
+              <div class="result-meaning" id="resultMeaning">Hello / Hi</div>
+              <div class="result-actions">
+                <button class="btn btn-sm" id="speakTermBtn">🔊 Listen</button>
+                <button class="btn btn-sm" id="copyResultBtn">📋 Copy</button>
+                <button class="btn btn-sm btn-primary" id="saveWordBtn">⭐ Save word</button>
+                <button class="btn btn-sm" id="addNoteBtn">📝 Add to Note</button>
+              </div>
+
+              <div class="secondary-result" id="secondaryResultBox" style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-line);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 6px;">
+                  Second Language Translation (<span id="secLangName">Polish</span>):
+                </div>
+                <div class="result-meaning" id="secResultMeaning" style="font-size: 18px; color: var(--text-primary); font-weight: 500;">Dzień dobry</div>
+                <div class="result-actions" style="margin-top: 10px;">
+                  <button class="btn btn-sm" id="speakSecBtn">🔊 Listen (Slower)</button>
+                  <button class="btn btn-sm" id="copySecBtn">📋 Copy second</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. HISTORY VIEW -->
+        <section class="view" id="view-history">
+          <div class="history-container">
+            <div class="section-bar">
+              <input type="text" id="historySearch" class="search-input" placeholder="Search history...">
+              <button class="btn btn-sm btn-ghost" id="clearHistoryBtn">Clear history</button>
+            </div>
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </section>
+
+        <!-- 3. NOTEPAD VIEW -->
+        <section class="view" id="view-notepad">
+          <div class="notepad-layout">
+            <div class="note-sidebar">
+              <div class="note-sidebar-header">
+                <button class="btn btn-sm btn-primary" id="newNoteBtn">+ New note</button>
+                <select id="noteTemplateSelect" class="select-input select-sm">
+                  <option value="blank">Blank</option>
+                  <option value="checklist">Checklist</option>
+                  <option value="journal">Daily journal</option>
+                  <option value="prompt">Prompt</option>
+                </select>
+              </div>
+              <div class="note-list" id="notesList"></div>
+            </div>
+            <div class="note-editor">
+              <div class="editor-header">
+                <input type="text" id="noteTitleInput" placeholder="Note title..." class="title-input">
+                <div class="editor-actions">
+                  <button class="btn btn-sm" id="toggleRecallBtn">Toggle Recall</button>
+                  <button class="btn btn-sm" id="exportNoteBtn">Export .md</button>
+                  <button class="btn btn-sm btn-danger" id="deleteNoteBtn">Delete</button>
+                </div>
+              </div>
+              <textarea id="noteBodyInput" placeholder="Write study notes in Markdown. Use - [ ] for checklists..." rows="18"></textarea>
+              <div class="recall-pane" id="recallPane" style="display: none;">
+                <div class="recall-notice">Recall mode active: Translation hidden.</div>
+                <button class="btn btn-primary" id="revealRecallBtn">Reveal translation</button>
+                <div class="revealed-text" id="revealedContent" style="display: none;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. MY WORDS (DICTIONARY) -->
+        <section class="view" id="view-words">
+          <div class="words-container">
+            <div class="words-toolbar">
+              <input type="text" id="wordsSearch" class="search-input" placeholder="Search dictionary...">
+              <select id="categoryFilter" class="select-input">
+                <option value="All">All categories</option>
+                <option value="Everyday">Everyday</option>
+                <option value="Food & drink">Food & drink</option>
+                <option value="Travel">Travel</option>
+                <option value="Work & study">Work & study</option>
+                <option value="People">People</option>
+                <option value="Feelings">Feelings</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Time">Time</option>
+                <option value="Nature">Nature</option>
+              </select>
+              <button class="btn btn-sm btn-primary" id="addCustomWordBtn">+ Add word</button>
+              <button class="btn btn-sm" id="exportWordsBtn">Export JSON</button>
+              <label class="btn btn-sm file-label">
+                Import JSON <input type="file" id="importWordsFile" accept=".json" style="display: none;">
+              </label>
+              <button class="btn btn-sm btn-accent" id="playFromWordsBtn">🎮 Practice games</button>
+            </div>
+            <div class="words-grid" id="wordsGrid"></div>
+          </div>
+        </section>
+
+        <!-- 5. PLAY (7 STUDY GAMES) -->
+        <section class="view" id="view-play">
+          <div class="play-container">
+            <div class="game-selector">
+              <button class="game-tab active" data-game="meaning">Meaning finder</button>
+              <button class="game-tab" data-game="reverse">Reverse recall</button>
+              <button class="game-tab" data-game="listen">Listen & choose</button>
+              <button class="game-tab" data-game="build">Word builder</button>
+              <button class="game-tab" data-game="pairs">Meaning map</button>
+              <button class="game-tab" data-game="memory">Memory match</button>
+              <button class="game-tab" data-game="pinyin">Pinyin path</button>
+            </div>
+
+            <div class="game-board-card">
+              <div class="game-header">
+                <div class="game-title" id="gameTitle">Meaning finder</div>
+                <div class="game-score">Score: <span id="gameScore">0</span></div>
+              </div>
+
+              <div class="game-prompt" id="gamePrompt">Loading question...</div>
+              <div class="game-interaction" id="gameInteraction"></div>
+              <div class="game-feedback" id="gameFeedback"></div>
+
+              <div class="game-footer">
+                <button class="btn btn-primary" id="gameNextBtn">Next Question →</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. SETTINGS VIEW -->
+        <section class="view" id="view-settings">
+          <div class="settings-container">
+            <div class="settings-section">
+              <h3 class="section-title">Software Updates</h3>
+              <p class="section-desc">Keep Kamihi Lens updated with the latest improvements.</p>
+              
+              <div class="update-box">
+                <div class="update-row">
+                  <span>Current installed version:</span>
+                  <span class="badge">v4.3.0 (Windows x64)</span>
+                </div>
+                <div class="update-row">
+                  <span>Status:</span>
+                  <span id="updateStatusText" class="status-msg">Ready to check for updates.</span>
+                </div>
+
+                <div class="update-actions">
+                  <button class="btn btn-primary" id="downloadUpdateBtn">
+                    ⬇️ Download update
+                  </button>
+                  <button class="btn" id="checkUpdatesBtn">
+                    🔄 Check for updates
+                  </button>
+                  <a href="https://lens.kamihi.workers.dev" target="_blank" class="btn btn-ghost">
+                    🌐 Open lens.kamihi.workers.dev
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="section-title">Appearance</h3>
+              <div class="setting-row">
+                <span>Color theme</span>
+                <select id="themeSelect" class="select-input select-sm">
+                  <option value="dark">Dark (Charcoal)</option>
+                  <option value="light">Light (Warm Paper)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="section-title">Privacy & Storage</h3>
+              <p class="section-desc">All vocabulary, history, and notes are stored locally on your PC. No data is sent to external servers.</p>
+              <div class="setting-row">
+                <span>Data storage</span>
+                <span class="badge">Local PC (Offline)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="pinyin.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

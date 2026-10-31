@@ -1,0 +1,380 @@
+{
+  "engine" : "Apple Translation",
+  "note" : "Mode requests a strategy; Apple may fall back based on device and language. Timing includes framework inference only, not OCR, model downloads or app UI. Fixtures are a smoke test, not a quality certification.",
+  "results" : [
+    {
+      "input" : "Please reserve a table for two at seven o'clock tonight.",
+      "milliseconds" : 272,
+      "mode" : "fast",
+      "output" : "Proszę zarezerwować stolik dla dwóch osób o siódmej dziś wieczorem.",
+      "sample" : 0,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "I can't come tomorrow. Could we meet on Friday instead?",
+      "milliseconds" : 26,
+      "mode" : "fast",
+      "output" : "Nie mogę przyjść jutro. Czy zamiast tego moglibyśmy się spotkać w piątek?",
+      "sample" : 1,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "Please reserve a table for two at seven o'clock tonight.",
+      "milliseconds" : 479,
+      "mode" : "fast",
+      "output" : "Vui lòng đặt bàn cho hai người vào lúc bảy giờ tối nay.",
+      "sample" : 0,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "I can't come tomorrow. Could we meet on Friday instead?",
+      "milliseconds" : 39,
+      "mode" : "fast",
+      "output" : "Tôi không thể đến vào ngày mai. Thay vào đó chúng ta có thể gặp nhau vào thứ Sáu được không?",
+      "sample" : 1,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "Please reserve a table for two at seven o'clock tonight.",
+      "milliseconds" : 346,
+      "mode" : "fast",
+      "output" : "请在今晚七点预订一张双人桌。",
+      "sample" : 0,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "I can't come tomorrow. Could we meet on Friday instead?",
+      "milliseconds" : 33,
+      "mode" : "fast",
+      "output" : "我明天不能来。 我们可以改在周五见面吗？",
+      "sample" : 1,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "Please reserve a table for two at seven o'clock tonight.",
+      "milliseconds" : 218,
+      "mode" : "fast",
+      "output" : "請在今晚七點預訂一張雙人桌。",
+      "sample" : 0,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "I can't come tomorrow. Could we meet on Friday instead?",
+      "milliseconds" : 29,
+      "mode" : "fast",
+      "output" : "我明天不能來。 我們可以改在週五見面嗎？",
+      "sample" : 1,
+      "source" : "en",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "Proszę zarezerwować stolik dla dwóch osób na dziś na godzinę dziewiętnastą.",
+      "milliseconds" : 196,
+      "mode" : "fast",
+      "output" : "Please book a table for two people for today at seven o'clock.",
+      "sample" : 0,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "Nie mogę przyjść jutro. Czy możemy spotkać się w piątek?",
+      "milliseconds" : 22,
+      "mode" : "fast",
+      "output" : "I can't come tomorrow. Can we meet on Friday?",
+      "sample" : 1,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "Proszę zarezerwować stolik dla dwóch osób na dziś na godzinę dziewiętnastą.",
+      "milliseconds" : 418,
+      "mode" : "fast",
+      "output" : "Vui lòng đặt bàn cho hai người vào lúc bảy giờ hôm nay.",
+      "sample" : 0,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "Nie mogę przyjść jutro. Czy możemy spotkać się w piątek?",
+      "milliseconds" : 43,
+      "mode" : "fast",
+      "output" : "Tôi không thể đến vào ngày mai. Chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "sample" : 1,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "Proszę zarezerwować stolik dla dwóch osób na dziś na godzinę dziewiętnastą.",
+      "milliseconds" : 383,
+      "mode" : "fast",
+      "output" : "请预订一张今天七点的双人桌。",
+      "sample" : 0,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "Nie mogę przyjść jutro. Czy możemy spotkać się w piątek?",
+      "milliseconds" : 45,
+      "mode" : "fast",
+      "output" : "我明天不能来。 我们周五能见面吗？",
+      "sample" : 1,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "Proszę zarezerwować stolik dla dwóch osób na dziś na godzinę dziewiętnastą.",
+      "milliseconds" : 342,
+      "mode" : "fast",
+      "output" : "請在今天七點為兩個人預訂一張桌子。",
+      "sample" : 0,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "Nie mogę przyjść jutro. Czy możemy spotkać się w piątek?",
+      "milliseconds" : 46,
+      "mode" : "fast",
+      "output" : "我明天不能來。 我們可以週五見面嗎？",
+      "sample" : 1,
+      "source" : "pl",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "Vui lòng đặt bàn cho hai người lúc bảy giờ tối nay.",
+      "milliseconds" : 329,
+      "mode" : "fast",
+      "output" : "Please reserve a table for two people at seven o'clock tonight.",
+      "sample" : 0,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "Ngày mai tôi không thể đến. Thay vào đó, chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "milliseconds" : 38,
+      "mode" : "fast",
+      "output" : "I can't come tomorrow. Can we meet on Friday instead?",
+      "sample" : 1,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "Vui lòng đặt bàn cho hai người lúc bảy giờ tối nay.",
+      "milliseconds" : 425,
+      "mode" : "fast",
+      "output" : "Proszę zarezerwować stolik dla dwóch osób na godzinę siódmą dziś wieczorem.",
+      "sample" : 0,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "Ngày mai tôi không thể đến. Thay vào đó, chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "milliseconds" : 49,
+      "mode" : "fast",
+      "output" : "Nie mogę przyjść jutro. Czy zamiast tego możemy się spotkać w piątek?",
+      "sample" : 1,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "Vui lòng đặt bàn cho hai người lúc bảy giờ tối nay.",
+      "milliseconds" : 458,
+      "mode" : "fast",
+      "output" : "请在今晚七点为两个人预订一张桌子。",
+      "sample" : 0,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "Ngày mai tôi không thể đến. Thay vào đó, chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "milliseconds" : 56,
+      "mode" : "fast",
+      "output" : "我明天不能来。 我们可以改在周五见面吗？",
+      "sample" : 1,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "zh-Hans"
+    },
+    {
+      "input" : "Vui lòng đặt bàn cho hai người lúc bảy giờ tối nay.",
+      "milliseconds" : 418,
+      "mode" : "fast",
+      "output" : "請在今晚七點為兩個人預訂一張桌子。",
+      "sample" : 0,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "Ngày mai tôi không thể đến. Thay vào đó, chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "milliseconds" : 53,
+      "mode" : "fast",
+      "output" : "我明天不能來。 我們可以改在週五見面嗎？",
+      "sample" : 1,
+      "source" : "vi",
+      "status" : "translated",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "请预订今晚七点的两人桌。",
+      "milliseconds" : 255,
+      "mode" : "fast",
+      "output" : "Please make a reservation for a table for two at seven o'clock tonight.",
+      "sample" : 0,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "我明天不能来。我们可以改在星期五见面吗？",
+      "milliseconds" : 24,
+      "mode" : "fast",
+      "output" : "I can't come tomorrow. Can we meet on Friday instead?",
+      "sample" : 1,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "请预订今晚七点的两人桌。",
+      "milliseconds" : 362,
+      "mode" : "fast",
+      "output" : "Proszę dokonać rezerwacji na stolik dla dwóch osób o siódmej dziś wieczorem.",
+      "sample" : 0,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "我明天不能来。我们可以改在星期五见面吗？",
+      "milliseconds" : 42,
+      "mode" : "fast",
+      "output" : "Nie mogę przyjść jutro. Czy zamiast tego możemy się spotkać w piątek?",
+      "sample" : 1,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "请预订今晚七点的两人桌。",
+      "milliseconds" : 447,
+      "mode" : "fast",
+      "output" : "Vui lòng đặt bàn cho hai người vào lúc bảy giờ tối nay.",
+      "sample" : 0,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "我明天不能来。我们可以改在星期五见面吗？",
+      "milliseconds" : 43,
+      "mode" : "fast",
+      "output" : "Tôi không thể đến vào ngày mai. Thay vào đó chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "sample" : 1,
+      "source" : "zh-Hans",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "availability" : "unsupported",
+      "mode" : "fast",
+      "source" : "zh-Hans",
+      "status" : "not installed",
+      "target" : "zh-Hant"
+    },
+    {
+      "input" : "請預訂今晚七點的兩人桌。",
+      "milliseconds" : 213,
+      "mode" : "fast",
+      "output" : "Please reserve a table for two at seven o'clock tonight.",
+      "sample" : 0,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "我明天不能來。我們可以改在星期五見面嗎？",
+      "milliseconds" : 23,
+      "mode" : "fast",
+      "output" : "I can't come tomorrow. Can we meet on Friday instead?",
+      "sample" : 1,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "en"
+    },
+    {
+      "input" : "請預訂今晚七點的兩人桌。",
+      "milliseconds" : 313,
+      "mode" : "fast",
+      "output" : "Proszę zarezerwować stolik dla dwóch osób o siódmej dziś wieczorem.",
+      "sample" : 0,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "我明天不能來。我們可以改在星期五見面嗎？",
+      "milliseconds" : 42,
+      "mode" : "fast",
+      "output" : "Nie mogę przyjść jutro. Czy zamiast tego możemy się spotkać w piątek?",
+      "sample" : 1,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "pl"
+    },
+    {
+      "input" : "請預訂今晚七點的兩人桌。",
+      "milliseconds" : 402,
+      "mode" : "fast",
+      "output" : "Vui lòng đặt bàn cho hai người vào lúc bảy giờ tối nay.",
+      "sample" : 0,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "input" : "我明天不能來。我們可以改在星期五見面嗎？",
+      "milliseconds" : 44,
+      "mode" : "fast",
+      "output" : "Tôi không thể đến vào ngày mai. Thay vào đó chúng ta có thể gặp nhau vào thứ Sáu không?",
+      "sample" : 1,
+      "source" : "zh-Hant",
+      "status" : "translated",
+      "target" : "vi"
+    },
+    {
+      "availability" : "unsupported",
+      "mode" : "fast",
+      "source" : "zh-Hant",
+      "status" : "not installed",
+      "target" : "zh-Hans"
+    }
+  ]
+}

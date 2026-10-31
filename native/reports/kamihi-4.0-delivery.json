@@ -1,0 +1,11 @@
+{
+  "version": "4.0.0",
+  "build": "40",
+  "bundleID": "studio.kamihi.mandarinlens.v31",
+  "wholeBundleFileCount": 8,
+  "buildInstalledMountedBundleParity": true,
+  "applicationsSymlink": true,
+  "notarized": false,
+  "dmgSHA256": "ebb2bfa0d05183af7c22c00884f9c5f41480b40219788b4b0e6d008f5f90ab2b",
+  "originalLocalStoreFilesUnchangedDuringAcceptance": 3
+}

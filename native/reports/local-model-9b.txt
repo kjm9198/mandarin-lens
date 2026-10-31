@@ -1,0 +1,7 @@
+PASS: save, duplicate prevention, Chinese category/pinyin, Vietnamese tone distinction, persistence, manual category, spaced review, segmentation, untrusted category validation, owner-only permissions
+PASS: installed-model discovery and local-only endpoint validation (3 MLX folders)
+Testing real local model: Qwen3.5-9B-The-Defiant-Fable-Uncensored-Heretic-NEO-IMATRIX-MAX-oQ6e
+FIRST_TEXT_SECONDS: 5.821298003196716
+TOTAL_SECONDS: 6.062885999679565
+OUTPUT: Yínháng (bank) is a financial institution where people deposit money, get loans, and exchange currency. For example, 我去银行取钱 (I go to the bank to withdraw money).
+

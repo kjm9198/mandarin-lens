@@ -1,0 +1,6 @@
+PASS actual explicit Polish short-word translation
+PASS actual English → Vietnamese, Fast, ready offline
+PASS swap reverses source and target and translates back
+PASS final Word → Sentence selector switch and complete sentence capture
+PASS final drag from Word selects and translates mixed-language section
+PASS final Section shortcut and Space whole-display capture

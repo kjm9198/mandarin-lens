@@ -1,0 +1,5 @@
+Installed app: Mandarin Lens 3.7 (build 37)
+PASS primary top left exact target beautiful panel [57, 89, 340, 252] Escape/focus
+PASS primary bottom right exact target coffee panel [979, 500, 340, 252] Escape/focus
+PASS external top right exact target coffee panel [2899, 28, 340, 252] Escape/focus
+PASS external bottom right exact target coffee panel [2899, 640, 340, 252] Escape/focus

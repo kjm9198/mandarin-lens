@@ -1,0 +1,17 @@
+{
+  "version": "4.3.0",
+  "build": "43",
+  "dmg": "KamihiLens-4.3.0-macOS-arm64.dmg",
+  "sha256": "3c528fe4a7dcfc0b5aa32012a79e0e8d96542b0d25fd73547e421a8fa6c05472",
+  "strict_signature_verified": [
+    "build",
+    "installed",
+    "mounted"
+  ],
+  "all_bundle_files_equal": true,
+  "applications_symlink_verified": true,
+  "original_personal_stores_unchanged": 3,
+  "notarized": false,
+  "platform": "Apple Silicon; macOS 15 or later",
+  "normal_personal_app_relaunched": true
+}

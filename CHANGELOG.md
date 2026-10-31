@@ -1,4 +1,50 @@
-# 2.1.1 · 30 October 2026
+# 2.1.1 · 31 October 2026
+
+## Kamihi Lens 4.3.0 — Cloudflare distribution, dual translation, and slower speech
+
+- Published minimalist release and download website on Cloudflare at `https://lens.kamihi.workers.dev`.
+- Direct downloads for latest macOS DMG (`KamihiLens-4.3.0-macOS-arm64.dmg`) and Windows ZIP (`KamihiLens-4.3.0-Windows-x64.zip`), with SHA-256 verification and earlier releases archive (4.2.0, 4.1.0, 4.0.0).
+- Added in-app "Download update" action in macOS app Settings, menu bar, and sidebar status, with automated DMG download, installer launching, and browser fallback.
+- Added `/api/version` JSON endpoint on Cloudflare for automated client version checking and download redirection.
+- Added standalone Windows edition of Kamihi Lens in `windows/` with offline Pinyin transliteration, full study workspace, 7 Sproutsly games, Markdown Notepad, and dictionary import/export.
+- Slower sentence and word speech playback speed (0.55x rate default) for clear learning comprehension with in-app toggle in Settings.
+- Reliable bidirectional Polish translations (Polish-to-English and English-to-Polish) with accurate Polish diacritic detection and fallback vocabulary.
+- Dual-target simultaneous translation (e.g. translating from English into both Chinese and Polish at the same time).
+
+## Kamihi Lens 4.3.0 — Notepad and bilingual playback
+
+- Five equal-sized result actions with separate original/translation playback and visible Stop states. Speech completion resets Play; switching languages stops the previous voice.
+- Local Notepad section with autosaved notes, search, pins, Markdown/checklist preview, recoverable trash and Markdown export.
+- Floating notepad on Control–Option–N, plus focus mode, journal/checklist/writing-prompt templates and translation Recall.
+- Capture a translation, pinyin, example and context directly into a note; send notes back to the translator.
+- Failed note saves retain text for retry; unreadable notes files are preserved.
+
+## Kamihi Lens 4.2.0 — easier selection and translation controls
+
+- Switch Word, Sentence and Section directly in the screen selector. Drag a section from any mode; click a sentence to capture its full text.
+- Visible From/To pickers, Swap, selected-strategy offline readiness and language preparation.
+- Natural/Fast requests for Apple Translation, with system fallback and macOS 15 compatibility. The Qwen study model remains separate.
+- Section translation respects the chosen source, rejoins likely wrapped sentences, and matches batch results by identifier.
+- Cached results distinguish source preference and translation mode.
+
+## Kamihi Lens 4.1.0 — native design update
+
+- Shared adaptive paper, charcoal and Kamihi teal palette, system typography, branded sidebar and compact toolbar.
+- Rebuilt translation workspace, dictionary, history, local-model settings, learning recap and chat presentation.
+- More compact practice selection, clear answer states and fixed Check/Continue controls.
+- Smaller cursor results with prominent Chinese and pinyin; character exploration lives in the action bar.
+- Compact prioritizes the current translation and keeps source editing in an expandable section.
+- Saving through the full save sheet preserves the bilingual example and captured context, including the correct source-language meaning target.
+
+## Kamihi Lens 4.0.0 — native macOS preview
+
+- Word, sentence and screenshot-area selection with immediate cursor results, Chinese pinyin, Listen, Copy and Save.
+- Chinese-first translation, explicit translation/source settings, a fix for ambiguous short English words such as Control, and persisted example sentences with Chinese, English and pinyin.
+- Mixed-language area translation preserves line order and already translated-language lines.
+- Searchable history for each capture, favorites and local AI learning recaps.
+- Dictionary detail, refreshed local-model setup/download screens and resident-model unload.
+- Full-width sidebar click targets and seven vocabulary games inspired by Sproutsly: meaning, reverse recall, listening, word building, pair matching, memory and pinyin.
+- Isolated native acceptance, game-state regression coverage and signed DMG packaging. This development preview is not notarized.
 
 - Showcase whole sentences by buffering streaming captions into complete sentences/clauses; eliminate 1-word expanding jitter.
 - Hover protection keeps subtitle and definition cards open during inspection; pause video on hover so words can be studied comfortably.

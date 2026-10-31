@@ -4,6 +4,10 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 [Download the ZIP](https://github.com/kjm9198/mandarin-lens/releases/latest) · [Website](https://kjm9198.github.io/mandarin-lens/) · [Report a bug](https://github.com/kjm9198/mandarin-lens/issues)
 
+## Kamihi Lens — native macOS app
+
+Kamihi Lens 4.3 adds word, sentence and screen-area translation with small cursor results, pinyin, a personal dictionary, searchable history, local AI recaps and seven vocabulary games inspired by Sproutsly. A local Notepad adds floating notes, Markdown/checklists and translation recall. Equal-sized result actions include independent Play/Stop for both languages. Sentence/section selection has an in-screen mode switcher, and visible From/To controls with Natural/Fast Apple translation modes. The redesigned native workspace shares a paper/charcoal/teal theme, readable Chinese typography, full-width sidebar targets and consistent controls across screens. See [native setup and shortcuts](native/README.md) and [4.3 Notepad and playback checks](native/reports/NOTEPAD-PLAYBACK-4.3.md). The Apple Silicon DMG is a development preview, not notarized; find it in [Releases](https://github.com/kjm9198/mandarin-lens/releases). The Chrome extension remains separate.
+
 ## Install locally or share with a friend
 
 1. For this local 2.1.1 build, extract `dist/mandarin-lens-2.1.1.zip` into a permanent folder, or use the generated `dist/mandarin-lens/` folder. Public GitHub releases retain their published version until a new release is uploaded.

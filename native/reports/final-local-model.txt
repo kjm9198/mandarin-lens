@@ -1,0 +1,2 @@
+{"first": 2.0333066669999997, "total": 2.163751167, "chunks": 23, "text": "茶 (chá) is a Chinese beverage made from tea leaves, known for its refreshing taste and health benefits."}
+{"first": 0.03524875000000005, "total": 0.1871455000000002, "chunks": 27, "text": "**茶 (chá)** 是中国的传统饮品。\n\n**English:** Tea (chá) is China's traditional beverage."}

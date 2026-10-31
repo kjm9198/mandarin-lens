@@ -1,0 +1,7 @@
+PASS final 3.6 native two-turn conversation: beautiful followed by 学习; latest answer changes to the new word.
+beautiful: **Sentence:** "The sunset over the ocean is absolutely **beautiful**."
+
+**Explanation:** This sentence describes a scene where the sky and sea meet at sunset, creating a picture that is very pleasing to the eye. The word "beautiful" here means "very good" or "pleasant," not "pretty."
+学习: **Sentence:** "I need to **study** for my math exam tomorrow."
+
+**Explanation:** In this sentence, "study" means to spend time learning or practicing to improve your knowledge. It is the opposite of "relax" or "sleep."

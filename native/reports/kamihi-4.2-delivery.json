@@ -1,0 +1,10 @@
+{
+  "version": "4.2.0",
+  "build": "42",
+  "dmgSHA256": "34e345ad8b1b8382c30f56c01af90ccdf38f093f2116214603e0b0f878c39a3b",
+  "buildInstalledMountedParity": true,
+  "bundleFilesCompared": 8,
+  "strictSignatureVerification": true,
+  "originalPersonalDataFilesUnchanged": 3,
+  "notarized": false
+}
