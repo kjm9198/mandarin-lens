@@ -9,18 +9,26 @@ import UniformTypeIdentifiers
     private var current: AVSpeechUtterance?
     @Published private(set) var playingID: String?
     @Published var status = ""
+    @Published var slowRate: Bool = UserDefaults.standard.object(forKey: "slowSpeechRate") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(slowRate, forKey: "slowSpeechRate") }
+    }
+    var rateMultiplier: Float { slowRate ? 0.55 : 0.85 }
     var isSpeaking: Bool { playingID != nil }
     static func key(_ text: String,_ language: String) -> String { language+"|"+text }
     func isPlaying(_ text: String,language: String) -> Bool { playingID == Self.key(text,language) }
     func stop() { let active = current != nil; current = nil; playingID = nil; if active { synthesizer.stopSpeaking(at: .immediate) } }
-    func speak(_ text: String, language: String) {
+    func speak(_ text: String, language: String, slower: Bool? = nil) {
         if isPlaying(text,language: language) { stop(); return }
         stop()
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let prefix = language.hasPrefix("zh") ? "zh" : language
         let requested = language == "zh-Hant" ? "zh-TW" : language.hasPrefix("zh") ? "zh-CN" : language == "vi" ? "vi-VN" : language == "pl" ? "pl-PL" : language
         guard let voice = AVSpeechSynthesisVoice(language: requested) ?? AVSpeechSynthesisVoice.speechVoices().first(where: { prefix == "zh" ? ($0.language.hasPrefix("zh-CN") || $0.language.hasPrefix("zh-TW")) : $0.language.hasPrefix(prefix) }) else { status = "Install a \(language) voice in macOS Accessibility → Spoken Content."; return }
-        let utterance = AVSpeechUtterance(string: text); utterance.voice = voice; utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.85
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = voice
+        let useSlow = slower ?? slowRate
+        // 0.55 * default speech rate creates a clear, measured pace ideal for language learning.
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * (useSlow ? 0.55 : 0.85)
         current = utterance; playingID = Self.key(text,language); status = ""; synthesizer.speak(utterance)
     }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { finished(utterance) }
@@ -42,9 +50,14 @@ struct SpeechControl: SwiftUI.View {
     let language: String
     let title: String
     var body: some SwiftUI.View {
-        SwiftUI.Button { speaker.speak(text,language: language) } label: { SwiftUI.Image(systemName: speaker.isPlaying(text,language: language) ? "stop.fill" : "play.fill").font(.system(size: 12)).frame(width: 30,height: 30) }
-            .buttonStyle(.plain).foregroundStyle(SwiftUI.Color.lensAccent)
-            .accessibilityLabel(speaker.isPlaying(text,language: language) ? "Stop \(title) audio" : "Listen to \(title)")
-            .help(speaker.isPlaying(text,language: language) ? "Stop \(title)" : "Play \(title)")
+        SwiftUI.Button { speaker.speak(text,language: language) } label: {
+            SwiftUI.Image(systemName: speaker.isPlaying(text,language: language) ? "stop.fill" : "play.fill")
+                .font(.system(size: 12))
+                .frame(width: 30,height: 30)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(SwiftUI.Color.lensAccent)
+        .accessibilityLabel(speaker.isPlaying(text,language: language) ? "Stop \(title) audio" : "Listen to \(title)")
+        .help(speaker.isPlaying(text,language: language) ? "Stop \(title)" : "Listen to \(title) (Measured slower speed)")
     }
 }

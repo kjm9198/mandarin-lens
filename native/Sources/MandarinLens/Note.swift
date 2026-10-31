@@ -64,7 +64,18 @@ struct Note: View {
             sidebarGroup("Study",items: [.words,.play,.recap,.learn]).padding(.top,24)
             Spacer(minLength: 20)
             sidebarGroup(nil,items: [.models,.settings])
-            HStack(spacing: 7) { Circle().fill(Color.lensAccent).frame(width: 5,height: 5); Text("On this Mac"); Spacer(); Text("4.3").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.horizontal,20).padding(.vertical,20)
+            Button { page = .settings } label: {
+                HStack(spacing: 7) {
+                    Circle().fill(lens.updater.updateAvailable ? Color.lensAccent : Color.secondary).frame(width: 6,height: 6)
+                    Text(lens.updater.updateAvailable ? "Update ready" : "On this Mac")
+                    Spacer()
+                    Text(lens.updater.currentVersion).monospacedDigit()
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(lens.updater.updateAvailable ? Color.lensAccent : .secondary)
+                .padding(.horizontal,20).padding(.vertical,20)
+                .contentShape(Rectangle())
+            }.buttonStyle(.plain)
         }.frame(width: 196).background(Color.lensSidebar).overlay(alignment: .trailing) { Rectangle().fill(Color.lensLine.opacity(0.45)).frame(width: 1) }
     }
     private func sidebarGroup(_ title: String?,items: [LensPage]) -> some View {
@@ -146,6 +157,36 @@ struct Note: View {
                     if lens.output.range(of: "\\p{Han}",options: .regularExpression) != nil { Text(lens.output.applyingTransform(.mandarinToLatin,reverse: false) ?? "").font(.system(size: 15)).foregroundStyle(Color.lensAccent).textSelection(.enabled) }
                 }
                 CurrentChineseExample(lens: lens)
+                if lens.secondaryTarget != "none" && lens.secondaryTarget != lens.target && !lens.input.isEmpty {
+                    Divider().padding(.vertical, 4)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Second translation").font(.system(size: 12, weight: .semibold))
+                            Spacer()
+                            Text(languageName(lens.secondaryTarget)).font(.system(size: 11)).foregroundStyle(.secondary)
+                            SpeechControl(speaker: lens.speaker, text: lens.secondaryOutput, language: lens.secondaryTarget, title: "second translation").disabled(lens.secondaryOutput.isEmpty || lens.secondaryOutput == "Translating…")
+                        }
+                        if lens.secondaryOutput == "Translating…" {
+                            HStack { ProgressView().controlSize(.small); Text("Translating into \(languageName(lens.secondaryTarget))…").font(.system(size: 13)).foregroundStyle(.secondary) }
+                        } else if !lens.secondaryOutput.isEmpty {
+                            Text(lens.secondaryOutput)
+                                .font(.system(size: lens.secondaryTarget.hasPrefix("zh") && lens.secondaryOutput.count < 16 ? 32 : 20, weight: .medium))
+                                .textSelection(.enabled).fixedSize(horizontal: false, vertical: true).lineSpacing(4)
+                            if lens.secondaryOutput.range(of: "\\p{Han}", options: .regularExpression) != nil {
+                                Text(lens.secondaryOutput.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
+                                    .font(.system(size: 14)).foregroundStyle(Color.lensAccent).textSelection(.enabled)
+                            }
+                            HStack(spacing: 8) {
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(lens.secondaryOutput, forType: .string)
+                                } label: {
+                                    Label("Copy second", systemImage: "doc.on.doc").font(.system(size: 11))
+                                }.buttonStyle(LensButtonStyle(small: true))
+                            }
+                        }
+                    }
+                }
                 if lens.canSaveWord {
                     HStack(spacing: 12) {
                         Button { draftContext = WordDraftContext(source: lens.input,translated: lens.output,target: lens.target,context: lens.capturedContext,usageExample: lens.usageExample) } label: { LensActionLabel(title: "Save",symbol: "bookmark") }.buttonStyle(LensActionStyle(prominent: true)).accessibilityLabel("Save word")
@@ -196,9 +237,13 @@ struct Note: View {
                 LensPageHeading(title: "Settings",detail: "Translation, shortcuts and how Lens appears on your Mac.")
                 settingsSection("Languages") {
                     LanguagePicker(target: $lens.target)
+                    SecondaryLanguagePicker(target: $lens.secondaryTarget)
                     SourceLanguagePicker(source: $lens.sourceChoice)
                     Text("Automatic uses surrounding text, or English for short Latin words.").font(.system(size: 11)).foregroundStyle(.secondary)
                     Picker("AI explanations in",selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
+                    Divider().padding(.vertical, 2)
+                    Toggle("Slower speech for sentences (easier to understand every word)", isOn: $lens.slowSpeech).font(.system(size: 12))
+                    Text("Slows pronunciation down to a measured pace so each word, tone and syllable can be heard clearly.").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 settingsSection("Screen selection") {
                     shortcutRow("Word",key: "⌥ Space",status: lens.shortcutStatus)
@@ -214,6 +259,9 @@ struct Note: View {
                     Divider()
                     permissionRow("Accessibility",detail: "Read existing text selections with Capture selected text.",action: "Allow access…") { lens.permission() }
                     Text(lens.selectionStatus).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                settingsSection("Software update") {
+                    softwareUpdateControls
                 }
                 HStack { Button("Choose your local model…") { showModels = true }; Spacer(); Button("Replay tutorial") { tutorial = true } }.font(.system(size: 12)).buttonStyle(.plain).foregroundStyle(Color.lensAccent)
             }.padding(28).frame(maxWidth: 760,alignment: .leading).frame(maxWidth: .infinity,alignment: .topLeading)
@@ -232,6 +280,51 @@ struct Note: View {
     }
     private var quickPreferences: some View {
         VStack(alignment: .leading,spacing: 20) { Text("Display options").font(.system(size: 15,weight: .semibold)); appearanceControls; Divider(); Button("All settings") { preferences = false; page = .settings }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Color.lensAccent) }.padding(22).frame(width: 300).background(Color.lensCanvas)
+    }
+    private var softwareUpdateControls: some View {
+        VStack(alignment: .leading,spacing: 12) {
+            HStack {
+                Text("Current version").font(.system(size: 13,weight: .medium))
+                Spacer()
+                Text("v\(lens.updater.currentVersion)").font(.system(size: 12,design: .monospaced)).foregroundStyle(.secondary)
+            }
+            if let latest = lens.updater.latestVersion {
+                HStack {
+                    Text("Latest release").font(.system(size: 13,weight: .medium))
+                    Spacer()
+                    Text("v\(latest)").font(.system(size: 12,design: .monospaced)).foregroundStyle(lens.updater.updateAvailable ? Color.lensAccent : .secondary)
+                }
+            }
+            Text(lens.updater.statusMessage).font(.system(size: 12)).foregroundStyle(lens.updater.updateAvailable ? Color.lensAccent : .secondary).fixedSize(horizontal: false,vertical: true)
+            if lens.updater.isDownloading {
+                ProgressView(value: lens.updater.downloadProgress).progressViewStyle(.linear)
+            }
+            HStack(spacing: 10) {
+                Button {
+                    lens.updater.downloadUpdate()
+                } label: {
+                    Label(lens.updater.isDownloading ? "Downloading…" : (lens.updater.downloadedFileURL != nil ? "Open installer again" : "Download update"),
+                          systemImage: "arrow.down.circle.fill")
+                }
+                .buttonStyle(LensButtonStyle(prominent: true,small: true))
+                .disabled(lens.updater.isDownloading)
+
+                Button {
+                    Task { await lens.updater.checkForUpdates(manual: true) }
+                } label: {
+                    Label(lens.updater.isChecking ? "Checking…" : "Check for updates",systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(LensButtonStyle(small: true))
+                .disabled(lens.updater.isChecking || lens.updater.isDownloading)
+
+                Button {
+                    lens.updater.openWebsiteFallback()
+                } label: {
+                    Label("Website",systemImage: "arrow.up.right.square")
+                }
+                .buttonStyle(LensButtonStyle(small: true))
+            }
+        }
     }
     private func shortcutRow(_ title: String,key: String,status: String) -> some View { HStack { Text(title).font(.system(size: 12)); Spacer(); LensKeycap(text: key) }.help(status) }
     private func permissionRow(_ title: String,detail: String,action: String,perform: @escaping ()->Void) -> some View {
@@ -256,6 +349,18 @@ struct LensMenu: View {
             Menu("Capture text") { Button("Capture selected text") { lens.captureSelection() }; Button("Screen area…") { lens.captureScreen(entireDisplay: false) }; Button("Entire display") { lens.captureScreen(entireDisplay: true) } }.font(.system(size: 12))
             Text(lens.selectionStatus).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false,vertical: true)
             Divider()
+            Button {
+                Task {
+                    await lens.updater.checkForUpdates(manual: true)
+                    lens.showWorkspace()
+                    lens.workspacePage = "Settings"
+                }
+            } label: {
+                HStack {
+                    Label(lens.updater.updateAvailable ? "Update ready (\(lens.updater.latestVersion ?? ""))" : "Check for updates…",systemImage: "arrow.down.circle")
+                    Spacer()
+                }
+            }.buttonStyle(.plain).font(.system(size: 12))
             HStack { Text("\(lens.history.count) translations").font(.system(size: 11)).foregroundStyle(.secondary); Spacer(); Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary) }
         }.padding(20).frame(width: 282).background(Color.lensCanvas).tint(.lensAccent)
     }

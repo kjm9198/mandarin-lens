@@ -1,0 +1,9 @@
+name = "lens"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+account_id = "8828c0c4765ceb41f86f1f8dda122643"
+workers_dev = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"

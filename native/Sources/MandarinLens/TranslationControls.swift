@@ -25,6 +25,19 @@ struct SourceLanguagePicker: View {
         }
     }
 }
+struct SecondaryLanguagePicker: View {
+    @Binding var target: String
+    var body: some View {
+        Picker("+ 2nd language", selection: $target) {
+            Text("None").tag("none")
+            Text("Polski").tag("pl")
+            Text("中文").tag("zh-Hans")
+            Text("English").tag("en")
+            Text("Tiếng Việt").tag("vi")
+            Text("繁體中文").tag("zh-Hant")
+        }
+    }
+}
 private struct LanguagePreparation: Identifiable {
     let id = UUID()
     let configuration: TranslationSession.Configuration
@@ -50,6 +63,7 @@ struct TranslationLanguageBar: View {
                 VStack(alignment: .leading,spacing: 4) { Text("From").font(.system(size: 10)).foregroundStyle(.secondary); SourceLanguagePicker(source: $lens.sourceChoice).labelsHidden().accessibilityLabel("Translate from") }.frame(maxWidth: .infinity,alignment: .leading)
                 Button { lens.swapTranslationLanguages() } label: { Image(systemName: "arrow.left.arrow.right").frame(width: 24,height: 30) }.buttonStyle(.plain).foregroundStyle(Color.lensAccent).disabled(!lens.canSaveWord || source == lens.target || source == nil).accessibilityLabel("Swap languages").help("Translate the result back into the source language")
                 VStack(alignment: .leading,spacing: 4) { Text("To").font(.system(size: 10)).foregroundStyle(.secondary); LanguagePicker(target: $lens.target).labelsHidden().accessibilityLabel("Translate into") }.frame(maxWidth: .infinity,alignment: .leading)
+                VStack(alignment: .leading,spacing: 4) { Text("+ 2nd language").font(.system(size: 10)).foregroundStyle(.secondary); SecondaryLanguagePicker(target: $lens.secondaryTarget).labelsHidden().accessibilityLabel("Second target language") }.frame(maxWidth: .infinity,alignment: .leading)
             }.controlSize(.small)
             HStack(alignment: .firstTextBaseline,spacing: 7) {
                 Image(systemName: "bolt").foregroundStyle(Color.lensAccent)

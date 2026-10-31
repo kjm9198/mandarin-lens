@@ -1,4 +1,15 @@
-# 2.1.1 · 30 October 2026
+# 2.1.1 · 31 October 2026
+
+## Kamihi Lens 4.3.0 — Cloudflare distribution, dual translation, and slower speech
+
+- Published minimalist release and download website on Cloudflare at `https://lens.kamihi.workers.dev`.
+- Direct downloads for latest macOS DMG (`KamihiLens-4.3.0-macOS-arm64.dmg`) and Windows ZIP (`KamihiLens-4.3.0-Windows-x64.zip`), with SHA-256 verification and earlier releases archive (4.2.0, 4.1.0, 4.0.0).
+- Added in-app "Download update" action in macOS app Settings, menu bar, and sidebar status, with automated DMG download, installer launching, and browser fallback.
+- Added `/api/version` JSON endpoint on Cloudflare for automated client version checking and download redirection.
+- Added standalone Windows edition of Kamihi Lens in `windows/` with offline Pinyin transliteration, full study workspace, 7 Sproutsly games, Markdown Notepad, and dictionary import/export.
+- Slower sentence and word speech playback speed (0.55x rate default) for clear learning comprehension with in-app toggle in Settings.
+- Reliable bidirectional Polish translations (Polish-to-English and English-to-Polish) with accurate Polish diacritic detection and fallback vocabulary.
+- Dual-target simultaneous translation (e.g. translating from English into both Chinese and Polish at the same time).
 
 ## Kamihi Lens 4.3.0 — Notepad and bilingual playback
 

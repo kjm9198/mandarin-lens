@@ -58,6 +58,7 @@ extension Entry {
     }()
     let notepad: NotepadStore
     let speaker = WordSpeaker.shared
+    let updater = UpdateManager.shared
     var notepadPanel: NSPanel?
     var notepadReturnsToWorkspace = true
     @Published var notedTranslationID: UUID?
@@ -97,7 +98,13 @@ extension Entry {
     @Published var exampleStatus = ""
     @Published var exampleJob: ChineseExampleJob?
     var exampleTask: Task<Void,Never>?
+    @Published var slowSpeech: Bool = WordSpeaker.shared.slowRate { didSet { WordSpeaker.shared.slowRate = slowSpeech } }
     @Published var target = UserDefaults.standard.string(forKey: "target") ?? "zh-Hans" { didSet { if savesPreferences { UserDefaults.standard.set(target, forKey: "target") }; if oldValue != target { invalidateTranslation(); if !input.isEmpty && !restoringTranslation { translate() } } } }
+    @Published var secondaryTarget = UserDefaults.standard.string(forKey: "secondaryTarget") ?? "pl" { didSet { if savesPreferences { UserDefaults.standard.set(secondaryTarget, forKey: "secondaryTarget") }; if oldValue != secondaryTarget { invalidateTranslation(); if !input.isEmpty && !restoringTranslation { translate() } } } }
+    @Published var secondaryOutput: String = ""
+    @Published var secondaryConfiguration: TranslationSession.Configuration?
+    @Published var secondaryRequest: TranslationRequest?
+    private var secondarySessionSeed = TranslationSession.Configuration()
     @Published var opacity = UserDefaults.standard.object(forKey: "opacity") as? Double ?? 0.96 { didSet { if savesPreferences { UserDefaults.standard.set(opacity, forKey: "opacity") }; applyWindowPreferences() } }
     @Published var sticky = UserDefaults.standard.bool(forKey: "sticky") { didSet { if savesPreferences { UserDefaults.standard.set(sticky, forKey: "sticky") }; applyWindowPreferences() } }
     @Published var capturing = false
@@ -147,6 +154,11 @@ extension Entry {
             catch { historyDamaged = true; output = "History could not be read. The original file is preserved." }
         }
         modelObservation = models.$selected.dropFirst().sink { [weak self] _ in self?.stopChat(); self?.recapTask?.cancel() }
+        if savesPreferences && !CommandLine.arguments.contains("--acceptance-testing") {
+            Task { [weak self] in
+                await self?.updater.checkForUpdates(manual: false)
+            }
+        }
     }
     func applyWindowPreferences() {
         let solid = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency || NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
@@ -295,6 +307,53 @@ extension Entry {
         exampleTask?.cancel(); exampleTask = nil; exampleJob = nil; usageExample = nil; exampleStatus = ""
         areaJobs = []; areaPlan = nil; areaResults = [:]; completedAreaJobs = []
         translationTask?.cancel(); translationTask = nil; translationRequest = nil; translatedRequest = nil; configuration = nil
+        secondaryRequest = nil; secondaryConfiguration = nil; secondaryOutput = ""
+    }
+    static let polishToEnglishDictionary: [String: String] = [
+        "dzień dobry": "Good morning / Hello", "dzien dobry": "Good morning / Hello",
+        "dziękuję": "Thank you", "dziekuje": "Thank you", "dzięki": "Thanks", "dzieki": "Thanks",
+        "cześć": "Hello / Hi", "czesc": "Hello / Hi", "proszę": "Please / You're welcome", "prosze": "Please / You're welcome",
+        "przepraszam": "Excuse me / I'm sorry", "tak": "Yes", "nie": "No",
+        "jak się masz": "How are you?", "jak sie masz": "How are you?", "co tam": "What's up?",
+        "co słychać": "How are things?", "co slychac": "How are things?",
+        "do widzenia": "Goodbye", "dobranoc": "Good night",
+        "woda": "Water", "herbata": "Tea", "kawa": "Coffee", "chleb": "Bread", "jedzenie": "Food",
+        "praca": "Work / Job", "dom": "Home / House", "szkoła": "School", "szkola": "School",
+        "kot": "Cat", "pies": "Dog", "jutro": "Tomorrow", "dzisiaj": "Today", "wczoraj": "Yesterday",
+        "miłość": "Love", "milosc": "Love", "przyjaciel": "Friend", "rodzina": "Family",
+        "pieniądze": "Money", "pieniadze": "Money", "sklep": "Shop / Store", "pomoc": "Help"
+    ]
+    static let englishToPolishDictionary: [String: String] = [
+        "good morning": "Dzień dobry", "hello": "Cześć / Dzień dobry", "hi": "Cześć",
+        "thank you": "Dziękuję", "thanks": "Dzięki", "please": "Proszę",
+        "excuse me": "Przepraszam", "sorry": "Przepraszam", "yes": "Tak", "no": "Nie",
+        "how are you": "Jak się masz?", "how are you?": "Jak się masz?",
+        "goodbye": "Do widzenia", "bye": "Do widzenia", "good night": "Dobranoc",
+        "water": "Woda", "tea": "Herbata", "coffee": "Kawa", "bread": "Chleb", "food": "Jedzenie",
+        "work": "Praca", "home": "Dom", "house": "Dom", "school": "Szkoła",
+        "cat": "Kot", "dog": "Pies", "tomorrow": "Jutro", "today": "Dzisiaj", "yesterday": "Wczoraj",
+        "love": "Miłość", "friend": "Przyjaciel", "family": "Rodzina", "money": "Pieniądze", "shop": "Sklep", "help": "Pomoc"
+    ]
+    static let englishToChineseDictionary: [String: String] = [
+        "good morning": "早上好", "hello": "你好", "hi": "你好", "thank you": "谢谢", "thanks": "多谢",
+        "please": "请", "excuse me": "不好意思 / 打扰一下", "sorry": "对不起", "yes": "是的", "no": "不是 / 不",
+        "how are you": "你好吗？", "how are you?": "你好吗？", "goodbye": "再见", "bye": "拜拜", "good night": "晚安",
+        "water": "水", "tea": "茶", "coffee": "咖啡", "bread": "面包", "food": "食物",
+        "work": "工作", "home": "家", "house": "房子", "school": "学校", "cat": "猫", "dog": "狗",
+        "tomorrow": "明天", "today": "今天", "yesterday": "昨天", "friend": "朋友", "family": "家人"
+    ]
+    func lookupFallbackTranslation(text: String, source: String?, target: String) -> String? {
+        let clean = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: .punctuationCharacters)
+        if (source == "pl" || TranslationSource.isPolish(text)) && target == "en" {
+            return Self.polishToEnglishDictionary[clean]
+        }
+        if (source == "en") && target == "pl" {
+            return Self.englishToPolishDictionary[clean]
+        }
+        if (source == "en") && target.hasPrefix("zh") {
+            return Self.englishToChineseDictionary[clean]
+        }
+        return nil
     }
     func translate() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -304,6 +363,28 @@ extension Entry {
         let detected = TranslationSource.language(text: text,context: capturedContext,preference: sourceChoice)
         let request = TranslationRequest(text: text, target: target, kind: captureKind, context: capturedContext,sourceLanguage: detected,sourcePreference: sourceChoice,quality: translationQuality)
         translationRequest = request; translatedRequest = nil; output = "Translating…"
+
+        // Handle dual-language translation if secondary target is selected
+        if secondaryTarget != "none" && secondaryTarget != target {
+            let secReq = TranslationRequest(text: text, target: secondaryTarget, kind: captureKind, context: capturedContext, sourceLanguage: detected, sourcePreference: sourceChoice, quality: translationQuality)
+            secondaryRequest = secReq
+            secondaryOutput = "Translating…"
+            if detected == secondaryTarget {
+                completeSecondaryTranslation(text, request: secReq)
+            } else {
+                let secSource = detected == "und" ? nil : Locale.Language(identifier: detected)
+                secondarySessionSeed.source = secSource
+                secondarySessionSeed.target = Locale.Language(identifier: secondaryTarget)
+                if #available(macOS 26.4, *) { secondarySessionSeed.preferredStrategy = translationQuality == "fast" ? .lowLatency : .highFidelity }
+                secondarySessionSeed.invalidate()
+                secondaryConfiguration = secondarySessionSeed
+            }
+        } else {
+            secondaryRequest = nil
+            secondaryConfiguration = nil
+            secondaryOutput = ""
+        }
+
         if let cached = history.first(where: { $0.source == text && $0.kind == captureKind && $0.language == target && $0.sourceLanguage == request.sourceLanguage && ($0.sourcePreference ?? "auto") == request.sourcePreference && ($0.quality ?? "natural") == request.quality && $0.error == nil && !$0.translation.isEmpty }) {
             completeTranslation(cached.translation, request: request); return
         }
@@ -329,9 +410,33 @@ extension Entry {
             completeTranslation(result.targetText, request: request)
         } catch {
             guard translationRequest == request, !(error is CancellationError), !Task.isCancelled else { return }
-            output = "Translation unavailable: \(error.localizedDescription). Retry or install the language pack in the full app."
-            if translatedRequest != request { recordTranslation(request,result: "",error: output) }
+            if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {
+                completeTranslation(fallback, request: request)
+            } else {
+                output = "Translation unavailable: \(error.localizedDescription). Retry or install the language pack in the full app."
+                if translatedRequest != request { recordTranslation(request,result: "",error: output) }
+            }
         }
+    }
+    func performSecondaryTranslation(_ session: TranslationSession, request: TranslationRequest) async {
+        guard secondaryRequest == request else { return }
+        do {
+            try Task.checkCancellation()
+            let result = try await session.translate(request.text)
+            try Task.checkCancellation()
+            completeSecondaryTranslation(result.targetText, request: request)
+        } catch {
+            guard secondaryRequest == request, !(error is CancellationError), !Task.isCancelled else { return }
+            if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {
+                completeSecondaryTranslation(fallback, request: request)
+            } else {
+                secondaryOutput = "Translation unavailable: \(error.localizedDescription)"
+            }
+        }
+    }
+    func completeSecondaryTranslation(_ result: String, request: TranslationRequest) {
+        guard secondaryRequest == request else { return }
+        secondaryOutput = result
     }
     func completeTranslation(_ result: String, request: TranslationRequest) {
         guard translationRequest == request, input.trimmingCharacters(in: .whitespacesAndNewlines) == request.text, target == request.target else { return }

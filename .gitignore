@@ -11,3 +11,7 @@ output/
 native/build/
 
 native/.build/
+.wrangler/
+cloudflare/public/downloads/*.dmg
+cloudflare/public/downloads/*.zip
+windows/*.zip

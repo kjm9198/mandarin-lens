@@ -9,11 +9,25 @@ struct ChineseExample: Codable, Equatable {
     var pinyin: String { chinese.applyingTransform(.mandarinToLatin,reverse: false) ?? "" }
 }
 enum TranslationSource {
+    static func isPolish(_ text: String) -> Bool {
+        if text.range(of: "[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", options: .regularExpression) != nil { return true }
+        let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let polishWords: Set<String> = [
+            "tak", "nie", "dobry", "dzien", "dzień", "prosze", "proszę", "dziekuje", "dziękuję",
+            "czesc", "cześć", "herbata", "kawa", "woda", "praca", "szkola", "szkoła", "dom",
+            "kot", "pies", "jutro", "dzisiaj", "bardzo", "jestem", "jestes", "jesteś", "jest",
+            "co", "jak", "gdzie", "kiedy", "dlaczego", "kto", "przepraszam", "chleb", "obiad",
+            "śniadanie", "sniadanie", "kolacja", "mleko", "cukier", "dobre", "dobra", "witam"
+        ]
+        let tokens = lower.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init)
+        return tokens.contains(where: { polishWords.contains($0) })
+    }
     static func language(text: String,context: String = "",preference: String = "auto") -> String {
         // A Chinese selection is already unambiguous, even when English is the preferred source.
         if text.range(of: "\\p{Han}",options: .regularExpression) != nil,
            text.range(of: "[\\p{Hiragana}\\p{Katakana}]",options: .regularExpression) == nil { return "zh-Hans" }
         if preference != "auto" { return preference }
+        if isPolish(text) { return "pl" }
         let recognizer = NLLanguageRecognizer(); recognizer.processString(text)
         let detected = recognizer.dominantLanguage?.rawValue ?? "und"
         if WordTools.tokens(text).count <= 2, text.range(of: "^[A-Za-z0-9’' -]+$",options: .regularExpression) != nil {

@@ -1,4 +1,5 @@
 import SwiftUI
+import Translation
 
 struct TranslationWork: ViewModifier {
     @ObservedObject var lens: Lens
@@ -10,10 +11,24 @@ struct TranslationWork: ViewModifier {
             await lens.performTranslation(session, request: request)
         }.background {
             if lens.translationHost == host {
+                if let secConfig = lens.secondaryConfiguration, let secReq = lens.secondaryRequest {
+                    SecondaryTranslationWorker(lens: lens, request: secReq, configuration: secConfig).id(host + secReq.id.uuidString)
+                }
                 if let job = lens.exampleJob { ChineseExampleWorker(lens: lens,job: job).id(host+job.id.uuidString) }
                 ForEach(lens.areaJobs) { job in AreaTranslationWorker(lens: lens,job: job).id(host + job.id.uuidString) }
             }
         }
+    }
+}
+struct SecondaryTranslationWorker: View {
+    @ObservedObject var lens: Lens
+    let request: TranslationRequest
+    let configuration: TranslationSession.Configuration
+    var body: some View {
+        Color.clear.frame(width: 0,height: 0).accessibilityHidden(true)
+            .translationTask(configuration) { session in
+                await lens.performSecondaryTranslation(session,request: request)
+            }
     }
 }
 struct LanguagePicker: View {

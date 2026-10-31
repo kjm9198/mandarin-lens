@@ -4,7 +4,9 @@ A native Chinese study workspace and screen translator for Apple Silicon Macs ru
 
 ## Install and use
 
-Download the **4.3 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
+Download the **4.3 macOS preview** DMG from the release website at [lens.kamihi.workers.dev](https://lens.kamihi.workers.dev) or [GitHub Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified. A standalone edition for Windows is also available for download on the website.
+
+- **Download update**: Settings provides a direct in-app update check and "Download update" action backed by `https://lens.kamihi.workers.dev/api/version`. Clicking Download update downloads the latest DMG directly to your Downloads folder and opens the installer automatically, with a browser fallback so updates never fail.
 
 - **Option–Space**: click a word in text, an image or another readable screen surface. A small result near your cursor shows the word, system pinyin for Chinese, translation, Chinese pronunciation playback, Copy and Save. Chinese words also receive an example with a Chinese sentence, tone-mark pinyin and an English translation. Examples are generated with the selected local AI, checked for the requested word, translated with Apple Translation and saved with the history/dictionary entry; unavailable models show a retry action.
 - **Control–Space**: click anywhere in a sentence. The screen selector has Word, Sentence and Section buttons, so you can switch without restarting. Dragging a rectangle from any mode selects a section. Settings offers Control–Shift–Space when macOS Input Sources reserves the default.
@@ -32,7 +34,9 @@ The result panel’s **Notepad** action captures the original, translation, Chin
 
 ## Translation languages and speed
 
-Choose **From** and **To** in the translation screen. Use an explicit source for short Polish or Vietnamese words; a single word can be ambiguous in Automatic mode. Swap reverses the translated pair. **Section** means dragging a rectangle around the paragraph you want; Space captures the whole display and Escape cancels. The Sentence button shows the shortcut selected in Settings.
+Choose **From** and **To** in the translation screen. Use an explicit source for short Polish or Vietnamese words; a single word can be ambiguous in Automatic mode. Polish-to-English and English-to-Polish translations are supported with diacritic-aware detection and fast fallback vocabulary. You can also pick a **Secondary language** to translate into two languages simultaneously (e.g. English into Chinese and Polish side-by-side). Swap reverses the translated pair.
+
+**Speech playback speed**: Settings provides a "Slower speech playback" toggle (0.55x rate default) designed for learners, so every word and tone can be clearly heard and understood without rushing. **Section** means dragging a rectangle around the paragraph you want; Space captures the whole display and Escape cancels. The Sentence button shows the shortcut selected in Settings.
 
 **Apple · Fast** is the default and requests Apple’s traditional low-latency models. **Apple · Natural**, on macOS 26.4 or later, requests Apple Translation’s high-fidelity strategy, which uses Apple Intelligence where available and falls back according to system/device/language support. Earlier macOS versions use the system translation framework available there. The engine manages its own models; the app does not choose a named Qwen model for these translations.
 
