@@ -77,7 +77,7 @@ struct LearningRecapView: View {
     @ObservedObject var lens: Lens
     @ObservedObject var recaps: RecapStore
     @ObservedObject var models: LocalModels
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     var body: some View {
         ScrollView {
             VStack(alignment: .leading,spacing: 26) {
@@ -97,7 +97,7 @@ struct LearningRecapView: View {
                             HStack(alignment: .top,spacing: 20) {
                                 VStack(alignment: .leading,spacing: 6) { Text(entry.source).font(.system(size: 16,weight: .medium)).lineLimit(2); if !entry.pronunciation.isEmpty { Text(entry.pronunciation).font(.system(size: 12)).foregroundStyle(Color.lensAccent).lineLimit(2) } }.frame(maxWidth: .infinity,alignment: .leading)
                                 Text(entry.translation).font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(3).frame(maxWidth: .infinity,alignment: .leading)
-                                Button { speaker.speak(entry.source,language: TranslationSource.language(text: entry.source)) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Listen to recap word")
+                                SpeechControl(speaker: speaker,text: entry.source,language: TranslationSource.language(text: entry.source),title: "recap word")
                             }.padding(.vertical,15)
                             Divider()
                         }

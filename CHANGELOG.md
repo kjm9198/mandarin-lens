@@ -1,5 +1,13 @@
 # 2.1.1 · 30 October 2026
 
+## Kamihi Lens 4.3.0 — Notepad and bilingual playback
+
+- Five equal-sized result actions with separate original/translation playback and visible Stop states. Speech completion resets Play; switching languages stops the previous voice.
+- Local Notepad section with autosaved notes, search, pins, Markdown/checklist preview, recoverable trash and Markdown export.
+- Floating notepad on Control–Option–N, plus focus mode, journal/checklist/writing-prompt templates and translation Recall.
+- Capture a translation, pinyin, example and context directly into a note; send notes back to the translator.
+- Failed note saves retain text for retry; unreadable notes files are preserved.
+
 ## Kamihi Lens 4.2.0 — easier selection and translation controls
 
 - Switch Word, Sentence and Section directly in the screen selector. Drag a section from any mode; click a sentence to capture its full text.

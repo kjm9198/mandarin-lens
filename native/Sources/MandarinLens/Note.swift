@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 private enum LensPage: String, CaseIterable {
-    case translate = "Translate", words = "My words", history = "History", play = "Play", recap = "Learning recap", learn = "Learn", models = "Local models", settings = "Settings"
-    var symbol: String { switch self { case .translate: "character.bubble"; case .words: "character.book.closed"; case .history: "clock"; case .play: "gamecontroller"; case .recap: "text.book.closed"; case .learn: "bubble.left.and.bubble.right"; case .models: "cpu"; case .settings: "slider.horizontal.3" } }
+    case notepad = "Notepad", translate = "Translate", words = "My words", history = "History", play = "Play", recap = "Learning recap", learn = "Learn", models = "Local models", settings = "Settings"
+    var symbol: String { switch self { case .notepad: "note.text"; case .translate: "character.bubble"; case .words: "character.book.closed"; case .history: "clock"; case .play: "gamecontroller"; case .recap: "text.book.closed"; case .learn: "bubble.left.and.bubble.right"; case .models: "cpu"; case .settings: "slider.horizontal.3" } }
 }
 struct Note: View {
     @EnvironmentObject var lens: Lens
@@ -31,6 +31,7 @@ struct Note: View {
                 if !lens.workspaceMode { compactNavigation }
                 Rectangle().fill(Color.lensLine.opacity(0.5)).frame(height: 1)
                 Group { switch page {
+                case .notepad: NotepadView(lens: lens,notes: lens.notepad)
                 case .translate: translator
                 case .words: WordsView(vocabulary: lens.vocabulary,models: lens.models,play: { page = .play }) { word in
                     lens.restoreTranslation(source: word.term,translated: word.meaning,language: word.targetLanguage,context: word.example,usageExample: word.usageExample)
@@ -59,11 +60,11 @@ struct Note: View {
     private var sidebar: some View {
         VStack(alignment: .leading,spacing: 0) {
             LensBrand().padding(.horizontal,20).padding(.top,24).padding(.bottom,30)
-            sidebarGroup("Workspace",items: [.translate,.history])
+            sidebarGroup("Workspace",items: [.translate,.history,.notepad])
             sidebarGroup("Study",items: [.words,.play,.recap,.learn]).padding(.top,24)
             Spacer(minLength: 20)
             sidebarGroup(nil,items: [.models,.settings])
-            HStack(spacing: 7) { Circle().fill(Color.lensAccent).frame(width: 5,height: 5); Text("On this Mac"); Spacer(); Text("4.2").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.horizontal,20).padding(.vertical,20)
+            HStack(spacing: 7) { Circle().fill(Color.lensAccent).frame(width: 5,height: 5); Text("On this Mac"); Spacer(); Text("4.3").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.horizontal,20).padding(.vertical,20)
         }.frame(width: 196).background(Color.lensSidebar).overlay(alignment: .trailing) { Rectangle().fill(Color.lensLine.opacity(0.45)).frame(width: 1) }
     }
     private func sidebarGroup(_ title: String?,items: [LensPage]) -> some View {
@@ -89,7 +90,7 @@ struct Note: View {
     private var compactNavigation: some View {
         HStack(spacing: 2) {
             ForEach([LensPage.translate,.words,.history,.learn],id: \.self) { item in Button { page = item } label: { Text(item.rawValue).font(.system(size: 11,weight: .medium)).frame(maxWidth: .infinity,minHeight: 32).contentShape(Rectangle()) }.buttonStyle(LensRowStyle(selected: page == item)).accessibilityLabel(item.rawValue) }
-            Menu { ForEach([LensPage.play,.recap,.models,.settings],id: \.self) { item in Button(item.rawValue) { page = item } } } label: { Image(systemName: "ellipsis").frame(width: 25,height: 30) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("More sections")
+            Menu { ForEach([LensPage.notepad,.play,.recap,.models,.settings],id: \.self) { item in Button(item.rawValue) { page = item } } } label: { Image(systemName: "ellipsis").frame(width: 25,height: 30) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("More sections")
         }.padding(.horizontal,16).padding(.bottom,10)
     }
     private var translator: some View {
@@ -121,7 +122,7 @@ struct Note: View {
     }
     private var sourcePane: some View {
         VStack(alignment: .leading,spacing: 18) {
-            HStack { Text("Original").font(.system(size: 12,weight: .semibold)); Spacer(); Text(lens.sourceChoice == "auto" ? "Auto detect" : languageName(lens.sourceChoice)).font(.system(size: 11)).foregroundStyle(.secondary) }
+            HStack { Text("Original").font(.system(size: 12,weight: .semibold)); Spacer(); Text(lens.sourceChoice == "auto" ? "Auto detect" : languageName(lens.sourceChoice)).font(.system(size: 11)).foregroundStyle(.secondary); SpeechControl(speaker: lens.speaker,text: lens.input,language: TranslationSource.language(text: lens.input,context: lens.capturedContext,preference: lens.sourceChoice),title: "original").disabled(lens.input.isEmpty) }
             ZStack(alignment: .topLeading) {
                 if lens.input.isEmpty { Text("Enter a word or sentence").font(.system(size: 17)).foregroundStyle(.tertiary).padding(.top,7).padding(.leading,4).allowsHitTesting(false) }
                 TextEditor(text: $lens.input).font(.system(size: 19)).scrollContentBackground(.hidden).scrollIndicators(.hidden).frame(height: lens.workspaceMode ? 145 : 64).focused($editing).accessibilityLabel("Text to translate")
@@ -135,7 +136,7 @@ struct Note: View {
     }
     private var resultPane: some View {
         VStack(alignment: .leading,spacing: lens.workspaceMode ? 18 : 12) {
-            HStack { Text("Translation").font(.system(size: 12,weight: .semibold)); Spacer(); Text(languageName(lens.target)).font(.system(size: 11)).foregroundStyle(.secondary) }
+            HStack { Text("Translation").font(.system(size: 12,weight: .semibold)); Spacer(); Text(languageName(lens.target)).font(.system(size: 11)).foregroundStyle(.secondary); SpeechControl(speaker: lens.speaker,text: lens.output,language: lens.target,title: "translation").disabled(!lens.canSaveWord) }
             if lens.input.isEmpty {
                 VStack(alignment: .leading,spacing: 12) { Text("字").font(.system(size: 44,weight: .light)).foregroundStyle(Color.lensAccent); Text("Your translation appears here.").font(.system(size: 13)).foregroundStyle(.secondary); Text("Chinese words include pinyin and an example.").font(.system(size: 12)).foregroundStyle(.secondary) }.frame(maxWidth: .infinity,minHeight: 188,alignment: .topLeading).padding(.top,8)
             } else {
@@ -147,9 +148,9 @@ struct Note: View {
                 CurrentChineseExample(lens: lens)
                 if lens.canSaveWord {
                     HStack(spacing: 12) {
-                        Button { draftContext = WordDraftContext(source: lens.input,translated: lens.output,target: lens.target,context: lens.capturedContext,usageExample: lens.usageExample) } label: { Label("Save word",systemImage: "bookmark") }.buttonStyle(LensButtonStyle(small: true)).accessibilityLabel("Save word")
-                        Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output,forType: .string); copied = true } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel(copied ? "Copied" : "Copy translation")
-                        Spacer(minLength: 0)
+                        Button { draftContext = WordDraftContext(source: lens.input,translated: lens.output,target: lens.target,context: lens.capturedContext,usageExample: lens.usageExample) } label: { LensActionLabel(title: "Save",symbol: "bookmark") }.buttonStyle(LensActionStyle(prominent: true)).accessibilityLabel("Save word")
+                        Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output,forType: .string); copied = true } label: { LensActionLabel(title: copied ? "Copied" : "Copy",symbol: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(LensActionStyle()).accessibilityLabel(copied ? "Copied" : "Copy translation")
+                        CaptureNoteButton(lens: lens,notes: lens.notepad)
                     }
                 } else if lens.output != "Translating…" { Button("Retry") { lens.translate() }.buttonStyle(LensButtonStyle(small: true)) }
             }
@@ -204,6 +205,7 @@ struct Note: View {
                     shortcutRow("Screen area",key: "⌃⌥ Space",status: lens.areaShortcutStatus)
                     Picker("Sentence shortcut",selection: $lens.sentenceShortcutChoice) { Text("Control–Space").tag("Control–Space"); Text("Control–Shift–Space").tag("Control–Shift–Space") }
                     Text(lens.sentenceShortcutStatus).font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(lens.notesShortcutStatus).font(.system(size: 11)).foregroundStyle(.secondary)
                     Text("Escape or the same shortcut clears the result.").font(.system(size: 12)).foregroundStyle(.secondary)
                 }
                 settingsSection("Appearance") { appearanceControls }
@@ -245,9 +247,10 @@ struct LensMenu: View {
             Button { lens.showWorkspace() } label: { Label("Open Kamihi Lens",systemImage: "rectangle.on.rectangle").frame(maxWidth: .infinity) }.buttonStyle(LensButtonStyle(prominent: true))
             VStack(spacing: 3) {
                 menuAction("Select a word",shortcut: "⌥ Space",kind: .word)
-                menuAction("Select a sentence",shortcut: "⌃ Space",kind: .sentence)
+                menuAction("Select a sentence",shortcut: lens.sentenceShortcutChoice == "Control–Shift–Space" ? "⌃⇧ Space" : "⌃ Space",kind: .sentence)
                 menuAction("Select a section",shortcut: "⌃⌥ Space",kind: .area)
             }
+            Button("Open Notepad") { lens.showNotepad(restoreWorkspace: false) }.buttonStyle(LensButtonStyle(small: true))
             Divider()
             Button("Open compact window") { lens.showWorkspace(compact: true) }.buttonStyle(.plain).font(.system(size: 12))
             Menu("Capture text") { Button("Capture selected text") { lens.captureSelection() }; Button("Screen area…") { lens.captureScreen(entireDisplay: false) }; Button("Entire display") { lens.captureScreen(entireDisplay: true) } }.font(.system(size: 12))

@@ -102,3 +102,28 @@ struct LensEmptyState: View {
         }.padding(.vertical,30).frame(maxWidth: .infinity,alignment: .leading)
     }
 }
+
+struct LensActionLabel: View {
+    let title: String
+    let symbol: String
+    var body: some View { VStack(spacing: 6) { Image(systemName: symbol).font(.system(size: 15,weight: .medium)); Text(title).font(.system(size: 10,weight: .medium)).lineLimit(1).minimumScaleFactor(0.85) }.frame(maxWidth: .infinity,minHeight: 52).contentShape(Rectangle()) }
+}
+struct LensActionStyle: ButtonStyle {
+    var prominent = false
+    func makeBody(configuration: Configuration) -> some View { ActionBody(configuration: configuration,prominent: prominent) }
+    private struct ActionBody: View {
+        let configuration: ButtonStyle.Configuration
+        let prominent: Bool
+        @Environment(\.isEnabled) private var enabled
+        @Environment(\.colorScheme) private var scheme
+        @Environment(\.colorSchemeContrast) private var contrast
+        @State private var hover = false
+        var body: some View {
+            configuration.label.frame(maxWidth: .infinity)
+                .foregroundStyle(prominent ? (scheme == .dark ? Color.lensSidebar : .white) : Color.primary)
+                .background(prominent ? Color.lensAccent : Color.primary.opacity(configuration.isPressed ? 0.12 : hover ? 0.07 : 0.035),in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(contrast == .increased ? Color.primary.opacity(0.65) : Color.lensLine.opacity(0.7),lineWidth: 1))
+                .opacity(enabled ? 1 : 0.45).onHover { hover = $0 }
+        }
+    }
+}

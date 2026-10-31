@@ -56,6 +56,13 @@ extension Entry {
         }
         return Lens()
     }()
+    let notepad: NotepadStore
+    let speaker = WordSpeaker.shared
+    var notepadPanel: NSPanel?
+    var notepadReturnsToWorkspace = true
+    @Published var notedTranslationID: UUID?
+    let notesShortcut = GlobalShortcut(signature: 0x4B4C4E54)
+    @Published var notesShortcutStatus = ""
     let vocabulary: Vocabulary
     let models = LocalModels()
     let chats: ChatStore
@@ -130,6 +137,7 @@ extension Entry {
     let store: URL
     init(dataDirectory: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Mandarin Lens")) {
         savesPreferences = dataDirectory == FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Mandarin Lens")
+        notepad = NotepadStore(url: dataDirectory.appendingPathComponent("notes.json"))
         vocabulary = Vocabulary(url: dataDirectory.appendingPathComponent("words.json"))
         chats = ChatStore(url: dataDirectory.appendingPathComponent("chats.json"))
         recaps = RecapStore(url: dataDirectory.appendingPathComponent("recaps.json"))
@@ -193,6 +201,8 @@ extension Entry {
         selectionStatus = CGPreflightScreenCaptureAccess() ? "Screen selection is ready." : "Allow Kamihi Lens in System Settings → Privacy & Security → Screen & System Audio Recording."
     }
     func registerShortcut() {
+        let notes = notesShortcut.register(choice: "Control–Option–N")
+        notesShortcutStatus = notes == 0 ? "Control–Option–N · floating notepad" : "Notepad shortcut is unavailable. Use the Notepad tab or menu."
         let status = shortcut.register(choice: "Option–Space")
         shortcutStatus = status == 0 ? "Option–Space · word" : "Option–Space is in use by another app (\(status))."
         let area = areaShortcut.register(choice: "Control–Option–Space")
@@ -216,6 +226,7 @@ extension Entry {
         shortcut.activate = { [weak self] in self?.startSelection(.word) }
         areaShortcut.activate = { [weak self] in self?.startSelection(.area) }
         sentenceShortcut.activate = { [weak self] in self?.startSelection(.sentence) }
+        notesShortcut.activate = { [weak self] in self?.toggleNotepad() }
         registerShortcut()
         monitors.append(NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
             if event.type == .keyUp && event.keyCode == 49 { self?.shortcut.releasePressedState(); self?.areaShortcut.releasePressedState(); self?.sentenceShortcut.releasePressedState() }
@@ -242,7 +253,7 @@ extension Entry {
         observers.append((NSWorkspace.shared.notificationCenter, NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.applyWindowPreferences() } }))
 
     }
-    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); areaShortcut.unregister(); sentenceShortcut.unregister(); recapTask?.cancel(); exampleTask?.cancel(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); selection.cancel(); highlight?.orderOut(nil) }
+    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); areaShortcut.unregister(); sentenceShortcut.unregister(); notesShortcut.unregister(); notepad.flush(); speaker.stop(); notepadPanel?.orderOut(nil); recapTask?.cancel(); exampleTask?.cancel(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); selection.cancel(); highlight?.orderOut(nil) }
     func permission() { let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }
     func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? { TargetCapture.attribute(element, name) }
     func capture(selectionOnly: Bool = false) {
@@ -280,6 +291,7 @@ extension Entry {
         restoringTranslation = false; translate()
     }
     func invalidateTranslation() {
+        speaker.stop()
         exampleTask?.cancel(); exampleTask = nil; exampleJob = nil; usageExample = nil; exampleStatus = ""
         areaJobs = []; areaPlan = nil; areaResults = [:]; completedAreaJobs = []
         translationTask?.cancel(); translationTask = nil; translationRequest = nil; translatedRequest = nil; configuration = nil

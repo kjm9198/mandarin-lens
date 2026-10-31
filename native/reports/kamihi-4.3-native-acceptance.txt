@@ -1,0 +1,18 @@
+PASS five result actions have equal width and height
+PASS original Play → Stop → Play
+PASS translation playback replaces original playback
+PASS translation Stop immediately restores Play
+PASS natural speech completion resets Play
+PASS translation captured into bilingual local note
+PASS actual physical title entry persisted
+PASS new note autosaves actual edits
+PASS pin and Markdown checklist preview
+PASS persisted journal, pin and checklist reopened
+PASS deleted note restored with original content
+PASS original writing-prompt template
+PASS floating notepad edits same local store
+PASS Control–Option–N hides and reopens floating notes
+PASS restart retains journal, checked task, pin and floating edits
+PASS actual title/content search filters notes
+PASS Recall hides translation and list spoiler, then reveals it
+PASS global Notepad opens from fixture; Escape hides note and restores fixture focus

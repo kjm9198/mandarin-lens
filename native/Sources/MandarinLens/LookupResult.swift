@@ -17,13 +17,13 @@ extension Lens {
         }
         let screen = NSScreen.screens.first { $0.frame.contains(popupAnchor) } ?? NSScreen.main
         guard let screen else { return }
-        let size = CGSize(width: 400,height: captureKind == .area ? 400 : 440)
+        let size = CGSize(width: 400,height: 500)
         popup?.setContentSize(size)
         popup?.setFrame(LookupGeometry.panelFrame(pointer: popupAnchor,size: size,visible: screen.visibleFrame),display: true)
         NSApp.unhideWithoutActivation(); popup?.orderFrontRegardless()
     }
     func dismissPopup(cancelTranslation: Bool = true) {
-        popup?.orderOut(nil); popupVisible = false
+        speaker.stop(); popup?.orderOut(nil); popupVisible = false
         if cancelTranslation && translationHost == "lookup" { invalidateTranslation() }
     }
     func saveCurrentWord() {
@@ -45,7 +45,6 @@ extension Lens {
 struct LookupResult: View {
     @EnvironmentObject var lens: Lens
     @Environment(\.colorSchemeContrast) private var contrast
-    @StateObject private var speaker = WordSpeaker()
     @State private var copied = false
     private var chinese: String {
         if lens.input.range(of: "\\p{Han}",options: .regularExpression) != nil { return lens.input }
@@ -61,7 +60,9 @@ struct LookupResult: View {
             }
             ScrollView {
                 VStack(alignment: .leading,spacing: 10) {
+                    Text("Original").font(.system(size: 10,weight: .medium)).foregroundStyle(.secondary)
                     Text(lens.input).font(lens.captureKind == .word && !lens.target.hasPrefix("zh") ? .system(size: 36,weight: .medium) : .system(size: 15,weight: .regular)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
+                    Text("Translation").font(.system(size: 10,weight: .medium)).foregroundStyle(.secondary).padding(.top,4)
                     if lens.output == "Translating…" { HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Translating…").foregroundStyle(.secondary) }.font(.callout) }
                     else { Text(lens.output).font(.system(size: lens.target.hasPrefix("zh") && lens.captureKind == .word ? 38 : 19)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true) }
                     if !chinese.isEmpty && lens.captureKind != .area { Text(chinese.applyingTransform(.mandarinToLatin,reverse: false) ?? "").font(.system(size: 15,weight: .medium)).foregroundStyle(Color.lensAccent).textSelection(.enabled) }
@@ -69,24 +70,30 @@ struct LookupResult: View {
                 }.frame(maxWidth: .infinity,alignment: .leading)
             }
             Divider().overlay(Color.lensLine.opacity(0.3))
-            LookupActions(lens: lens,vocabulary: lens.vocabulary,speaker: speaker,copied: $copied)
+            LookupActions(lens: lens,vocabulary: lens.vocabulary,notepad: lens.notepad,speaker: lens.speaker,copied: $copied)
             HStack {
                 Button("Open Kamihi Lens") { lens.showWorkspace() }.buttonStyle(.plain).font(.system(size: 11,weight: .medium)).foregroundStyle(Color.lensAccent)
+                if let chinese = lens.chineseWord, chinese.count <= 8 {
+                    Menu { ForEach(Array(chinese.enumerated()),id: \.offset) { _,character in
+                        if String(character).range(of: "\\p{Han}",options: .regularExpression) != nil { Button(String(character)+" · "+(String(character).applyingTransform(.mandarinToLatin,reverse: false) ?? "")) { lens.lookupCharacter(String(character)) } }
+                    } } label: { Text("字").frame(width: 24,height: 24) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Explore characters")
+                }
                 Spacer()
                 Text(lens.historyStatus.isEmpty ? "Saved in History" : "History not saved").font(.caption2).foregroundStyle(.secondary).opacity(lens.canSaveWord ? 1 : 0).accessibilityHidden(!lens.canSaveWord)
                 if !lens.canSaveWord && lens.output != "Translating…" { Button("Retry") { lens.translate() }.font(.caption) }
             }
-        }.padding(20).frame(width: 400,height: lens.captureKind == .area ? 400 : 440)
+        }.padding(20).frame(width: 400,height: 500)
             .background(RoundedRectangle(cornerRadius: 14).fill(Color.lensCanvas))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(contrast == .increased ? Color.primary.opacity(0.65) : Color.lensLine,lineWidth: 1))
             .tint(.lensAccent).modifier(TranslationWork(lens: lens,host: "lookup"))
-            .onChange(of: lens.input) { _,_ in copied = false }
+            .onChange(of: lens.input) { _,_ in copied = false; lens.speaker.stop() }.onChange(of: lens.target) { _,_ in lens.speaker.stop() }.onDisappear { lens.speaker.stop() }
             .onExitCommand { lens.selection.cancel() }
     }
 }
 private struct LookupActions: View {
     @ObservedObject var lens: Lens
     @ObservedObject var vocabulary: Vocabulary
+    @ObservedObject var notepad: NotepadStore
     @ObservedObject var speaker: WordSpeaker
     @Binding var copied: Bool
     private var saved: Bool {
@@ -97,19 +104,18 @@ private struct LookupActions: View {
     }
     var body: some View {
         VStack(alignment: .leading,spacing: 6) {
-            HStack(spacing: 10) {
-                Button { speaker.speak(lens.chineseWord ?? lens.input,language: lens.chineseWord != nil ? "zh-Hans" : TranslationSource.language(text: lens.input,context: lens.capturedContext,preference: lens.sourceChoice)) } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(LensButtonStyle(small: true)).accessibilityLabel("Listen to selected text").help("Listen")
-                Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output,forType: .string); copied = true } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(LensButtonStyle(small: true)).disabled(!lens.canSaveWord).accessibilityLabel("Copy translation").help("Copy translation")
-                if let chinese = lens.chineseWord, chinese.count <= 8 {
-                    Menu { ForEach(Array(chinese.enumerated()),id: \.offset) { _,character in
-                        if String(character).range(of: "\\p{Han}",options: .regularExpression) != nil {
-                            Button(String(character)+" · "+(String(character).applyingTransform(.mandarinToLatin,reverse: false) ?? "")) { lens.lookupCharacter(String(character)) }
-                        }
-                    } } label: { Text("字").font(.system(size: 16)).frame(width: 24,height: 28) }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().accessibilityLabel("Explore characters")
-                }
-                Spacer()
-                Button { lens.saveCurrentWord() } label: { Label(saved ? "Saved" : (lens.captureKind == .word ? "Save word" : "Save phrase"),systemImage: saved ? "bookmark.fill" : "bookmark") }.disabled(saved || !lens.canSaveWord).buttonStyle(LensButtonStyle(prominent: true,small: true))
-            }.controlSize(.small)
+            HStack(spacing: 8) {
+                let source = TranslationSource.language(text: lens.input,context: lens.capturedContext,preference: lens.sourceChoice)
+                let originalPlaying = speaker.isPlaying(lens.input,language: source)
+                let translationPlaying = speaker.isPlaying(lens.output,language: lens.target)
+                Button { speaker.speak(lens.input,language: source) } label: { LensActionLabel(title: originalPlaying ? "Stop" : "Original",symbol: originalPlaying ? "stop.fill" : "play.fill") }.buttonStyle(LensActionStyle()).accessibilityLabel(originalPlaying ? "Stop original audio" : "Listen to original")
+                Button { speaker.speak(lens.output,language: lens.target) } label: { LensActionLabel(title: translationPlaying ? "Stop" : "Translated",symbol: translationPlaying ? "stop.fill" : "play.fill") }.buttonStyle(LensActionStyle()).disabled(!lens.canSaveWord).accessibilityLabel(translationPlaying ? "Stop translation audio" : "Listen to translation")
+                Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output,forType: .string); copied = true } label: { LensActionLabel(title: copied ? "Copied" : "Copy",symbol: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(LensActionStyle()).disabled(!lens.canSaveWord).accessibilityLabel("Copy translation")
+                Button { lens.saveCurrentWord() } label: { LensActionLabel(title: saved ? "Saved" : "Save",symbol: saved ? "bookmark.fill" : "bookmark") }.buttonStyle(LensActionStyle(prominent: true)).disabled(saved || !lens.canSaveWord).accessibilityLabel(saved ? "Saved word" : lens.captureKind == .word ? "Save word" : "Save phrase")
+                let noted = lens.notedTranslationID == lens.translatedRequest?.id && lens.notedTranslationID != nil && notepad.status == "Saved on this Mac"
+                Button { lens.saveTranslationToNote() } label: { LensActionLabel(title: noted ? "Noted" : "Notepad",symbol: noted ? "checkmark" : "note.text.badge.plus") }.buttonStyle(LensActionStyle()).disabled(noted || !lens.canSaveWord).accessibilityLabel(noted ? "Added to Notepad" : "Save translation to Notepad")
+            }
+            if notepad.status.hasPrefix("Could not") { Text(notepad.status).font(.caption2).foregroundStyle(.red) }
             if vocabulary.status.hasPrefix("Could not") { Text(vocabulary.status).font(.caption2).foregroundStyle(.red) }
             if !speaker.status.isEmpty { Text(speaker.status).font(.caption2).foregroundStyle(.secondary) }
         }

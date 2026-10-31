@@ -150,8 +150,8 @@ struct ShortcutLatch {
             }
         }, 2, &specs, context, &handler)
         guard handlerStatus == noErr else { return handlerStatus }
-        let flags = choice == "Escape" ? UInt32(0) : choice == "Control–Space" ? UInt32(controlKey) : choice == "Control–Shift–Space" ? UInt32(controlKey | shiftKey) : choice == "Control–Option–Space" ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
-        let status = RegisterEventHotKey(UInt32(choice == "Escape" ? kVK_Escape : kVK_Space), flags, EventHotKeyID(signature: signature, id: 1), GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &reference)
+        let flags = choice == "Escape" ? UInt32(0) : choice == "Control–Space" ? UInt32(controlKey) : choice == "Control–Shift–Space" ? UInt32(controlKey | shiftKey) : (choice == "Control–Option–Space" || choice == "Control–Option–N") ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
+        let status = RegisterEventHotKey(UInt32(choice == "Escape" ? kVK_Escape : choice == "Control–Option–N" ? kVK_ANSI_N : kVK_Space), flags, EventHotKeyID(signature: signature, id: 1), GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &reference)
         registered = status == noErr
         if !registered { unregister() }
         return status

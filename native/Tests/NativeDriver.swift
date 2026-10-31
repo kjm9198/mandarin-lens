@@ -126,6 +126,15 @@ if let window {
   let coords=position.split(separator:",").compactMap {Double($0)}
   var p=CGPoint(x:coords[0],y:coords[1]);print("POSITION",AXUIElementSetAttributeValue(window,kAXPositionAttribute as CFString,AXValueCreate(.cgPoint,&p)!).rawValue)
  }
+ if args.contains("--control-frames") {
+  let frames = nodes.compactMap { e -> [String:Any]? in
+   guard [kAXButtonRole,kAXMenuButtonRole].contains(attr(e,kAXRoleAttribute) as? String ?? ""), let position = attr(e,kAXPositionAttribute), let size = attr(e,kAXSizeAttribute) else { return nil }
+   var point = CGPoint.zero, dimensions = CGSize.zero
+   guard AXValueGetValue(unsafeBitCast(position,to: AXValue.self),.cgPoint,&point), AXValueGetValue(unsafeBitCast(size,to: AXValue.self),.cgSize,&dimensions) else { return nil }
+   return ["label":[kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].compactMap { attr(e,$0) as? String }.joined(separator: " | "),"x":point.x,"y":point.y,"width":dimensions.width,"height":dimensions.height]
+  }
+  print(String(decoding: try JSONSerialization.data(withJSONObject: frames,options: [.sortedKeys]),as: UTF8.self));exit(0)
+ }
  if args.contains("--dump") {
   for e in nodes {
    let role=attr(e,kAXRoleAttribute) as? String ?? "?"

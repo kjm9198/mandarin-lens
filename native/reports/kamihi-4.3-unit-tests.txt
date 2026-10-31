@@ -1,0 +1,101 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/5] Write swift-version--58304C5D6DBC2206.txt
+[3/9] Compiling MandarinLens MandarinLens.swift
+[4/9] Emitting module MandarinLens
+[5/9] Compiling MandarinLens Note.swift
+[6/9] Compiling MandarinLens NotepadViews.swift
+[7/17] Compiling MandarinLens LearningRecap.swift
+[8/17] Compiling MandarinLens LearningViews.swift
+[9/17] Compiling MandarinLens TranslationViews.swift
+[10/17] Compiling MandarinLens ScreenCapture.swift
+[11/17] Compiling MandarinLens TranslationControls.swift
+[12/17] Compiling MandarinLens AreaTranslation.swift
+[13/17] Compiling MandarinLens LookupResult.swift
+[14/17] Compiling MandarinLens ChineseStudy.swift
+[14/19] Write Objects.LinkFileList
+[15/19] Linking MandarinLens
+[16/19] Applying MandarinLens
+[18/23] Compiling MandarinLensTests InteractionTests.swift
+[19/23] Compiling MandarinLensTests NotepadTests.swift
+[20/23] Emitting module MandarinLensTests
+[21/23] Compiling MandarinLensTests ChineseStudyTests.swift
+[21/23] Write Objects.LinkFileList
+[22/23] Linking MandarinLensPackageTests
+Build complete! (4.87s)
+Test Suite 'All tests' started at 2026-10-31 15:11:22.889.
+Test Suite 'All tests' passed at 2026-10-31 15:11:22.890.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1743
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test changingTranslationModeInvalidatesCacheAndSwapUsesDetectedSource() started.
+◇ Test damagedNotesArePreservedAndFailedSaveCanRetry() started.
+◇ Test translationNotesKeepBothLanguagesExampleAndAvoidDoubleCapture() started.
+◇ Test builderKeepsRepeatedTilesAndHandlesUndo() started.
+◇ Test examplesMustUseTheSelectedChineseWord() started.
+◇ Test rasterWordsHaveIndividualBounds() started.
+◇ Test gamesRejectAmbiguousAnswersAndPreserveToneMarks() started.
+◇ Test shortcutRepeatLatch() started.
+◇ Test changingSourceNeverReusesThePreviousLanguageTranslation() started.
+◇ Test isolatedEnglishWordsDoNotBecomeUnsupportedLanguages() started.
+◇ Test conversationUsesRolesAndLatestQuestionWithinBound() started.
+◇ Test screenSelectionCoordinatesAndBlankSpace() started.
+◇ Test tokenAndSelectionChoice() started.
+◇ Test listeningHintsStayInRevisitAndDoNotCountAsUnassisted() started.
+◇ Test wrappedSentenceAndRegionPreservePunctuation() started.
+◇ Test sectionRespectsExplicitSourceAndRejoinsWrappedSentences() started.
+◇ Test chineseResultsSaveAsChineseDictionaryHeadwordsAndKeepExamples() started.
+◇ Test matchingBoardsRejectSelfPairsAndFinishAllPairs() started.
+◇ Test cacheEveryCaptureHistoryAndDictionaryContext() started.
+◇ Test rapidNoteChangesFlushLatestTextAndTasksRoundTrip() started.
+◇ Test selectedWordStartsTranslationWithoutOpeningWorkspace() started.
+◇ Test gamesNeverMixLanguagePairsOrMutateLibrary() started.
+◇ Test damagedHistoryAndRecapArePreserved() started.
+◇ Test staleTranslationCannotSaveWrongWord() started.
+◇ Test registrationConflictAndCleanup() started.
+◇ Test legacyChineseLanguageCodesShareOnePracticeDeck() started.
+◇ Test legacyHistoryAndRecapSampling() started.
+◇ Test chatPersistenceAndToneDistinctions() started.
+◇ Test failedSaveIsNotReportedAsSaved() started.
+◇ Test notesKeepUnicodeEditsPinsAndRecoverDeletedContent() started.
+◇ Test gameChoicesRequireCheckAndCannotAwardTwice() started.
+◇ Test placementAcrossOriginsAndScale() started.
+✔ Test shortcutRepeatLatch() passed after 0.001 seconds.
+✔ Test screenSelectionCoordinatesAndBlankSpace() passed after 0.001 seconds.
+◇ Test chineseScriptMatchesChosenTarget() started.
+✔ Test placementAcrossOriginsAndScale() passed after 0.001 seconds.
+◇ Test mixedLanguageAreaPlanTranslatesForeignLinesAndKeepsOrder() started.
+✔ Test conversationUsesRolesAndLatestQuestionWithinBound() passed after 0.001 seconds.
+✔ Test wrappedSentenceAndRegionPreservePunctuation() passed after 0.003 seconds.
+✔ Test sectionRespectsExplicitSourceAndRejoinsWrappedSentences() passed after 0.003 seconds.
+✔ Test tokenAndSelectionChoice() passed after 0.004 seconds.
+✔ Test mixedLanguageAreaPlanTranslatesForeignLinesAndKeepsOrder() passed after 0.006 seconds.
+✔ Test isolatedEnglishWordsDoNotBecomeUnsupportedLanguages() passed after 0.009 seconds.
+✔ Test gamesRejectAmbiguousAnswersAndPreserveToneMarks() passed after 0.031 seconds.
+✔ Test examplesMustUseTheSelectedChineseWord() passed after 0.031 seconds.
+✔ Test legacyHistoryAndRecapSampling() passed after 0.031 seconds.
+✔ Test translationNotesKeepBothLanguagesExampleAndAvoidDoubleCapture() passed after 0.032 seconds.
+✔ Test changingSourceNeverReusesThePreviousLanguageTranslation() passed after 0.032 seconds.
+✔ Test changingTranslationModeInvalidatesCacheAndSwapUsesDetectedSource() passed after 0.033 seconds.
+✔ Test chineseResultsSaveAsChineseDictionaryHeadwordsAndKeepExamples() passed after 0.040 seconds.
+✔ Test listeningHintsStayInRevisitAndDoNotCountAsUnassisted() passed after 0.041 seconds.
+✔ Test rasterWordsHaveIndividualBounds() passed after 0.256 seconds.
+✔ Test cacheEveryCaptureHistoryAndDictionaryContext() passed after 0.265 seconds.
+✔ Test gamesNeverMixLanguagePairsOrMutateLibrary() passed after 0.266 seconds.
+✔ Test damagedHistoryAndRecapArePreserved() passed after 0.266 seconds.
+✔ Test matchingBoardsRejectSelfPairsAndFinishAllPairs() passed after 0.267 seconds.
+✔ Test rapidNoteChangesFlushLatestTextAndTasksRoundTrip() passed after 0.268 seconds.
+✔ Test legacyChineseLanguageCodesShareOnePracticeDeck() passed after 0.269 seconds.
+✔ Test registrationConflictAndCleanup() passed after 0.269 seconds.
+✔ Test chatPersistenceAndToneDistinctions() passed after 0.277 seconds.
+✔ Test failedSaveIsNotReportedAsSaved() passed after 0.280 seconds.
+✔ Test builderKeepsRepeatedTilesAndHandlesUndo() passed after 0.280 seconds.
+✔ Test notesKeepUnicodeEditsPinsAndRecoverDeletedContent() passed after 0.281 seconds.
+✔ Test gameChoicesRequireCheckAndCannotAwardTwice() passed after 0.282 seconds.
+✔ Test staleTranslationCannotSaveWrongWord() passed after 0.285 seconds.
+✔ Test selectedWordStartsTranslationWithoutOpeningWorkspace() passed after 0.294 seconds.
+✔ Test damagedNotesArePreservedAndFailedSaveCanRetry() passed after 0.295 seconds.
+✔ Test chineseScriptMatchesChosenTarget() passed after 0.297 seconds.
+✔ Test run with 34 tests in 0 suites passed after 0.298 seconds.

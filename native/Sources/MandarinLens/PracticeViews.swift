@@ -85,7 +85,7 @@ struct PracticeRoundView: View {
     @ObservedObject var round: PracticeRound
     let leave: ()->Void
     let replay: (Bool)->Void
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     @State private var transcript = false
     var body: some View {
         VStack(spacing: 0) {
@@ -103,7 +103,7 @@ struct PracticeRoundView: View {
                 }.padding(24).frame(maxWidth: 720,alignment: .leading).frame(maxWidth: .infinity,alignment: .topLeading)
             }
             if !round.finished { roundFooter }
-        }.tint(.lensAccent).onDisappear { speaker.stop() }
+        }.tint(.lensAccent).onDisappear { speaker.stop() }.onChange(of: round.index) { _,_ in speaker.stop() }
     }
     private var roundFooter: some View {
         VStack(spacing: 0) {
@@ -129,14 +129,14 @@ struct PracticeRoundView: View {
             Text(instruction).font(.system(size: 23,weight: .semibold)).fixedSize(horizontal: false,vertical: true)
             if round.mode == .listen {
                 HStack(spacing: 14) {
-                    Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Label("Listen to the word",systemImage: "speaker.wave.2.fill").padding(12) }.buttonStyle(LensButtonStyle(prominent: true))
+                    Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Label(speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "Stop audio" : "Listen to the word",systemImage: speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "stop.fill" : "play.fill").padding(12) }.buttonStyle(LensButtonStyle(prominent: true))
                     Button("Show text") { transcript = true; round.reveal() }.disabled(transcript || round.checked)
                 }
                 if transcript { Text(word.term).font(.title2); Text("Hint used · included in your revisit list").font(.caption).foregroundStyle(.secondary) }
             } else {
                 Text(round.mode == .reverse || round.mode == .build ? word.meaning : word.term).font(.system(size: round.mode == .reverse || round.mode == .build ? 27 : 46,weight: .medium)).fixedSize(horizontal: false,vertical: true)
                 if round.mode == .meaning && !word.pronunciation.isEmpty { Text(word.pronunciation).font(.title3).foregroundStyle(.secondary) }
-                if round.mode != .build { Button { speaker.speak(word.term,language: PracticeDeck.language(word)); if round.mode == .reverse { round.reveal() } } label: { Label("Listen",systemImage: "speaker.wave.2") }.buttonStyle(.plain).font(.callout).foregroundStyle(Color.lensAccent) }
+                if round.mode != .build { Button { speaker.speak(word.term,language: PracticeDeck.language(word)); if round.mode == .reverse { round.reveal() } } label: { Label(speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "Stop" : "Listen",systemImage: speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "stop.fill" : "play.fill") }.buttonStyle(.plain).font(.callout).foregroundStyle(Color.lensAccent) }
             }
         }.padding(.vertical,8)
         if round.mode == .build { builder }

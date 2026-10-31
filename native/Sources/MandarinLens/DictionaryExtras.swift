@@ -5,7 +5,7 @@ struct DictionaryDetail: View {
     let word: SavedWord
     let ask: ()->Void
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     @State private var copied = false
     var body: some View {
         VStack(spacing: 0) {
@@ -22,7 +22,7 @@ struct DictionaryDetail: View {
             }
             Divider()
             HStack(spacing: 10) {
-                Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Label("Listen",systemImage: "speaker.wave.2") }.buttonStyle(LensButtonStyle(small: true))
+                Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Label(speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "Stop" : "Listen",systemImage: speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "stop.fill" : "play.fill") }.buttonStyle(LensButtonStyle(small: true))
                 Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(word.term+(word.pronunciation.isEmpty ? "" : " · "+word.pronunciation)+" — "+word.meaning,forType: .string); copied = true } label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(LensButtonStyle(small: true)).accessibilityLabel(copied ? "Copied" : "Copy entry")
                 Spacer()
                 Button("Example & usage") { dismiss(); ask() }.buttonStyle(LensButtonStyle(prominent: true,small: true))

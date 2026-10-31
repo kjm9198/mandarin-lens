@@ -120,7 +120,7 @@ struct SpeakingPracticeView: View {
     let word: SavedWord
     @ObservedObject var models: LocalModels
     @StateObject private var practice = SpeakingPractice()
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -132,7 +132,7 @@ struct SpeakingPracticeView: View {
             Text(word.pronunciation).foregroundStyle(.secondary)
             Text(word.meaning)
             HStack {
-                Button("Listen") { speaker.speak(word.term, language: word.sourceLanguage) }.disabled(practice.recording)
+                Button(speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "Stop" : "Listen") { speaker.speak(word.term, language: PracticeDeck.language(word)) }.disabled(practice.recording)
                 Button(practice.recording ? "Finish" : "Try saying it") { if practice.recording { practice.finish(expected: word.term) } else { Task { await practice.start(word: word, models: models) } } }.buttonStyle(.borderedProminent).disabled(practice.transcribing)
             }
             if !models.speechAvailable {

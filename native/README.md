@@ -1,10 +1,10 @@
-# Kamihi Lens 4.2
+# Kamihi Lens 4.3
 
 A native Chinese study workspace and screen translator for Apple Silicon Macs running macOS 15 or later. The Chrome extension in the repository root is a separate product.
 
 ## Install and use
 
-Download the **4.2 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
+Download the **4.3 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
 
 - **Option–Space**: click a word in text, an image or another readable screen surface. A small result near your cursor shows the word, system pinyin for Chinese, translation, Chinese pronunciation playback, Copy and Save. Chinese words also receive an example with a Chinese sentence, tone-mark pinyin and an English translation. Examples are generated with the selected local AI, checked for the requested word, translated with Apple Translation and saved with the history/dictionary entry; unavailable models show a retry action.
 - **Control–Space**: click anywhere in a sentence. The screen selector has Word, Sentence and Section buttons, so you can switch without restarting. Dragging a rectangle from any mode selects a section. Settings offers Control–Shift–Space when macOS Input Sources reserves the default.
@@ -17,6 +17,18 @@ Download the **4.2 macOS preview** DMG from [Releases](https://github.com/kjm919
 - **Play** opens seven games inspired by Sproutsly’s language activities: Meaning finder, Reverse recall, Listen & choose, Word builder, Meaning map, Memory match and Pinyin path. Pick a language pair and category. Games use short, distinct saved pairs; insufficient decks show what to save. Word builder reorders letters, Chinese characters or phrase tiles. Answer, Check, feedback and Continue are separate steps. Listening can reveal a transcript; hints and mistakes enter a revisit list. Scores are for that round, with no timer or changes to saved words/review dates. Pinyin is system transliteration, not a reviewed dictionary.
 - The interface uses one adaptive paper/charcoal/teal palette, standard macOS typography, full-width sidebar targets and consistent controls. Compact puts the translation first; expand Original to edit the source. Quiz Check/Continue actions stay visible while the question scrolls.
 - Every sidebar row is clickable across its full width. The full workspace supports macOS full screen and a 760-point minimum width; Compact starts at 410 points and exposes additional sections through **More sections**.
+
+## Notepad and playback
+
+The result panel uses five equal actions: **Original**, **Translated**, **Copy**, **Save**, and **Notepad**. Original and Translated read their own languages and become **Stop** while active. Switching voices stops the previous playback; completion restores Play. The full translator has matching playback controls beside each pane. Playback uses installed macOS voices, with a message when a voice is unavailable.
+
+**Notepad** is a new sidebar section. Create multiple local notes, search title/content, pin notes, use writing/journal/checklist templates, and switch between plain Markdown writing and a basic preview with interactive checkboxes. Edits autosave after a short pause and flush on app shutdown. Recently deleted notes can be restored. Export writes a local Markdown file.
+
+**Control–Option–N** opens or hides a floating notepad above other apps. Escape hides it and returns to the previous app. The window also opens from the Notepad toolbar or menu bar. If the shortcut is reserved, Settings shows that status; the buttons remain available.
+
+The result panel’s **Notepad** action captures the original, translation, Chinese pinyin/example when present, and source context into a study note. **Recall** hides its translation until you reveal it, without a score or changes to review dates. **Translate note** sends its first 16,000 characters to the existing translator. Notes stay in `notes.json` beside the existing local stores; no account or cloud sync is added. An unreadable notes file is preserved, and failed saves keep the text available for retry.
+
+[4.3 playback and Notepad acceptance](reports/NOTEPAD-PLAYBACK-4.3.md). The floating/multiple-note workflow takes inspiration from [Raycast Notes](https://manual.raycast.com/notes), using Kamihi’s own interface and storage.
 
 ## Translation languages and speed
 
@@ -42,7 +54,7 @@ Speaking practice is optional and records only after an explicit action and macO
 
 ## Existing data
 
-Version 4.2 retains `studio.kamihi.mandarinlens.v31`, the existing defaults and Keychain service. Vocabulary, categories, review dates, history, chat, recaps and model files remain in `~/Library/Application Support/Mandarin Lens`. The internal folder name intentionally stays unchanged. Quit the previous app before opening a replacement. No store reset or cloud sync is performed.
+Version 4.3 retains `studio.kamihi.mandarinlens.v31`, the existing defaults and Keychain service. Vocabulary, categories, review dates, history, chat, recaps and model files remain in `~/Library/Application Support/Mandarin Lens`. The internal folder name intentionally stays unchanged. Quit the previous app before opening a replacement. No store reset or cloud sync is performed.
 
 ## Build and verification
 
@@ -52,6 +64,6 @@ swift test --package-path native
 ./native/package.sh
 ```
 
-The package is `native/build/KamihiLens-4.2.0-macOS-arm64.dmg`, with a SHA-256 file. The build uses an Apple Development signing identity when available, or ad-hoc signing otherwise; `LENS_SIGNING_IDENTITY` selects an identity.
+The package is `native/build/KamihiLens-4.3.0-macOS-arm64.dmg`, with a SHA-256 file. The build uses an Apple Development signing identity when available, or ad-hoc signing otherwise; `LENS_SIGNING_IDENTITY` selects an identity.
 
 [4.1 design and acceptance](reports/DESIGN-4.1.md) separates automated, actual native UI, local-model and delivery evidence. Older reports describe historical behavior. `Tests/NativeDriver.swift` and `Tests/CaptureFixture.swift` support controlled installed-app checks with isolated learning data. No bug-free, broad VoiceOver, all-language, physical microphone, mixed-DPI or clean-machine acceptance is claimed.

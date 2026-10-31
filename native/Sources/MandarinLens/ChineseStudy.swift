@@ -101,10 +101,10 @@ struct ChineseExampleWorker: View {
 }
 struct ChineseExampleContent: View {
     let example: ChineseExample
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     var body: some View {
         VStack(alignment: .leading,spacing: 8) {
-            HStack { Text("Example sentence").font(.system(size: 12,weight: .semibold)).foregroundStyle(.secondary); Spacer(); Button { speaker.speak(example.chinese,language: "zh-Hans") } label: { Image(systemName: "speaker.wave.2") }.buttonStyle(.plain).accessibilityLabel("Listen to Chinese example") }
+            HStack { Text("Example sentence").font(.system(size: 12,weight: .semibold)).foregroundStyle(.secondary); Spacer(); SpeechControl(speaker: speaker,text: example.chinese,language: "zh-Hans",title: "Chinese example") }
             Text(example.chinese).font(.system(size: 18,weight: .regular)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
             Text(example.pinyin).font(.system(size: 13)).foregroundStyle(Color.lensAccent).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)
             Text(example.english).font(.system(size: 13)).foregroundStyle(.secondary).textSelection(.enabled).fixedSize(horizontal: false,vertical: true)

@@ -62,7 +62,7 @@ struct WordsView: View {
     @State private var speakingWord: SavedWord?
     @State private var dictionaryWord: SavedWord?
     @State private var reveal = false
-    @StateObject private var speaker = WordSpeaker()
+    @StateObject private var speaker = WordSpeaker.shared
     @State private var organizeTask: Task<Void,Never>?
     private var filtered: [SavedWord] { vocabulary.words.filter { (category == "All" || $0.category.rawValue == category) && (search.isEmpty || $0.term.localizedCaseInsensitiveContains(search) || $0.meaning.localizedCaseInsensitiveContains(search) || $0.pronunciation.localizedCaseInsensitiveContains(search)) } }
     private var due: SavedWord? { vocabulary.words.first { $0.nextReview <= Date() } }
@@ -95,7 +95,7 @@ struct WordsView: View {
                                         VStack(alignment: .leading,spacing: 7) { Text(word.meaning).font(.system(size: 14)).foregroundStyle(.secondary).lineLimit(3); Text(word.category.rawValue).font(.system(size: 10)).foregroundStyle(.secondary) }.frame(maxWidth: .infinity,alignment: .leading)
                                     }.padding(.vertical,17).frame(maxWidth: .infinity,alignment: .leading).contentShape(Rectangle())
                                 }.buttonStyle(.plain).accessibilityLabel(word.term).help("Open dictionary entry")
-                                Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Image(systemName: "speaker.wave.2").frame(width: 28,height: 30) }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel("Speak word")
+                                Button { speaker.speak(word.term,language: PracticeDeck.language(word)) } label: { Image(systemName: speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "stop.fill" : "play.fill").frame(width: 28,height: 30) }.buttonStyle(.plain).foregroundStyle(.secondary).accessibilityLabel(speaker.isPlaying(word.term,language: PracticeDeck.language(word)) ? "Stop word audio" : "Speak word")
                                 Menu {
                                     Button("Example & usage") { ask(word) }
                                     Button("Speak & practise") { speakingWord = word }
