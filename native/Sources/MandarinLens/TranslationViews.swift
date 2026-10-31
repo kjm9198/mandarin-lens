@@ -8,6 +8,11 @@ struct TranslationWork: ViewModifier {
         return content.translationTask(lens.translationHost == host ? lens.configuration : nil) { session in
             guard lens.translationHost == host, let request = capturedRequest else { return }
             await lens.performTranslation(session, request: request)
+        }.background {
+            if lens.translationHost == host {
+                if let job = lens.exampleJob { ChineseExampleWorker(lens: lens,job: job).id(host+job.id.uuidString) }
+                ForEach(lens.areaJobs) { job in AreaTranslationWorker(lens: lens,job: job).id(host + job.id.uuidString) }
+            }
         }
     }
 }

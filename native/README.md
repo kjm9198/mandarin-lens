@@ -1,52 +1,44 @@
-# Kamihi Lens 3.8 — native private build
+# Kamihi Lens 4.0
 
-SwiftUI/AppKit for Apple Silicon, macOS 15+. Current verification: macOS 27, M5 Pro, 48 GB. Other hardware and OS versions have not been independently validated.
+A native word playground and screen translator for Apple Silicon Macs running macOS 15 or later. The Chrome extension in the repository root is a separate product.
 
-## Build and install
+## Install and use
 
-Run `native/build.sh` from the repository root. Copy `native/build/Kamihi Lens.app` to `~/Applications` and open it. `native/package.sh` creates `native/build/KamihiLens-3.8-private.dmg` with the app and Applications shortcut. It uses an available Apple Development signing identity, or ad-hoc signing if none exists. Set `LENS_SIGNING_IDENTITY` to select a certificate. This is a private development build, not notarized or a public binary release.
+Download the **4.0 macOS preview** DMG from [Releases](https://github.com/kjm9198/mandarin-lens/releases). Drag Kamihi Lens into Applications and open it. This is an Apple Development signed preview, **not notarized**; macOS may require approval in Privacy & Security. The current verified machine is an Apple Silicon Mac running macOS 27. Other OS versions and hardware remain unverified.
 
-Kamihi Lens is the renamed native app. Version 3.8 retains the stable `studio.kamihi.mandarinlens.v31` identity, development signature, existing defaults and Keychain service. Dictionary, review progress, categories, translation history, chat history and downloaded models remain in `~/Library/Application Support/Mandarin Lens`. This internal folder name intentionally stays unchanged. Quit the previous app before opening the new one; only one instance may use the stores.
+- **Option–Space**: click a word in text, an image or another readable screen surface. A small result near your cursor shows the word, system pinyin for Chinese, translation, Chinese pronunciation playback, Copy and Save. Chinese words also receive an example with a Chinese sentence, tone-mark pinyin and an English translation. Examples are generated with the selected local AI, checked for the requested word, translated with Apple Translation and saved with the history/dictionary entry; unavailable models show a retry action.
+- **Control–Space**: click a sentence. Settings offers Control–Shift–Space when macOS Input Sources reserves the default.
+- **Control–Option–Space**: drag an area like a screenshot. **Space** selects the whole display. Recognized lines are translated into your chosen language and kept in reading order; lines already in that language are retained.
+- **Escape** or the same shortcut again clears selection and its result. Outside clicks dismiss the result when “Keep window floating” is off.
+- Allow **Screen & System Audio Recording** for screen selection. No audio is captured. Apple Vision reads a single in-memory snapshot; pixels are released after selection/cancellation. Small, stylized, unclear or protected content may not be readable. Accessibility is needed only for the separate Capture selected text action.
+- **Settings → Translate into** changes the translation target; **AI explanations in** changes chat and recaps. The default target is Simplified Chinese. Automatic source detection uses a confident surrounding line or defaults short Latin words to English; **Translate from** provides an explicit override. This avoids isolated English words such as “Control” being mistaken for Romanian.
+- Results automatically enter **History**, including repeated captures and translation failures. Search source, translation or pinyin, star favorites, and create local AI learning recaps from Today, Last 7 days or Favorites. A missing translation pack or model shows a recoverable message. AI recaps can be wrong.
+- **My words** is your dictionary: open an entry for pinyin, meaning, captured context, Listen, Copy and Example & usage. Search and categories, local JSON export, review, optional speaking practice and Surprise me remain available.
+- **Play** opens seven games inspired by Sproutsly’s language activities: Meaning finder, Reverse recall, Listen & choose, Word builder, Meaning map, Memory match and Pinyin path. Pick a language pair and category. Games use short, distinct saved pairs; insufficient decks show what to save. Word builder reorders letters, Chinese characters or phrase tiles. Answer, Check, feedback and Continue are separate steps. Listening can reveal a transcript; hints and mistakes enter a revisit list. Scores are for that round, with no timer or changes to saved words/review dates. Pinyin is system transliteration, not a reviewed dictionary.
+- Every sidebar row is clickable across its full width. The full workspace supports macOS full screen and a 760-point minimum width; Compact starts at 410 points and exposes additional sections through **More sections**.
 
-The DMG does not bundle model weights or Python. The current Mac has Python 3.12 with `mlx-vlm 0.7.11`, `mlx-audio 0.6.3` and `huggingface_hub` in `~/Library/Application Support/Mandarin Lens/mlx-runtime`. A fresh Mac needs a compatible local runtime or a local LM Studio/Bionic server. Apple Translation may separately request language packs.
+## Local AI
 
-## Everyday use
+Local AI has model selection, explicit 2B/4B chat and Whisper speech downloads, a resident-model Unload control, and a separate advanced local-server section. Apple Translation and all seven games work without an AI model.
 
-- Press **Option–Space** to enter screen selection, then click a word. A crosshair and a light outline follow recognized words. No translation panel, notification or app window opens from the shortcut.
-- Screen selection uses local Apple Vision OCR on an in-memory snapshot of the connected displays. It works on readable raster text in images, videos and apps without native text selection. The snapshot keeps moving content still while you choose. Pixels are released when a word is chosen or the mode is cancelled. It needs macOS **Screen & System Audio Recording** permission (no audio is captured); allow it in Kamihi Lens → Settings before first use. A permission denial stays in the app's status text and does not open a popup from the shortcut.
-- Arrow keys or Tab move through recognized words; Return chooses the highlighted word.
-- After a click, only a small click-through highlight remains. Normal clicks return to the source app. **Escape** or **Option–Space again** cancels both the selection mode and the remaining highlight. Repeating a held shortcut does not create duplicate windows. Clicking blank space keeps selection mode active.
-- Open **Kamihi Lens** from Applications or the Dock to translate the last selected word, save it or use the full workspace. Cancelling the highlight preserves that word for later. Selection itself never starts translation, writes vocabulary or adds history.
-- Settings offers Option–Space, Control–Option–Space and Option–Shift–Space, conflict feedback, opacity, explanation language and permission controls. Modifier keys alone never start selection. The floating-window preference only affects the app window.
-- Text must be visible and readable. OCR can misread small, low-contrast or stylized text; protected/DRM content cannot be promised. Selection is a snapshot, not continuous monitoring. Capture → Selected text still provides the explicit Accessibility route for an already selected sentence. Secure Accessibility fields remain rejected. Explicit area/display OCR is also available from the app.
-- **Open full app** opens a larger workspace with Translator, My words, History, Learn, Local models and Settings/tutorial. The window supports macOS full screen. **Compact** opens the smaller companion. Expanding preserves the word, translation and captured context.
-- In the full translator, Save word uses an immutable presentation snapshot. Select a token, translate its own meaning, edit it and save; dismissing restores the original pair/context. Duplicate prevention preserves Vietnamese tone distinctions. A failed disk write does not report Saved.
-- My words retains search, categories, validated local-AI categorization, review, pronunciation, examples and JSON export. Pinyin is system transliteration, not an authoritative pronunciation dictionary.
-- Learn displays user and assistant messages, live model output, Stop, New chat and local Chat history. Context is bounded to recent messages, a limited vocabulary sample and captured text. Chat history is persistent, owner-only JSON; corrupt chat files are preserved.
-- Speaking practice is optional. Apple on-device recognition is used where available; the downloaded Whisper small model supplies an offline fallback. Recording is limited to 12 seconds; temporary clips are deleted after recognition/cancellation. Recognized words are compared with the entry, accepting Simplified/Traditional spelling equivalence while preserving Vietnamese tones. This does **not** grade accent, Mandarin tones or pronunciation quality. Short-word recognition can be wrong.
+Use **Install local runtime** for one-time Python package setup from PyPI. It needs a compatible Python 3.10+ interpreter with venv, network access and disk space; it does not bundle Python. Setup uses `mlx-vlm 0.7.11`, `mlx-audio 0.6.3` and `huggingface_hub`. Downloads fetch weights from Hugging Face; learning data is not sent with them. The bundled setup helper was checked statically; a clean-machine package installation has not been independently tested.
 
-## Local models
+MLX runs with offline inference settings and no remote-code option. Automatic picks the smallest installed chat model. One chat/categorization/recap request runs at a time; generation streams, can be stopped and rejects stale updates. Unload releases the resident worker and keeps downloaded files. A local LM Studio/Bionic adapter accepts only `127.0.0.1`, rejects redirects and stores tokens in Keychain. Real authenticated providers remain unverified.
 
-Local models has explicit downloads for Qwen 3.5 2B, Qwen 3.5 4B and Whisper small speech recognition, plus installed-model discovery and custom folders. Downloads use Hugging Face; prompts, vocabulary and audio are not sent there. Downloads can be cancelled and resumed. Speech models are stored separately and cannot accidentally become the chat model.
+Speaking practice is optional and records only after an explicit action and macOS permission. It compares recognized words, **not accent or Mandarin-tone quality**. Clips are limited to 12 seconds and deleted after recognition/cancellation. Device voices and short-word speech recognition can be inaccurate.
 
-Automatic uses the smallest installed MLX chat model. One chat/categorization request runs at a time. The worker keeps weights resident between requests, streams JSON-framed text, bounds prompts/output and has a two-minute deadline. Stop and model switching cancel the running request; stale results cannot replace newer requests. Models over 8 GB of weight files are refused on machines with 24 GB or less. This is a conservative guard, not a complete memory-pressure manager or an accuracy ranking.
+## Existing data
 
-Direct MLX inference uses offline Hugging Face settings and no remote-code option. GGUF catalogue entries require a compatible local server. The optional API adapter constructs only `127.0.0.1` URLs, rejects redirects and streams responses; tokens stay in Keychain. Real authenticated LM Studio/Bionic inference remains unverified. The adapter's protocol is tested against an explicit local fixture.
+Version 4 retains `studio.kamihi.mandarinlens.v31`, the existing defaults and Keychain service. Vocabulary, categories, review dates, history, chat, recaps and model files remain in `~/Library/Application Support/Mandarin Lens`. The internal folder name intentionally stays unchanged. Quit the previous app before opening a replacement. No store reset or cloud sync is performed.
 
-## Verification and limits
-
-See [the 3.8 selection acceptance report](reports/KAMIHI-LENS-3.8.md) and [the prior workspace report](reports/LEARNING-UPDATE.md) for native journeys, actual display geometry, screenshots, automated tests and model-quality limits. No 16 GB hardware, mixed-DPI display, broad VoiceOver or human pronunciation certification is claimed. The shortcut explicitly starts snapshot OCR; additional region/display capture remains available in the app. All recognition uses local Apple Vision. No cloud inference, analytics, mandatory accounts, subscriptions or sync were added.
-
-Reproduce automated checks:
+## Build and verification
 
 ```sh
-cd native
-swift test
-cd ..
-xcrun swiftc -target arm64-apple-macos15.0 -parse-as-library native/Sources/MandarinLens/LocalModels.swift native/Sources/MandarinLens/ModelWorker.swift native/Sources/MandarinLens/Vocabulary.swift native/Tests/FeatureSmoke.swift -framework AppKit -framework NaturalLanguage -framework Security -o /tmp/lens-feature-smoke
-python3 native/Tests/api_fixture.py
-sandbox-exec -p '(version 1)(allow default)(deny network*)' /tmp/lens-feature-smoke --cancel --switch
-sandbox-exec -p '(version 1)(allow default)(deny network*)' /usr/bin/python3 native/Tests/worker_smoke.py
+./native/build.sh
+swift test --package-path native
+./native/package.sh
 ```
 
-`Tests/NativeDriver.swift` and `Tests/TargetFixture.swift` support real installed-app acceptance. The older `Tests/native_edges.py` documents the former 3.7 lookup-panel behavior and is not a test of the new selection workflow. Never grant macOS permissions programmatically. Microphone practice requires the user's permission and real voice for human acceptance.
+The package is `native/build/KamihiLens-4.0.0-macOS-arm64.dmg`, with a SHA-256 file. The build uses an Apple Development signing identity when available, or ad-hoc signing otherwise; `LENS_SIGNING_IDENTITY` selects an identity.
+
+[4.0 acceptance report](reports/KAMIHI-LENS-4.0.md) separates automated, actual native UI, local-model and delivery evidence. Older reports describe historical behavior. `Tests/NativeDriver.swift` and `Tests/CaptureFixture.swift` support controlled installed-app checks with isolated learning data. No bug-free, broad VoiceOver, all-language, physical microphone, mixed-DPI or clean-machine acceptance is claimed.

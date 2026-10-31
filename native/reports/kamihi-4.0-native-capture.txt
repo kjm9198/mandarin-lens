@@ -1,0 +1,4 @@
+PASS dictionary detail contains saved Chinese headword, word pinyin and all three example lines; Done dismisses.
+PASS real Control–Space English sentence -> Chinese: 请控制音量。
+PASS final isolated screenshot area -> Chinese; all three controlled lines in order: '我喜欢学习中文。\n请控制音量。\n我们一起喝咖啡。'
+PASS Escape removes result and all selection overlays.

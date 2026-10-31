@@ -16,6 +16,7 @@ struct SavedWord: Identifiable, Codable {
     var created = Date()
     var nextReview = Date()
     var intervalDays = 0
+    var usageExample: ChineseExample?
     var pronunciation: String {
         guard term.range(of: "\\p{Han}", options: .regularExpression) != nil else { return "" }
         return term.applyingTransform(.mandarinToLatin, reverse: false) ?? ""
@@ -23,7 +24,12 @@ struct SavedWord: Identifiable, Codable {
 }
 enum WordTools {
     static func language(_ text: String) -> String {
-        let detector = NLLanguageRecognizer(); detector.processString(text); return detector.dominantLanguage?.rawValue ?? "und"
+        let detector = NLLanguageRecognizer(); detector.processString(text)
+        let detected = detector.dominantLanguage?.rawValue ?? "und"
+        // A lone Han character is ambiguous to the recognizer; this is a Mandarin dictionary.
+        if detected == "ja", text.range(of: "\\p{Han}",options: .regularExpression) != nil,
+           text.range(of: "[\\p{Hiragana}\\p{Katakana}]",options: .regularExpression) == nil { return "zh-Hans" }
+        return detected
     }
     static func tokens(_ text: String) -> [String] {
         let tokenizer = NLTokenizer(unit: .word); tokenizer.string = text
@@ -70,14 +76,21 @@ enum WordTools {
             catch { loadFailed = true; status = "Could not read saved words. The original file is preserved; restore a backup before saving." }
         }
     }
-    @discardableResult func save(term: String, meaning: String, target: String, sourceLanguage: String? = nil) -> Bool {
+    @discardableResult func save(term: String, meaning: String, target: String, sourceLanguage: String? = nil, context: String = "", usageExample: ChineseExample? = nil) -> Bool {
         guard !loadFailed else { return false }
         let term = String(term.trimmingCharacters(in: .whitespacesAndNewlines).prefix(4000))
         guard !term.isEmpty, !meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         guard !words.contains(where: { $0.term.compare(term, options: [.caseInsensitive]) == .orderedSame && $0.targetLanguage == target }) else { status = "Already in My words."; return true }
-        words.insert(SavedWord(term: term, meaning: String(meaning.prefix(16000)), sourceLanguage: sourceLanguage ?? WordTools.language(term), targetLanguage: target, category: WordTools.suggest(term, meaning)), at: 0)
+        words.insert(SavedWord(term: term, meaning: String(meaning.prefix(16000)), sourceLanguage: sourceLanguage ?? WordTools.language(term), targetLanguage: target, category: WordTools.suggest(term, meaning), example: String(context.prefix(2000)),usageExample: usageExample), at: 0)
         if persist() { status = "Saved to My words."; return true }
         words.removeFirst(); return false
+    }
+    func attachExample(_ example: ChineseExample) {
+        let matching = words.indices.filter { words[$0].term == example.word && words[$0].usageExample != example }
+        guard !matching.isEmpty else { return }
+        let before = words
+        for index in matching { words[index].usageExample = example }
+        if !persist() { words = before }
     }
     @discardableResult func persist() -> Bool {
         guard !loadFailed else { return false }

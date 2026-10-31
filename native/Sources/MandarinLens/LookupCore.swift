@@ -7,6 +7,9 @@ struct TranslationRequest: Equatable {
     let id = UUID()
     let text: String
     let target: String
+    var kind: CaptureKind = .typed
+    var context: String = ""
+    var sourceLanguage: String?
 }
 struct CapturedTarget: Sendable {
     let text: String
@@ -145,7 +148,7 @@ struct ShortcutLatch {
             }
         }, 2, &specs, context, &handler)
         guard handlerStatus == noErr else { return handlerStatus }
-        let flags = choice == "Escape" ? UInt32(0) : choice == "Control–Option–Space" ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
+        let flags = choice == "Escape" ? UInt32(0) : choice == "Control–Space" ? UInt32(controlKey) : choice == "Control–Shift–Space" ? UInt32(controlKey | shiftKey) : choice == "Control–Option–Space" ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
         let status = RegisterEventHotKey(UInt32(choice == "Escape" ? kVK_Escape : kVK_Space), flags, EventHotKeyID(signature: signature, id: 1), GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &reference)
         registered = status == noErr
         if !registered { unregister() }

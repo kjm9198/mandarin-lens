@@ -25,6 +25,7 @@ struct LocalModel: Identifiable, Codable, Hashable {
     var displayName: String {
         let value = name.lowercased()
         if value.contains("qwen3.5-2b") { return "Qwen 3.5 · 2B · 4-bit" }
+        if value.contains("qwen3.5-4b") { return "Qwen 3.5 · 4B · 4-bit" }
         if value.contains("qwen3.5-9b") { return "Qwen 3.5 · 9B · custom" }
         if value.contains("qwen3.8-27b") { return "Qwen 3.8 · 27B · custom" }
         if value.contains("gemma-4-31b") { return "Gemma 4 · 31B · GGUF" }
@@ -180,12 +181,37 @@ enum LocalModelError: LocalizedError {
         job = worker.job
         return try await worker.generate(messages: messages, onText: onText)
     }
+    var runtimeAvailable: Bool { FileManager.default.isExecutableFile(atPath: root.appendingPathComponent("mlx-runtime/bin/python").path) && !FileManager.default.fileExists(atPath: root.appendingPathComponent("runtime-installing").path) }
+    func unloadModel() {
+        guard !busy else { status = "Stop the active AI task before unloading."; return }
+        worker?.job.cancel(); worker = nil; workerModel = nil
+        status = "Local model unloaded from memory. The files stay on this Mac."
+    }
+    func installRuntime() async {
+        guard !installing else { return }
+        let candidates = ["/opt/homebrew/bin/python3.12", "/usr/local/bin/python3.12", "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
+        guard let python = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }), let script = Bundle.main.resourceURL?.appendingPathComponent("bootstrap_runtime.py") else { status = "Python 3.10 or later is needed. Install Python, then retry runtime setup."; return }
+        installing = true; status = "Installing the local runtime from PyPI. This can take several minutes."
+        let task = LocalJob(); installJob = task
+        task.process.executableURL = URL(fileURLWithPath: python); task.process.arguments = [script.path,root.path]
+        task.process.standardOutput = FileHandle.nullDevice; task.process.standardError = FileHandle.nullDevice
+        defer { installing = false; installJob = nil }
+        do {
+            let code: Int32 = try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { continuation in
+                    task.process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
+                    do { try task.start() } catch { continuation.resume(throwing: error) }
+                }
+            } onCancel: { task.cancel() }
+            status = code == 0 && runtimeAvailable ? "Local runtime ready. You can download a model now." : "Runtime setup stopped or failed. Python 3.10+ with venv and a network connection are required. Retry to finish setup."
+        } catch { status = "Runtime setup: \(error.localizedDescription)" }
+    }
     var speechModelURL: URL { root.appendingPathComponent("SpeechModels/whisper-small-asr-fp16") }
     var speechAvailable: Bool { FileManager.default.fileExists(atPath: speechModelURL.appendingPathComponent("model.safetensors").path) && FileManager.default.fileExists(atPath: speechModelURL.appendingPathComponent("tokenizer.json").path) }
     func installModel(_ name: String) async {
         guard !installing, ["Qwen3.5-2B-4bit", "Qwen3.5-4B-4bit", "whisper-small-asr-fp16"].contains(name) else { return }
         let python = root.appendingPathComponent("mlx-runtime/bin/python")
-        guard FileManager.default.isExecutableFile(atPath: python.path) else { status = "Install the local runtime first."; return }
+        guard runtimeAvailable else { status = "Install the local runtime first."; return }
         guard let script = Bundle.main.resourceURL?.appendingPathComponent("install_model.py") else { return }
         installing = true; status = "Downloading \(name)… This can take several minutes. Inference stays local."
         let destination = name == "whisper-small-asr-fp16" ? speechModelURL : root.appendingPathComponent("Models/" + name)

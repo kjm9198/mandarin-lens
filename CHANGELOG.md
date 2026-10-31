@@ -1,5 +1,15 @@
 # 2.1.1 · 30 October 2026
 
+## Kamihi Lens 4.0.0 — native macOS preview
+
+- Word, sentence and screenshot-area selection with immediate cursor results, Chinese pinyin, Listen, Copy and Save.
+- Chinese-first translation, explicit translation/source settings, a fix for ambiguous short English words such as Control, and persisted example sentences with Chinese, English and pinyin.
+- Mixed-language area translation preserves line order and already translated-language lines.
+- Searchable history for each capture, favorites and local AI learning recaps.
+- Dictionary detail, refreshed local-model setup/download screens and resident-model unload.
+- Full-width sidebar click targets and seven vocabulary games inspired by Sproutsly: meaning, reverse recall, listening, word building, pair matching, memory and pinyin.
+- Isolated native acceptance, game-state regression coverage and signed DMG packaging. This development preview is not notarized.
+
 - Showcase whole sentences by buffering streaming captions into complete sentences/clauses; eliminate 1-word expanding jitter.
 - Hover protection keeps subtitle and definition cards open during inspection; pause video on hover so words can be studied comfortably.
 - Fixed video prompt choices closing Mandarin Lens on YouTube SPA navigation; added dismissible '×' button and compact pill mode.

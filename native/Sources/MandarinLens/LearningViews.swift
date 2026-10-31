@@ -52,15 +52,17 @@ struct WordDraftView: View {
 struct WordsView: View {
     @ObservedObject var vocabulary: Vocabulary
     @ObservedObject var models: LocalModels
+    var play: () -> Void
     var ask: (SavedWord) -> Void
     @State private var search = ""
     @State private var category = "All"
     @State private var practice = false
     @State private var speakingWord: SavedWord?
+    @State private var dictionaryWord: SavedWord?
     @State private var reveal = false
     @StateObject private var speaker = WordSpeaker()
     @State private var organizeTask: Task<Void, Never>?
-    private var filtered: [SavedWord] { vocabulary.words.filter { (category == "All" || $0.category.rawValue == category) && (search.isEmpty || $0.term.localizedCaseInsensitiveContains(search) || $0.meaning.localizedCaseInsensitiveContains(search)) } }
+    private var filtered: [SavedWord] { vocabulary.words.filter { (category == "All" || $0.category.rawValue == category) && (search.isEmpty || $0.term.localizedCaseInsensitiveContains(search) || $0.meaning.localizedCaseInsensitiveContains(search) || $0.pronunciation.localizedCaseInsensitiveContains(search)) } }
     private var due: SavedWord? { vocabulary.words.first { $0.nextReview <= Date() } }
     var body: some View {
         VStack(spacing: 9) {
@@ -69,9 +71,10 @@ struct WordsView: View {
                 Menu { ForEach(["All"] + WordCategory.allCases.map(\.rawValue), id: \.self) { item in Button(item) { category = item } } } label: { Image(systemName: "line.3.horizontal.decrease.circle") }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Filter by category")
             }.padding(.horizontal, 16)
             HStack {
-                Menu { Button("Export words…") { vocabulary.exportWords() } } label: { Image(systemName: "ellipsis.circle") }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Word library actions")
+                Menu { Button("Surprise me") { dictionaryWord = filtered.randomElement() }.disabled(filtered.isEmpty); Button("Export words…") { vocabulary.exportWords() } } label: { Image(systemName: "ellipsis.circle") }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Word library actions")
                 Text("\(vocabulary.words.count) saved · \(category)").font(.system(size: 10)).foregroundStyle(.secondary)
                 Spacer()
+                Button(action: play) { Label("Play games",systemImage: "gamecontroller") }
                 Button(practice ? "Back to words" : "Review") { practice.toggle(); reveal = false }.disabled(vocabulary.words.isEmpty)
                 Button(vocabulary.organizing ? "Stop" : "Categorize all") {
                     if vocabulary.organizing { organizeTask?.cancel(); models.job?.cancel() }
@@ -88,7 +91,7 @@ struct WordsView: View {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(filtered) { word in
                             VStack(alignment: .leading, spacing: 6) {
-                                HStack { Text(word.term).font(.system(size: 19, weight: .medium)); Button { speaker.speak(word.term, language: word.sourceLanguage) } label: { Image(systemName: "speaker.wave.2").font(.system(size: 11)) }.buttonStyle(.plain).accessibilityLabel("Speak word"); Spacer(); Text(word.sourceLanguage.hasPrefix("zh") ? "中文" : word.sourceLanguage.uppercased()).font(.system(size: 9)).foregroundStyle(.secondary) }
+                                HStack { Button(word.term) { dictionaryWord = word }.font(.system(size: 22, weight: .medium)).buttonStyle(.plain).help("Open dictionary entry"); Button { speaker.speak(word.term, language: word.sourceLanguage) } label: { Image(systemName: "speaker.wave.2").font(.system(size: 11)) }.buttonStyle(.plain).accessibilityLabel("Speak word"); Spacer(); Text(word.sourceLanguage.hasPrefix("zh") ? "中文" : word.sourceLanguage.uppercased()).font(.system(size: 9)).foregroundStyle(.secondary) }
                                 if !word.pronunciation.isEmpty { Text(word.pronunciation).font(.system(size: 12)).foregroundStyle(.teal).help("System transliteration; pronunciation can depend on context") }
                                 Text(word.meaning).font(.system(size: 12)).foregroundStyle(.secondary).textSelection(.enabled)
                                 HStack {
@@ -104,6 +107,7 @@ struct WordsView: View {
                 }
             }
         }.onDisappear { organizeTask?.cancel() }
+            .sheet(item: $dictionaryWord) { word in DictionaryDetail(word: word) { ask(word) } }
             .sheet(item: $speakingWord) { word in SpeakingPracticeView(word: word, models: models) }
     }
     @ViewBuilder private var review: some View {
@@ -118,45 +122,6 @@ struct WordsView: View {
                 } else { Button("Reveal meaning") { reveal = true }.buttonStyle(.bordered) }
             }.padding(24).frame(maxWidth: .infinity, alignment: .leading)
         } else { Text("You're caught up. Come back for a little practice tomorrow.").font(.body).foregroundStyle(.secondary).padding(24) }
-    }
-}
-struct ModelsView: View {
-    var embedded = false
-    @ObservedObject var models: LocalModels
-    @Environment(\.dismiss) var dismiss
-    @State private var token = ""
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("Choose your local AI").font(.system(size: 19, weight: .semibold, design: .rounded)); Spacer(); if !embedded { Button("Done") { dismiss() } } }
-            Text("Chat and categorization run on this Mac. Translation uses Apple's installed language packs.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    Button { models.selected = "auto" } label: { HStack { Image(systemName: models.selected == "auto" ? "checkmark.circle.fill" : "circle"); VStack(alignment: .leading) { Text("Automatic").fontWeight(.semibold); Text("\(models.automatic?.displayName ?? "No installed model")").font(.caption).lineLimit(2) }; Spacer() } }.buttonStyle(.plain)
-                    Text("Automatic uses the smallest installed MLX model for faster replies. Larger models may improve quality but need more time and memory.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    Divider()
-                    ForEach(models.models) { model in
-                        Button { models.selected = model.id } label: {
-                            HStack(alignment: .top) { Image(systemName: models.selected == model.id ? "checkmark.circle.fill" : "circle"); VStack(alignment: .leading, spacing: 4) { Text(model.displayName).font(.system(size: 12, weight: .medium)).fixedSize(horizontal: false, vertical: true).help(model.name); Text(model.detail).font(.system(size: 10)).foregroundStyle(.secondary); if model.heavy { Text("Larger model · allow memory headroom").font(.system(size: 10)).foregroundStyle(.secondary) } } }
-                        }.buttonStyle(.plain).padding(.vertical, 5)
-                    }
-                }.padding(.vertical, 4)
-            }.frame(height: 240)
-            HStack { Button("Find installed models") { Task { await models.scanFiles(); await models.refreshServer() } }; Button("Choose model folder…") { models.addFolder() } }.controlSize(.small)
-            Divider()
-            Text("Download a local model").font(.headline)
-            HStack {
-                Button("Download 2B · about 2 GB") { Task { await models.installModel("Qwen3.5-2B-4bit") } }
-                Button("Download 4B · about 3 GB") { Task { await models.installModel("Qwen3.5-4B-4bit") } }
-            }.controlSize(.small).disabled(models.installing)
-            if models.installing { HStack { ProgressView().controlSize(.small); Button("Cancel download") { models.installJob?.cancel() } } }
-            Button(models.speechAvailable ? "Offline speech model installed" : "Download offline speech · about 500 MB") { Task { await models.installModel("whisper-small-asr-fp16") } }.disabled(models.installing || models.speechAvailable).controlSize(.small)
-            Text("Downloads use Hugging Face. Your questions and vocabulary are never sent there. Existing downloads resume when retried.").font(.caption).foregroundStyle(.secondary)
-            Divider()
-            HStack { Text("LM Studio / Bionic port").font(.caption); TextField("1234", value: $models.port, format: .number.grouping(.never)).textFieldStyle(.roundedBorder).frame(width: 70); Button("Connect") { Task { await models.refreshServer() } } }.controlSize(.small)
-            HStack { SecureField("Optional local API token", text: $token).textFieldStyle(.roundedBorder); Button("Save") { models.saveToken(token); token = "" } }.controlSize(.small)
-            Text(models.status).font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("Only 127.0.0.1 is accepted. API tokens stay in Keychain. Custom GGUF models need your local server; MLX folders run directly.").font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-        }.padding(20).frame(width: 360).tint(.teal)
     }
 }
 struct TutorialView: View {
@@ -177,7 +142,7 @@ struct TutorialView: View {
                     Picker("Translate into", selection: $lens.target) { Text("中文 · Simplified").tag("zh-Hans"); Text("繁體中文 · Traditional").tag("zh-Hant"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("English").tag("en") }
                     Picker("Explain in", selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
                 case 1:
-                    Text("Press Option–Space, then click a word anywhere on screen—even in an image. A subtle highlight stays; no lookup popup opens. Escape or Option–Space again clears it. Open Kamihi Lens when you want to translate, save or practise.")
+                    Text("Option–Space selects a word with pinyin and meaning. Control–Space selects a sentence. Control–Option–Space lets you drag a screen area; Space uses the whole display. A small result appears near your cursor. Escape clears it.")
                     Text("Allow Screen Recording in Settings for screen selection. Recognition stays on this Mac. Accessibility is only needed for Capture selected text. Paste works without either permission.").foregroundStyle(.secondary)
                 case 2:
                     Text("Choose Save word after translating. Pick a single word from the sentence, translate its meaning, then save. Your words get suggested categories immediately.")

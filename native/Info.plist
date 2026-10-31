@@ -9,9 +9,9 @@
 	<key>CFBundleName</key>
 	<string>Kamihi Lens</string>
 	<key>CFBundleVersion</key>
-	<string>38</string>
+	<string>40</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.8.0</string>
+	<string>4.0.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -24,6 +24,8 @@
 	<string>Optional on-device recognition compares the recognized words with your saved vocabulary. It does not score accent or Mandarin tones.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Kamihi Lens</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 </dict>

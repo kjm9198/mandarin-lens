@@ -38,6 +38,13 @@ if window == nil && !args.contains("--absent-ok") {
 }
 if window == nil && (args.contains("--dump") || value("--click") != nil || value("--text") != nil || value("--point") != nil) { fail("Named window is not available") }
 if let window {
+ if let requested = value("--resize") {
+  let dimensions = requested.split(separator: ",").compactMap { Double($0) }
+  guard dimensions.count == 2 else { fail("Expected --resize width,height") }
+  var size = CGSize(width: dimensions[0],height: dimensions[1])
+  let axSize = AXValueCreate(.cgSize,&size)!
+  guard AXUIElementSetAttributeValue(window,kAXSizeAttribute as CFString,axSize) == .success else { fail("Resize rejected") }
+ }
  if args.contains("--close-window") {
   guard let close=attr(window,kAXCloseButtonAttribute),CFGetTypeID(close)==AXUIElementGetTypeID() else { fail("Close button missing") }
   let status=AXUIElementPerformAction(unsafeBitCast(close,to:AXUIElement.self),kAXPressAction as CFString)
@@ -65,14 +72,22 @@ if let window {
   print("SET",AXUIElementSetAttributeValue(field,kAXValueAttribute as CFString,text as CFString).rawValue)
  }
  if let label=value("--click") {
-  guard let node=(args.contains("--last") ? nodes.last(where: { e in [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].contains { attr(e,$0) as? String == label } }) : nodes.first(where: { e in [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].contains { attr(e,$0) as? String == label } })) else { fail("Control missing: \(label)") }
-  print("PRESS",AXUIElementPerformAction(node,kAXPressAction as CFString).rawValue)
+  let scope = nodes.last(where: { attr($0,kAXRoleAttribute) as? String == kAXSheetRole }).map { all($0) } ?? nodes
+  let actionable = scope.filter { e in
+   var actions: CFArray?
+   _ = AXUIElementCopyActionNames(e,&actions)
+   return (actions as? [String] ?? []).contains(kAXPressAction) && [kAXTitleAttribute,kAXDescriptionAttribute,kAXValueAttribute].contains { attr(e,$0) as? String == label }
+  }
+  guard let node = args.contains("--last") ? actionable.last : actionable.first else { fail("Control missing: \(label)") }
+  let status = AXUIElementPerformAction(node,kAXPressAction as CFString)
+  guard status == .success else { fail("Press rejected: \(label) (\(status.rawValue))") }
+  print("PRESS",status.rawValue)
  }
  if let label=value("--point-element") {
   guard let node=nodes.first(where: { e in [kAXTitleAttribute,kAXDescriptionAttribute].contains { attr(e,$0) as? String == label } }), let rawPosition=attr(node,kAXPositionAttribute),let rawSize=attr(node,kAXSizeAttribute) else { fail("Element unavailable") }
   var p=CGPoint.zero,s=CGSize.zero
   _ = AXValueGetValue(unsafeBitCast(rawPosition,to:AXValue.self),.cgPoint,&p);_ = AXValueGetValue(unsafeBitCast(rawSize,to:AXValue.self),.cgSize,&s)
-  let point=CGPoint(x:p.x+s.width/2,y:p.y+s.height/2);lastPointer=point;CGWarpMouseCursorPosition(point)
+  let point=CGPoint(x:args.contains("--trailing-edge") ? p.x+s.width-5 : p.x+s.width/2,y:p.y+s.height/2);lastPointer=point;CGWarpMouseCursorPosition(point)
   CGEvent(mouseEventSource:nil,mouseType:.mouseMoved,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
   print("POINT_ELEMENT",label,point)
  }
@@ -118,13 +133,25 @@ if let window {
   }
  }
 }
-if args.contains("--mouse-click") {
- guard let point=lastPointer else { fail("A controlled --point or --point-element is required before clicking") }
+if args.contains("--mouse-click") || value("--drag-to") != nil {
+ guard let point=lastPointer else { fail("A controlled --point or --point-at is required") }
  var hit:AXUIElement?;_ = AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(point.x),Float(point.y),&hit)
  var hitPID:pid_t=0;if let hit { _ = AXUIElementGetPid(hit,&hitPID) }
  guard hitPID == running.processIdentifier else { fail("The controlled target is occluded; no click sent") }
  CGEvent(mouseEventSource:nil,mouseType:.leftMouseDown,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
- CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
+ var end=point
+ if let raw=value("--drag-to") {
+  let coords=raw.split(separator:",").compactMap {Double($0)}
+  guard coords.count==2 else {fail("Expected --drag-to x,y")}
+  end=CGPoint(x:coords[0],y:coords[1])
+  for step in 1...12 {
+   let t=CGFloat(step)/12
+   let p=CGPoint(x:point.x+(end.x-point.x)*t,y:point.y+(end.y-point.y)*t)
+   CGEvent(mouseEventSource:nil,mouseType:.leftMouseDragged,mouseCursorPosition:p,mouseButton:.left)?.post(tap:.cghidEventTap)
+   usleep(12000)
+  }
+ }
+ CGEvent(mouseEventSource:nil,mouseType:.leftMouseUp,mouseCursorPosition:end,mouseButton:.left)?.post(tap:.cghidEventTap)
 }
 if args.contains("--shortcut") || args.contains("--escape") || args.contains("--option-only") {
  let code:CGKeyCode=args.contains("--escape") ? 53 : args.contains("--option-only") ? 58 : 49

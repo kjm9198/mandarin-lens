@@ -11,14 +11,14 @@ import Carbon
 }
 @Test @MainActor func registrationConflictAndCleanup() {
     let a = GlobalShortcut(), b = GlobalShortcut()
-    let first = a.register(choice: "Control–Option–Space")
+    let first = a.register(choice: "Option–Shift–Space")
     #expect(first == noErr)
     #expect(a.registered)
-    #expect(b.register(choice: "Control–Option–Space") != noErr)
+    #expect(b.register(choice: "Option–Shift–Space") != noErr)
     #expect(!b.registered)
     a.unregister()
     #expect(!a.registered)
-    #expect(b.register(choice: "Control–Option–Space") == noErr)
+    #expect(b.register(choice: "Option–Shift–Space") == noErr)
     b.unregister()
 }
 @Test func tokenAndSelectionChoice() {
@@ -133,20 +133,20 @@ import Carbon
         #expect(SelectionGeometry.word(at: CGPoint(x: rect.maxX + 20, y: rect.midY), in: [word]) == nil)
     }
 }
-@Test @MainActor func screenSelectionDoesNotOpenOrTranslate() {
+@Test @MainActor func selectedWordStartsTranslationWithoutOpeningWorkspace() {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }
     let lens = Lens(dataDirectory: root)
-    lens.restoreTranslation(source: "学习", translated: "Study", language: "en")
-    #expect(lens.canSaveWord)
-    lens.acceptScreenWord(ScreenWord(text: "学习", context: "我喜欢学习中文", bounds: CGRect(x: 30,y: 40,width: 44,height: 24)))
-    #expect(lens.input == "学习" && lens.capturedContext == "我喜欢学习中文")
-    #expect(lens.panel == nil && lens.highlight == nil)
-    #expect(lens.configuration == nil && lens.translationRequest == nil)
+    lens.target = "en"
+    lens.acceptScreenWord(ScreenWord(text: "学习",context: "我喜欢学习中文。",bounds: CGRect(x: 30,y: 40,width: 44,height: 24)),showResult: false)
+    #expect(lens.input == "学习" && lens.capturedContext == "我喜欢学习中文。")
+    #expect(lens.panel == nil)
+    #expect(lens.translationRequest?.text == "学习")
+    #expect(lens.translationRequest?.kind == .word)
     #expect(!lens.canSaveWord && lens.history.isEmpty)
-    lens.selection.cancel()
-    #expect(!lens.selection.active)
-    #expect(lens.input == "学习")
+    if let request = lens.translationRequest { lens.completeTranslation("Study",request: request) }
+    #expect(lens.canSaveWord && lens.history.count == 1)
+    #expect(lens.history.first?.context == "我喜欢学习中文。")
 }
 @Test @MainActor func rasterWordsHaveIndividualBounds() throws {
     let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1400, pixelsHigh: 400, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
@@ -166,4 +166,98 @@ import Carbon
     #expect(beautiful.bounds.minY > chinese.bounds.maxY)
     #expect(frame.contains(chinese.bounds))
     #expect(SelectionGeometry.word(at: CGPoint(x: coffee.bounds.midX,y: coffee.bounds.midY), in: words)?.text == "coffee")
+}
+
+@Test func wrappedSentenceAndRegionPreservePunctuation() throws {
+    let lines = [
+        ScreenWord(text: "I like learning",context: "I like learning",bounds: CGRect(x: 20,y: 100,width: 140,height: 20),lineIndex: 0),
+        ScreenWord(text: "Chinese every day.",context: "Chinese every day.",bounds: CGRect(x: 20,y: 74,width: 170,height: 20),lineIndex: 1),
+        ScreenWord(text: "Another sentence.",context: "Another sentence.",bounds: CGRect(x: 20,y: 48,width: 170,height: 20),lineIndex: 2)
+    ]
+    let words = [
+        ScreenWord(text: "learning",context: lines[0].text,bounds: CGRect(x: 80,y: 100,width: 80,height: 20),lineIndex: 0,utf16Offset: 7),
+        ScreenWord(text: "Chinese",context: lines[1].text,bounds: CGRect(x: 20,y: 74,width: 70,height: 20),lineIndex: 1,utf16Offset: 0),
+        ScreenWord(text: "day",context: lines[1].text,bounds: CGRect(x: 140,y: 74,width: 30,height: 20),lineIndex: 1,utf16Offset: 14),
+        ScreenWord(text: "Another",context: lines[2].text,bounds: CGRect(x: 20,y: 48,width: 70,height: 20),lineIndex: 2,utf16Offset: 0)
+    ]
+    let result = try #require(SelectionGeometry.sentence(at: CGPoint(x: 100,y: 110),words: words,lines: lines))
+    #expect(result.text == "I like learning Chinese every day.")
+    #expect(result.kind == .sentence)
+    #expect(!result.text.contains("Another"))
+    let area = try #require(SelectionGeometry.area(CGRect(x: 10,y: 70,width: 190,height: 55),words: words))
+    #expect(area.text == "learning\nChinese every day.")
+    #expect(area.kind == .area)
+    #expect(SelectionGeometry.area(CGRect(x: 400,y: 400,width: 30,height: 30),words: words) == nil)
+}
+@Test func legacyHistoryAndRecapSampling() throws {
+    let old = Data("[{\"source\":\"学习\",\"translation\":\"Study\",\"language\":\"en\",\"date\":0}]".utf8)
+    let entries = try JSONDecoder().decode([Entry].self,from: old)
+    #expect(entries.count == 1 && entries[0].kind == .typed && !entries[0].favorite)
+    #expect(entries[0].pronunciation == "xué xí")
+    let now = Date()
+    var sample = (0..<50).map { index in Entry(source: String(repeating: "词",count: 400)+"\(index)",translation: String(repeating: "meaning ",count: 100),language: "en",date: now,kind: .word) }
+    sample[0].favorite = true
+    sample[1].error = "Fixture failure"
+    sample[2].date = now.addingTimeInterval(-9*86400)
+    let digest = LearningDigest.entries(sample,scope: .week,now: now)
+    #expect(digest.count > 0 && digest.count <= 20)
+    #expect(!digest.contains { $0.id == sample[1].id || $0.id == sample[2].id })
+    let context = LearningDigest.context(digest)
+    #expect(context.count <= 3600)
+    #expect(digest.enumerated().allSatisfy { context.contains("[\($0.offset+1)]") })
+    #expect(LearningDigest.entries(sample,scope: .favorites,now: now).map(\.id) == [sample[0].id])
+}
+@Test @MainActor func cacheEveryCaptureHistoryAndDictionaryContext() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let lens = Lens(dataDirectory: root)
+    lens.history = (0..<510).map { Entry(source: "older \($0)",translation: "meaning",language: "en") }
+    lens.target = "en"; lens.input = "学习"; lens.captureKind = .word; lens.capturedContext = "我喜欢学习中文。"; lens.translate()
+    let first = try #require(lens.translationRequest)
+    lens.completeTranslation("Study",request: first)
+    #expect(lens.history.count == 511)
+    lens.completeTranslation("Study",request: first)
+    #expect(lens.history.count == 511)
+    lens.invalidateTranslation(); lens.translate()
+    #expect(lens.canSaveWord && lens.output == "Study")
+    #expect(lens.history.count == 512)
+    #expect(lens.history[0].kind == .word)
+    lens.saveCurrentWord()
+    #expect(lens.vocabulary.words.first?.example == "我喜欢学习中文。")
+    let reloaded = Lens(dataDirectory: root)
+    #expect(reloaded.history.count == 512)
+    lens.toggleFavorite(lens.history[0].id)
+    #expect(lens.history[0].favorite)
+    let recaps = RecapStore(url: root.appendingPathComponent("recaps.json"))
+    recaps.save(StudyRecap(scope: .favorites,sourceIDs: [lens.history[0].id],text: "Controlled recap"))
+    #expect(RecapStore(url: root.appendingPathComponent("recaps.json")).items.count == 1)
+}
+@Test @MainActor func damagedHistoryAndRecapArePreserved() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    try FileManager.default.createDirectory(at: root,withIntermediateDirectories: true)
+    let damaged = Data("broken-fixture".utf8)
+    try damaged.write(to: root.appendingPathComponent("history.json"))
+    try damaged.write(to: root.appendingPathComponent("recaps.json"))
+    let lens = Lens(dataDirectory: root); lens.persist()
+    lens.recaps.save(StudyRecap(scope: .today,sourceIDs: [],text: "Must not overwrite"))
+    #expect(try Data(contentsOf: root.appendingPathComponent("history.json")) == damaged)
+    #expect(try Data(contentsOf: root.appendingPathComponent("recaps.json")) == damaged)
+}
+
+@Test func mixedLanguageAreaPlanTranslatesForeignLinesAndKeepsOrder() throws {
+    let request = TranslationRequest(text: "我喜欢学习中文。\nBeautiful coffee, every day.\n我们一起喝咖啡。",target: "en",kind: .area)
+    let plan = AreaTranslationPlan(request: request)
+    #expect(plan.jobs.count == 1)
+    #expect(plan.jobs[0].source == "zh-Hans")
+    #expect(plan.jobs[0].lines.map(\.index) == [0,2])
+    #expect(plan.immediate[1] == "Beautiful coffee, every day.")
+    #expect(plan.combined(plan.immediate) == nil)
+    var results = plan.immediate
+    results[2] = "Let's drink coffee together."
+    results[0] = "I like learning Chinese."
+    #expect(plan.combined(results) == "I like learning Chinese.\nBeautiful coffee, every day.\nLet's drink coffee together.")
+    let polish = AreaTranslationPlan(request: TranslationRequest(text: request.text,target: "pl",kind: .area))
+    #expect(Set(polish.jobs.map(\.source)) == ["en","zh-Hans"])
+    #expect(polish.jobs.allSatisfy { $0.parent != request.id })
 }
