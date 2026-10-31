@@ -1,0 +1,16 @@
+{
+  "version": "3.8.0",
+  "build": 38,
+  "installed_app": "/Users/kjm9198/Applications/Kamihi Lens.app",
+  "private_dmg": "/Users/kjm9198/Documents/Kamihi Studio Vault/KamihiCaptions/native/build/KamihiLens-3.8-private.dmg",
+  "signature": "strict verification passed",
+  "installed_bundle_parity": true,
+  "mounted_dmg_bundle_parity": true,
+  "dmg_sha256": "db981b1bc4395969bd478b09c440d57de0977a1da83c1b8e5cc537a87da9bc30",
+  "screen_selection_acceptance": "passed on image-only English and Chinese words; Escape, toggle cancellation and explicit app translation passed",
+  "stored_data_unchanged": {
+    "words.json": true,
+    "chats.json": true,
+    "history.json": false
+  }
+}

@@ -1,21 +1,24 @@
-# Mandarin Lens 3.7 — native private build
+# Kamihi Lens 3.8 — native private build
 
 SwiftUI/AppKit for Apple Silicon, macOS 15+. Current verification: macOS 27, M5 Pro, 48 GB. Other hardware and OS versions have not been independently validated.
 
 ## Build and install
 
-Run `native/build.sh` from the repository root. Copy `native/build/Mandarin Lens 3.7.app` to `~/Applications` and open it. `native/package.sh` creates `native/build/MandarinLens-3.7-private.dmg` with the app and Applications shortcut. It uses an available Apple Development signing identity, or ad-hoc signing if none exists. Set `LENS_SIGNING_IDENTITY` to select a certificate. This is a private development build, not notarized or a public binary release.
+Run `native/build.sh` from the repository root. Copy `native/build/Kamihi Lens.app` to `~/Applications` and open it. `native/package.sh` creates `native/build/KamihiLens-3.8-private.dmg` with the app and Applications shortcut. It uses an available Apple Development signing identity, or ad-hoc signing if none exists. Set `LENS_SIGNING_IDENTITY` to select a certificate. This is a private development build, not notarized or a public binary release.
 
-Versioned app names distinguish installations. Builds 3.1–3.7 intentionally share the approved `studio.kamihi.mandarinlens.v31` identity and development signature to retain permission grants. Quit the previous version before opening another. Only one instance may use the shared stores. Dictionary, review progress, categories, translation history and chat history remain in `~/Library/Application Support/Mandarin Lens`. Preferences migrate from the original app; API tokens remain in the same Keychain service.
+Kamihi Lens is the renamed native app. Version 3.8 retains the stable `studio.kamihi.mandarinlens.v31` identity, development signature, existing defaults and Keychain service. Dictionary, review progress, categories, translation history, chat history and downloaded models remain in `~/Library/Application Support/Mandarin Lens`. This internal folder name intentionally stays unchanged. Quit the previous app before opening the new one; only one instance may use the stores.
 
 The DMG does not bundle model weights or Python. The current Mac has Python 3.12 with `mlx-vlm 0.7.11`, `mlx-audio 0.6.3` and `huggingface_hub` in `~/Library/Application Support/Mandarin Lens/mlx-runtime`. A fresh Mac needs a compatible local runtime or a local LM Studio/Bionic server. Apple Translation may separately request language packs.
 
 ## Everyday use
 
-- Point at a word, then press **Option–Space**. No click or prior selection is required in compatible apps. A selection is preferred only when the pointer lies inside it. The app under the pointer supplies the text, even when another application has focus.
-- A 340 × 252 point lookup shows the exact text, relevant pinyin, translation/progress/error, Save/Saved, target language, Open full app and Compact. Accurate Accessibility bounds produce a click-through outline. Unsupported or protected surfaces receive an honest fallback; lookup never silently captures a screen.
-- Escape dismisses lookup and restores focus. An outside click dismisses it when **Keep floating windows above other apps** is off. When enabled, the companion stays above other apps and quick lookup remains open after outside clicks. Clicks clear its old highlight.
-- Settings offers Option–Space, Control–Option–Space and Option–Shift–Space, native conflict feedback, persistent opacity, explanation language and permission controls. Modifier keys alone never activate lookup.
+- Press **Option–Space** to enter screen selection, then click a word. A crosshair and a light outline follow recognized words. No translation panel, notification or app window opens from the shortcut.
+- Screen selection uses local Apple Vision OCR on an in-memory snapshot of the connected displays. It works on readable raster text in images, videos and apps without native text selection. The snapshot keeps moving content still while you choose. Pixels are released when a word is chosen or the mode is cancelled. It needs macOS **Screen & System Audio Recording** permission (no audio is captured); allow it in Kamihi Lens → Settings before first use. A permission denial stays in the app's status text and does not open a popup from the shortcut.
+- Arrow keys or Tab move through recognized words; Return chooses the highlighted word.
+- After a click, only a small click-through highlight remains. Normal clicks return to the source app. **Escape** or **Option–Space again** cancels both the selection mode and the remaining highlight. Repeating a held shortcut does not create duplicate windows. Clicking blank space keeps selection mode active.
+- Open **Kamihi Lens** from Applications or the Dock to translate the last selected word, save it or use the full workspace. Cancelling the highlight preserves that word for later. Selection itself never starts translation, writes vocabulary or adds history.
+- Settings offers Option–Space, Control–Option–Space and Option–Shift–Space, conflict feedback, opacity, explanation language and permission controls. Modifier keys alone never start selection. The floating-window preference only affects the app window.
+- Text must be visible and readable. OCR can misread small, low-contrast or stylized text; protected/DRM content cannot be promised. Selection is a snapshot, not continuous monitoring. Capture → Selected text still provides the explicit Accessibility route for an already selected sentence. Secure Accessibility fields remain rejected. Explicit area/display OCR is also available from the app.
 - **Open full app** opens a larger workspace with Translator, My words, History, Learn, Local models and Settings/tutorial. The window supports macOS full screen. **Compact** opens the smaller companion. Expanding preserves the word, translation and captured context.
 - In the full translator, Save word uses an immutable presentation snapshot. Select a token, translate its own meaning, edit it and save; dismissing restores the original pair/context. Duplicate prevention preserves Vietnamese tone distinctions. A failed disk write does not report Saved.
 - My words retains search, categories, validated local-AI categorization, review, pronunciation, examples and JSON export. Pinyin is system transliteration, not an authoritative pronunciation dictionary.
@@ -32,7 +35,7 @@ Direct MLX inference uses offline Hugging Face settings and no remote-code optio
 
 ## Verification and limits
 
-See [the acceptance report](reports/LEARNING-UPDATE.md) for native journeys, actual display geometry, screenshots, automated tests and model-quality limits. No 16 GB hardware, mixed-DPI display, broad VoiceOver or human pronunciation certification is claimed. Region/display OCR remains explicit and uses local Apple Vision. No cloud inference, analytics, mandatory accounts, subscriptions or sync were added.
+See [the 3.8 selection acceptance report](reports/KAMIHI-LENS-3.8.md) and [the prior workspace report](reports/LEARNING-UPDATE.md) for native journeys, actual display geometry, screenshots, automated tests and model-quality limits. No 16 GB hardware, mixed-DPI display, broad VoiceOver or human pronunciation certification is claimed. The shortcut explicitly starts snapshot OCR; additional region/display capture remains available in the app. All recognition uses local Apple Vision. No cloud inference, analytics, mandatory accounts, subscriptions or sync were added.
 
 Reproduce automated checks:
 
@@ -46,4 +49,4 @@ sandbox-exec -p '(version 1)(allow default)(deny network*)' /tmp/lens-feature-sm
 sandbox-exec -p '(version 1)(allow default)(deny network*)' /usr/bin/python3 native/Tests/worker_smoke.py
 ```
 
-`Tests/NativeDriver.swift`, `Tests/TargetFixture.swift` and `Tests/native_edges.py` support real installed-app acceptance. The edge test requires two connected displays and four visible fixture text windows; it is not a headless substitute for cross-app UI testing. Never grant macOS permissions programmatically. Microphone practice requires the user's permission and real voice for human acceptance.
+`Tests/NativeDriver.swift` and `Tests/TargetFixture.swift` support real installed-app acceptance. The older `Tests/native_edges.py` documents the former 3.7 lookup-panel behavior and is not a test of the new selection workflow. Never grant macOS permissions programmatically. Microphone practice requires the user's permission and real voice for human acceptance.

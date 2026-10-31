@@ -68,7 +68,7 @@ enum TargetCapture {
         guard AXValueGetValue(unsafeBitCast(value, to: AXValue.self), .cgRect, &rect), rect.width > 0, rect.height > 0, rect.width < 10000, rect.height < 10000 else { return nil }; return rect
     }
     static func capture(point: CGPoint, primaryTop: CGFloat, pid: pid_t, selectionOnly: Bool = false) throws -> CapturedTarget {
-        guard AXIsProcessTrusted() else { throw LocalModelError.message("Allow Mandarin Lens in System Settings → Privacy & Security → Accessibility. Paste text works without access.") }
+        guard AXIsProcessTrusted() else { throw LocalModelError.message("Allow Kamihi Lens in System Settings → Privacy & Security → Accessibility. Paste text works without access.") }
         let app = AXUIElementCreateApplication(pid); AXUIElementSetMessagingTimeout(app, 0.35)
         var found: AXUIElement?
         let axPoint = LookupGeometry.axPoint(point, primaryTop: primaryTop)
@@ -124,6 +124,8 @@ struct ShortcutLatch {
     private var reference: EventHotKeyRef?
     private var handler: EventHandlerRef?
     private var latch = ShortcutLatch()
+    private let signature: OSType
+    init(signature: OSType = 0x4D4C454E) { self.signature = signature }
     var activate: (() -> Void)?
     var registered = false
     func register(choice: String) -> OSStatus {
@@ -134,14 +136,17 @@ struct ShortcutLatch {
             guard let event, let context else { return OSStatus(eventNotHandledErr) }
             return MainActor.assumeIsolated {
                 let shortcut = Unmanaged<GlobalShortcut>.fromOpaque(context).takeUnretainedValue()
+                var key = EventHotKeyID()
+                guard GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &key) == noErr,
+                      key.signature == shortcut.signature else { return OSStatus(eventNotHandledErr) }
                 if GetEventKind(event) == UInt32(kEventHotKeyReleased) { shortcut.latch.release() }
                 else if shortcut.latch.press() { shortcut.activate?() }
                 return noErr
             }
         }, 2, &specs, context, &handler)
         guard handlerStatus == noErr else { return handlerStatus }
-        let flags = choice == "Control–Option–Space" ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
-        let status = RegisterEventHotKey(UInt32(kVK_Space), flags, EventHotKeyID(signature: 0x4D4C454E, id: 1), GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &reference)
+        let flags = choice == "Escape" ? UInt32(0) : choice == "Control–Option–Space" ? UInt32(controlKey | optionKey) : choice == "Option–Shift–Space" ? UInt32(optionKey | shiftKey) : UInt32(optionKey)
+        let status = RegisterEventHotKey(UInt32(choice == "Escape" ? kVK_Escape : kVK_Space), flags, EventHotKeyID(signature: signature, id: 1), GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &reference)
         registered = status == noErr
         if !registered { unregister() }
         return status

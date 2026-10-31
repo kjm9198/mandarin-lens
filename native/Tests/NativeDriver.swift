@@ -18,8 +18,8 @@ if args.contains("--screens") {
  let data=try JSONSerialization.data(withJSONObject:screens,options:[.sortedKeys]);print(String(decoding:data,as:UTF8.self));exit(0)
 }
 var lastPointer: CGPoint?
-if args.contains("--frames") {
- let frames=(CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],0) as? [[String:Any]] ?? []).filter { $0[kCGWindowOwnerPID as String] as? Int == Int(running.processIdentifier) }.map { item in ["title":item[kCGWindowName as String] ?? "", "bounds":item[kCGWindowBounds as String] ?? [:], "alpha":item[kCGWindowAlpha as String] ?? 0, "layer":item[kCGWindowLayer as String] ?? 0] }
+if args.contains("--frames") || args.contains("--frames-all") {
+ let frames=(CGWindowListCopyWindowInfo(args.contains("--frames-all") ? [.optionAll,.excludeDesktopElements] : [.optionOnScreenOnly,.excludeDesktopElements],0) as? [[String:Any]] ?? []).filter { $0[kCGWindowOwnerPID as String] as? Int == Int(running.processIdentifier) }.map { item in ["title":item[kCGWindowName as String] ?? "", "bounds":item[kCGWindowBounds as String] ?? [:], "alpha":item[kCGWindowAlpha as String] ?? 0, "layer":item[kCGWindowLayer as String] ?? 0,"onscreen":item[kCGWindowIsOnscreen as String] ?? false] }
  let json=try JSONSerialization.data(withJSONObject:frames,options:[.sortedKeys]);print(String(decoding:json,as:UTF8.self));exit(0)
 }
 let app=AXUIElementCreateApplication(running.processIdentifier)
@@ -38,6 +38,12 @@ if window == nil && !args.contains("--absent-ok") {
 }
 if window == nil && (args.contains("--dump") || value("--click") != nil || value("--text") != nil || value("--point") != nil) { fail("Named window is not available") }
 if let window {
+ if args.contains("--close-window") {
+  guard let close=attr(window,kAXCloseButtonAttribute),CFGetTypeID(close)==AXUIElementGetTypeID() else { fail("Close button missing") }
+  let status=AXUIElementPerformAction(unsafeBitCast(close,to:AXUIElement.self),kAXPressAction as CFString)
+  guard status == .success else { fail("Close rejected") }
+  print("CLOSE requested")
+ }
  let nodes=all(window)
  if let text=value("--type") {
   let fields=nodes.filter { [kAXTextAreaRole,kAXTextFieldRole].contains(attr($0,kAXRoleAttribute) as? String ?? "") }
@@ -85,6 +91,21 @@ if let window {
   lastPointer=point
   CGWarpMouseCursorPosition(point)
   CGEvent(mouseEventSource:nil,mouseType:.mouseMoved,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
+ }
+ if let coordinate=value("--point-at") {
+  guard value("--window") != nil else { fail("A named controlled window is required") }
+  let parts=coordinate.split(separator:",").compactMap { Double($0) }
+  guard parts.count == 2 else { fail("Expected --point-at x,y in AX global coordinates") }
+  let point=CGPoint(x:parts[0],y:parts[1])
+  let rawPosition=attr(window,kAXPositionAttribute),rawSize=attr(window,kAXSizeAttribute)
+  guard let rawPosition, let rawSize else { fail("Window geometry unavailable") }
+  var position=CGPoint.zero,size=CGSize.zero
+  _ = AXValueGetValue(unsafeBitCast(rawPosition,to:AXValue.self),.cgPoint,&position)
+  _ = AXValueGetValue(unsafeBitCast(rawSize,to:AXValue.self),.cgSize,&size)
+  guard CGRect(origin:position,size:size).contains(point) else { fail("Point is outside the named window") }
+  lastPointer=point;CGWarpMouseCursorPosition(point)
+  CGEvent(mouseEventSource:nil,mouseType:.mouseMoved,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
+  print("CONTROLLED_POINT",point)
  }
  if let position=value("--position") {
   let coords=position.split(separator:",").compactMap {Double($0)}

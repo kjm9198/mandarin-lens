@@ -7,11 +7,11 @@
 	<key>CFBundleIdentifier</key>
 	<string>studio.kamihi.mandarinlens.v31</string>
 	<key>CFBundleName</key>
-	<string>Mandarin Lens 3.7</string>
+	<string>Kamihi Lens</string>
 	<key>CFBundleVersion</key>
-	<string>37</string>
+	<string>38</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.7.0</string>
+	<string>3.8.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -23,7 +23,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Optional on-device recognition compares the recognized words with your saved vocabulary. It does not score accent or Mandarin tones.</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mandarin Lens 3.7</string>
+	<string>Kamihi Lens</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 </dict>

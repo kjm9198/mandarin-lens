@@ -70,7 +70,7 @@ struct Note: View {
                 .font(.system(size: 18, weight: .medium)).foregroundStyle(accent)
                 .frame(width: 34, height: 34).background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 1) {
-                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Mandarin Lens").font(.system(size: 14, weight: .semibold))
+                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Kamihi Lens").font(.system(size: 14, weight: .semibold))
                 Text("Chinese · Vietnamese · Polish")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
             }
@@ -103,14 +103,14 @@ struct Note: View {
                     Button { lens.captureSelection() } label: { Label("Selected text", systemImage: "text.cursor") }.help("Select text in another app, then use the shortcut while pointing inside it")
                     Spacer()
                     Menu {
-                        Text("Point at a word, then press \(lens.shortcutChoice)")
+                        Text("Press \(lens.shortcutChoice), then click a word")
                         Button("Capture selected text") { lens.captureSelection() }
                         Divider()
                         Button("Screen area…") { lens.captureScreen(entireDisplay: false) }
                         Button("Entire display") { lens.captureScreen(entireDisplay: true) }
                     } label: { Label(lens.capturing ? "Reading screen…" : "Capture", systemImage: "viewfinder") }.menuStyle(.borderlessButton).fixedSize().disabled(lens.capturing)
                 }.font(.system(size: 11, weight: .medium)).buttonStyle(.plain).foregroundStyle(accent)
-                if lens.input.isEmpty && lens.output != "Point at a word and press Option–Space, or paste text here." {
+                if lens.input.isEmpty && lens.output != "Press Option–Space, then click a word anywhere on screen. Or paste text here." {
                     Text(lens.output).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 HStack {
@@ -136,7 +136,7 @@ struct Note: View {
                 }
                 HStack {
                     if !lens.input.isEmpty {
-                        Button("Clear") { lens.input = ""; lens.output = "Point at a word and press Option–Space, or paste text here." }.buttonStyle(.plain).foregroundStyle(.secondary).font(.caption)
+                        Button("Clear") { lens.input = ""; lens.output = "Press Option–Space, then click a word anywhere on screen. Or paste text here." }.buttonStyle(.plain).foregroundStyle(.secondary).font(.caption)
                     }
                     Spacer()
                     Button { editing = false; lens.translate() } label: { Label("Translate", systemImage: "arrow.turn.down.right").font(.system(size: 11, weight: .semibold)).padding(.horizontal, 5).padding(.vertical, 3) }
@@ -147,7 +147,7 @@ struct Note: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Image(systemName: "cursorarrow.click").font(.system(size: 24, weight: .light)).foregroundStyle(accent)
                         Text("Meet your next word.").font(.system(size: 17, weight: .medium, design: .rounded))
-                        Text("Point at a word in another app and press \(lens.shortcutChoice). Select a sentence and point inside it to capture the selection. Screen area OCR is available from Capture.").font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(3)
+                        Text("Press \(lens.shortcutChoice), then click a word—even in an image. Only a quiet highlight stays on screen. Escape or the shortcut cancels; open Kamihi Lens to translate.").font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(3)
                         Button("Shortcut settings") { page = .settings }.buttonStyle(.bordered).controlSize(.small)
                     }.padding(.vertical, 14)
                 } else {
@@ -219,17 +219,22 @@ struct Note: View {
             Picker("Global shortcut", selection: $lens.shortcutChoice) { ForEach(["Option–Space", "Control–Option–Space", "Option–Shift–Space"], id: \.self) { Text($0) } }
             Text(lens.shortcutStatus).font(.caption).foregroundStyle(.secondary)
             Toggle("Keep floating windows above other apps", isOn: $lens.sticky)
-            Text("Point at text, then press the shortcut. Modifier keys alone never open Lens.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Press the shortcut to start selecting. Click a word to leave a subtle highlight. Escape or the shortcut again clears it. No lookup popup opens.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Divider()
             Text("Note opacity").font(.system(size: 12, weight: .medium))
             Slider(value: $lens.opacity, in: 0.35...1).disabled(reduceTransparency || contrast == .increased).accessibilityLabel("Note opacity")
             Text(reduceTransparency ? "Reduced Transparency is enabled in macOS." : "Use the footer slider or type a percentage from 35 to 100.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Divider()
-            Label("Word lookup access", systemImage: "cursorarrow.click").font(.system(size: 12, weight: .medium))
+            Label("Screen selection", systemImage: "viewfinder").font(.system(size: 12, weight: .medium))
+            Text(lens.selectionStatus).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Button("Allow Screen Recording…") { lens.screenPermission() }.controlSize(.small)
+            Text("A local snapshot lets you select words in images, videos and other apps. Pixels are released after selection or cancellation. Protected or unreadable content may be unavailable.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Divider()
+            Label("Selected-text access", systemImage: "cursorarrow.click").font(.system(size: 12, weight: .medium))
             Text("Allow Accessibility so Lens can read the word you choose.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Button("Allow access…") { lens.permission() }.controlSize(.small)
             Divider()
-            Text("When enabled, the compact window stays above other apps and quick lookup stays open after outside clicks. Escape always dismisses quick lookup.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("This setting only keeps the app window above other apps. Screen selection always stays quiet and clears with Escape or the shortcut.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.padding(20).frame(width: 260)
     }
     private func caption(_ text: String) -> some View { Text(text).font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.secondary) }
@@ -245,12 +250,13 @@ struct LensMenu: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 9) {
                 Image(systemName: "character.bubble.fill").font(.title2).foregroundStyle(.teal)
-                VStack(alignment: .leading, spacing: 2) { Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Mandarin Lens").font(.system(size: 13, weight: .semibold)); Text("Your words, always close.").font(.system(size: 10)).foregroundStyle(.secondary) }
+                VStack(alignment: .leading, spacing: 2) { Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Kamihi Lens").font(.system(size: 13, weight: .semibold)); Text("Your words, always close.").font(.system(size: 10)).foregroundStyle(.secondary) }
             }
             Button { lens.showWorkspace() } label: { Label("Open full app", systemImage: "rectangle.on.rectangle").frame(maxWidth: .infinity).padding(.vertical, 4) }.buttonStyle(.borderedProminent).tint(.teal)
             Button("Open compact window") { lens.showWorkspace(compact: true) }
-            Text("Point at a word → \(lens.shortcutChoice)").font(.caption)
+            Text("\(lens.shortcutChoice) → click a word").font(.caption)
             Text(lens.shortcutStatus).font(.caption2).foregroundStyle(.secondary)
+            Text(lens.selectionStatus).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Menu("Capture text") {
                 Button("Capture selected text") { lens.captureSelection() }
                 Button("Screen area…") { lens.captureScreen(entireDisplay: false) }

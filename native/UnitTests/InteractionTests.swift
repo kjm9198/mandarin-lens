@@ -122,3 +122,48 @@ import Carbon
     #expect(messages.reduce(0) { $0 + $1.content.count } <= 12000)
     #expect(!messages.contains { $0.content.contains("untrusted override") })
 }
+
+@Test func screenSelectionCoordinatesAndBlankSpace() {
+    for frame in [CGRect(x: 0, y: 0, width: 1352, height: 878), CGRect(x: 1352, y: -140, width: 1920, height: 1080), CGRect(x: -1920, y: 120, width: 1920, height: 1080)] {
+        let rect = SelectionGeometry.screenRect(CGRect(x: 0.25, y: 0.5, width: 0.1, height: 0.02), in: frame)
+        #expect(rect.minX == frame.minX + frame.width * 0.25)
+        #expect(rect.minY == frame.minY + frame.height * 0.5)
+        let word = ScreenWord(text: "学习", context: "我喜欢学习中文", bounds: rect)
+        #expect(SelectionGeometry.word(at: CGPoint(x: rect.midX, y: rect.midY), in: [word]) == word)
+        #expect(SelectionGeometry.word(at: CGPoint(x: rect.maxX + 20, y: rect.midY), in: [word]) == nil)
+    }
+}
+@Test @MainActor func screenSelectionDoesNotOpenOrTranslate() {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let lens = Lens(dataDirectory: root)
+    lens.restoreTranslation(source: "学习", translated: "Study", language: "en")
+    #expect(lens.canSaveWord)
+    lens.acceptScreenWord(ScreenWord(text: "学习", context: "我喜欢学习中文", bounds: CGRect(x: 30,y: 40,width: 44,height: 24)))
+    #expect(lens.input == "学习" && lens.capturedContext == "我喜欢学习中文")
+    #expect(lens.panel == nil && lens.highlight == nil)
+    #expect(lens.configuration == nil && lens.translationRequest == nil)
+    #expect(!lens.canSaveWord && lens.history.isEmpty)
+    lens.selection.cancel()
+    #expect(!lens.selection.active)
+    #expect(lens.input == "学习")
+}
+@Test @MainActor func rasterWordsHaveIndividualBounds() throws {
+    let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1400, pixelsHigh: 400, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+    let context = try #require(NSGraphicsContext(bitmapImageRep: bitmap))
+    NSGraphicsContext.saveGraphicsState(); NSGraphicsContext.current = context
+    NSColor.white.setFill(); CGRect(x: 0,y: 0,width: 1400,height: 400).fill()
+    ("beautiful coffee" as NSString).draw(at: CGPoint(x: 60,y: 260), withAttributes: [.font: NSFont.systemFont(ofSize: 48), .foregroundColor: NSColor.black])
+    ("我喜欢学习中文" as NSString).draw(at: CGPoint(x: 60,y: 120), withAttributes: [.font: NSFont.systemFont(ofSize: 48), .foregroundColor: NSColor.black])
+    NSGraphicsContext.restoreGraphicsState()
+    let image = try #require(bitmap.cgImage)
+    let frame = CGRect(x: -700,y: 100,width: 700,height: 200)
+    let words = try SelectionOCR.words(in: image, screen: frame)
+    let beautiful = try #require(words.first { $0.text == "beautiful" })
+    let coffee = try #require(words.first { $0.text == "coffee" })
+    let chinese = try #require(words.first { $0.text == "学习" })
+    #expect(beautiful.bounds.maxX < coffee.bounds.minX)
+    #expect(beautiful.bounds.minY > chinese.bounds.maxY)
+    #expect(frame.contains(chinese.bounds))
+    #expect(SelectionGeometry.word(at: CGPoint(x: coffee.bounds.midX,y: coffee.bounds.midY), in: words)?.text == "coffee")
+}

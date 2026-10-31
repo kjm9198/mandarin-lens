@@ -24,12 +24,15 @@ struct Entry: Codable, Identifiable {
     let models = LocalModels()
     let chats: ChatStore
     let shortcut = GlobalShortcut()
+    let selection = ScreenSelection()
+    @Published var selectionStatus = "Ready · press Option–Space to select a word"
+    private var selectionNeedsTranslation = false
     var chatTask: Task<Void, Never>?
     private var modelObservation: AnyCancellable?
     var chatGeneration = UUID()
     @Published var explanationLanguage = UserDefaults.standard.string(forKey: "explanationLanguage") ?? "en" { didSet { if savesPreferences { UserDefaults.standard.set(explanationLanguage, forKey: "explanationLanguage") } } }
     @Published var input = "" { didSet { if oldValue != input { invalidateTranslation(); capturedContext = "" } } }
-    @Published var output = "Point at a word and press Option–Space, or paste text here."
+    @Published var output = "Press Option–Space, then click a word anywhere on screen. Or paste text here."
     @Published var target = UserDefaults.standard.string(forKey: "target") ?? "en" { didSet { if savesPreferences { UserDefaults.standard.set(target, forKey: "target") }; if oldValue != target { invalidateTranslation(); if !input.isEmpty && !restoringTranslation { translate() } } } }
     @Published var opacity = UserDefaults.standard.object(forKey: "opacity") as? Double ?? 0.96 { didSet { if savesPreferences { UserDefaults.standard.set(opacity, forKey: "opacity") }; applyWindowPreferences() } }
     @Published var sticky = UserDefaults.standard.bool(forKey: "sticky") { didSet { if savesPreferences { UserDefaults.standard.set(sticky, forKey: "sticky") }; applyWindowPreferences() } }
@@ -49,7 +52,6 @@ struct Entry: Codable, Identifiable {
     @Published var workspaceMode = true
     var previousApplication: NSRunningApplication?
     var panel: NSPanel?
-    var quickPanel: NSPanel?
     var highlight: NSPanel?
     var monitors: [Any] = []
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -72,18 +74,19 @@ struct Entry: Codable, Identifiable {
     }
     func applyWindowPreferences() {
         let solid = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency || NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
-        for window in [panel, quickPanel].compactMap({ $0 }) { window.alphaValue = solid ? 1 : min(1, max(0.35, opacity)) }
+        for window in [panel].compactMap({ $0 }) { window.alphaValue = solid ? 1 : min(1, max(0.35, opacity)) }
         panel?.level = sticky ? .floating : .normal
     }
     func show() { showWorkspace(compact: !workspaceMode) }
     func showWorkspace(compact: Bool = false) {
-        if quickPanel?.isVisible == true { workspacePage = "Translate" }
-        dismissLookup(restoreFocus: false, cancelTranslation: false)
+        selection.cancel()
+        let translateSelection = selectionNeedsTranslation
+        if translateSelection { workspacePage = "Translate"; selectionNeedsTranslation = false }
         workspaceMode = !compact; translationHost = "workspace"
         NSApp.setActivationPolicy(.regular)
         if panel == nil {
             let p = NSPanel(contentRect: NSRect(x: 240, y: 180, width: 980, height: 700), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
-            p.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Mandarin Lens"; p.isReleasedWhenClosed = false; p.hidesOnDeactivate = false
+            p.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Kamihi Lens"; p.isReleasedWhenClosed = false; p.hidesOnDeactivate = false
             p.collectionBehavior = [.fullScreenPrimary]
             p.contentView = NSHostingView(rootView: Note().environmentObject(self))
             p.minSize = NSSize(width: 390, height: 480)
@@ -92,40 +95,29 @@ struct Entry: Codable, Identifiable {
         }
         panel?.setContentSize(compact ? NSSize(width: 410, height: 570) : NSSize(width: 980, height: 700))
         applyWindowPreferences(); NSApp.unhide(nil); panel?.center(); panel?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
-    }
-    func showQuick(at point: CGPoint, target: CapturedTarget?) {
-        translationHost = "quick"
-        if quickPanel == nil {
-            let p = NSPanel(contentRect: .zero, styleMask: [.titled, .closable, .nonactivatingPanel], backing: .buffered, defer: false)
-            p.title = "Quick lookup · " + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"); p.titlebarAppearsTransparent = true; p.isReleasedWhenClosed = false; p.hidesOnDeactivate = false
-            p.level = .floating; p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            p.contentView = NSHostingView(rootView: QuickLookup().environmentObject(self)); quickPanel = p
-        }
-        let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main!
-        quickPanel?.setContentSize(NSSize(width: 340, height: 220))
-        let frame = LookupGeometry.panelFrame(pointer: point, size: quickPanel?.frame.size ?? CGSize(width: 340, height: 252), visible: screen.visibleFrame)
-        quickPanel?.setFrame(frame, display: true)
-        showHighlight(target?.bounds)
-        applyWindowPreferences(); NSApp.unhideWithoutActivation(); quickPanel?.orderFrontRegardless(); quickPanel?.makeKey()
+        if translateSelection { translate() }
     }
     func showHighlight(_ bounds: CGRect?) {
         highlight?.orderOut(nil)
         guard let bounds else { return }
         if highlight == nil {
             let p = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            p.level = .floating; p.isOpaque = false; p.backgroundColor = .clear; p.hasShadow = false
+            p.title = "Kamihi Lens highlight"; p.animationBehavior = .none; p.hidesOnDeactivate = false; p.level = .statusBar; p.isOpaque = false; p.backgroundColor = .clear; p.hasShadow = false
             p.ignoresMouseEvents = true; p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            p.contentView = NSHostingView(rootView: RoundedRectangle(cornerRadius: 4).fill(Color.teal.opacity(0.12)).overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.teal, lineWidth: 2)).padding(2))
+            p.contentView = NSHostingView(rootView: SelectionHighlight().padding(2))
             highlight = p
         }
         highlight?.setFrame(bounds.insetBy(dx: -4, dy: -4), display: true); highlight?.orderFrontRegardless()
     }
-    func dismissLookup(restoreFocus: Bool = true, cancelTranslation: Bool = true) {
-        captureGeneration = UUID(); capturing = false
-        let visible = quickPanel?.isVisible == true
-        quickPanel?.orderOut(nil); highlight?.orderOut(nil)
-        if cancelTranslation && translationHost == "quick" { invalidateTranslation() }
-        if restoreFocus && visible { previousApplication?.activate() }
+    func acceptScreenWord(_ word: ScreenWord) {
+        invalidateTranslation()
+        input = word.text; capturedContext = word.context
+        output = "Selected on screen. Open Kamihi Lens to translate."
+        selectionNeedsTranslation = true
+    }
+    func screenPermission() {
+        _ = CGRequestScreenCaptureAccess()
+        selectionStatus = CGPreflightScreenCaptureAccess() ? "Screen selection is ready." : "Allow Kamihi Lens in System Settings → Privacy & Security → Screen & System Audio Recording."
     }
     func registerShortcut() {
         let status = shortcut.register(choice: shortcutChoice)
@@ -133,16 +125,20 @@ struct Entry: Codable, Identifiable {
     }
     func start() {
         guard !started else { return }; started = true
+        selectionStatus = CGPreflightScreenCaptureAccess() ? "Ready · press the shortcut to select a word" : "Allow Screen Recording in Settings to select words anywhere on screen."
         Task { await models.scanFiles() }
         previousApplication = NSWorkspace.shared.frontmostApplication
         observers.append((NSWorkspace.shared.notificationCenter, NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
             Task { @MainActor in self?.previousApplication = app }
         }))
-        shortcut.activate = { [weak self] in self?.capture() }; registerShortcut()
+        selection.onSelect = { [weak self] word in self?.acceptScreenWord(word) }
+        selection.onHighlight = { [weak self] bounds in self?.showHighlight(bounds) }
+        selection.onStatus = { [weak self] status in self?.selectionStatus = status }
+        shortcut.activate = { [weak self] in self?.selection.toggle() }; registerShortcut()
         monitors.append(NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
             if event.type == .keyUp && event.keyCode == 49 { self?.shortcut.releasePressedState() }
-            if event.type == .keyDown && event.keyCode == 53, self?.quickPanel?.isVisible == true { self?.dismissLookup(); return nil }; return event
+            if event.type == .keyDown && event.keyCode == 53, self?.selection.active == true { self?.selection.cancel(); return nil }; return event
         } as Any)
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .keyUp) { [weak self] event in
             guard event.keyCode == 49 else { return }
@@ -151,25 +147,15 @@ struct Entry: Codable, Identifiable {
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.keyCode == 53 else { return }
             Task { @MainActor in
-                guard let self, self.capturing || self.quickPanel?.isVisible == true else { return }
-                self.dismissLookup()
+                guard let self, self.selection.active else { return }
+                self.selection.cancel()
             }
         } as Any)
-        monitors.append(NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, self.quickPanel?.isVisible == true else { return }
-                self.highlight?.orderOut(nil)
-                guard !self.sticky else { return }
-                self.dismissLookup(restoreFocus: false)
-            }
-        } as Any)
-        observers.append((NotificationCenter.default, NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { [weak self] note in
-            Task { @MainActor in if let self, let window = note.object as? NSWindow, window === self.quickPanel { self.dismissLookup() } }
-        }))
+        observers.append((NotificationCenter.default, NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.selection.cancel() } }))
         observers.append((NSWorkspace.shared.notificationCenter, NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.applyWindowPreferences() } }))
 
     }
-    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); highlight?.orderOut(nil) }
+    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); selection.cancel(); highlight?.orderOut(nil) }
     func permission() { let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }
     func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? { TargetCapture.attribute(element, name) }
     func capture(selectionOnly: Bool = false) {
@@ -190,10 +176,10 @@ struct Entry: Codable, Identifiable {
             capturing = false
             switch result {
             case .success(let captured):
-                input = captured.text; capturedContext = captured.context; showQuick(at: point, target: captured)
+                input = captured.text; capturedContext = captured.context; showWorkspace()
                 let reusable = translationRequest?.text == captured.text && translationRequest?.target == target && (output == "Translating…" || canSaveWord)
                 if !reusable { translate() }
-            case .failure(let error): input = ""; output = error.localizedDescription; showQuick(at: point, target: nil)
+            case .failure(let error): input = ""; output = error.localizedDescription; showWorkspace()
             }
         }
     }
@@ -290,7 +276,7 @@ struct Entry: Codable, Identifiable {
         let duplicate = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == Bundle.main.bundleIdentifier && $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
         if let duplicate { duplicate.activate(); NSApp.terminate(nil); return }
         let model = Lens.shared; model.start()
-        if CommandLine.arguments.contains("--workspace") || !UserDefaults.standard.bool(forKey: "onboardingComplete") { model.showWorkspace() }
+        if !CommandLine.arguments.contains("--background") { model.showWorkspace() }
         if CommandLine.arguments.contains("--chat-smoke") { model.showWorkspace(); model.workspacePage = "Learn"; model.question = "Give one short example sentence using hello."; model.chat() }
         if CommandLine.arguments.contains("--smoke-test") { model.showWorkspace(); model.input = "Hello, how are you?"; model.target = CommandLine.arguments.contains("--chinese") ? "zh-Hans" : "vi"; model.translate() }
     }
@@ -300,5 +286,5 @@ struct Entry: Codable, Identifiable {
 @main struct MandarinLensApp: App {
     @NSApplicationDelegateAdaptor(LensAppDelegate.self) private var delegate
     @StateObject private var lens = Lens.shared
-    var body: some Scene { MenuBarExtra("Mandarin Lens", systemImage: "character.bubble") { LensMenu().environmentObject(lens) }.menuBarExtraStyle(.window) }
+    var body: some Scene { MenuBarExtra("Kamihi Lens", systemImage: "character.bubble") { LensMenu().environmentObject(lens) }.menuBarExtraStyle(.window) }
 }

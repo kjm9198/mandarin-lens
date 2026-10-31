@@ -54,11 +54,11 @@ enum LocalSpeech {
         if useApple {
             let authorization = await withCheckedContinuation { continuation in SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) } }
             guard generation == id else { return }
-            guard authorization == .authorized else { status = "Allow Speech Recognition for Mandarin Lens in Privacy & Security. Listening remains optional."; return }
+            guard authorization == .authorized else { status = "Allow Speech Recognition for Kamihi Lens in Privacy & Security. Listening remains optional."; return }
         }
         let mic = await AVCaptureDevice.requestAccess(for: .audio)
         guard generation == id else { return }
-        guard mic else { status = "Allow Microphone access for Mandarin Lens in Privacy & Security."; return }
+        guard mic else { status = "Allow Microphone access for Kamihi Lens in Privacy & Security."; return }
         transcript = ""; language = word.sourceLanguage
         do {
             if !useApple {

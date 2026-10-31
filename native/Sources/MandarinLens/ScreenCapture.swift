@@ -9,7 +9,7 @@ extension Lens {
         guard !capturing else { return }
         guard CGPreflightScreenCaptureAccess() else {
             _ = CGRequestScreenCaptureAccess()
-            output = "Allow Screen Recording for Mandarin Lens in System Settings → Privacy & Security, then try Capture again."
+            output = "Allow Screen Recording for Kamihi Lens in System Settings → Privacy & Security, then try Capture again."
             show(); return
         }
         capturing = true

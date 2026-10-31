@@ -167,7 +167,7 @@ struct TutorialView: View {
     private let symbols = ["character.book.closed", "viewfinder", "bookmark", "desktopcomputer"]
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack { Text("MANDARIN LENS · \(step + 1) OF 4").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary); Spacer(); Button("Skip") { finish() }.buttonStyle(.plain) }
+            HStack { Text("KAMIHI LENS · \(step + 1) OF 4").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary); Spacer(); Button("Skip") { finish() }.buttonStyle(.plain) }
             Image(systemName: symbols[step]).font(.system(size: 38, weight: .light)).foregroundStyle(.teal)
             Text(titles[step]).font(.system(size: 25, weight: .semibold, design: .rounded)).fixedSize(horizontal: false, vertical: true)
             Group {
@@ -177,8 +177,8 @@ struct TutorialView: View {
                     Picker("Translate into", selection: $lens.target) { Text("中文 · Simplified").tag("zh-Hans"); Text("繁體中文 · Traditional").tag("zh-Hant"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("English").tag("en") }
                     Picker("Explain in", selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
                 case 1:
-                    Text("Point at a word and press Option–Space. For a sentence, select it and point inside the selection. Escape dismisses lookup. Use Open full app for your dictionary and chat. For images, explicitly choose Capture → Screen area.")
-                    Text("Allow Accessibility or Screen Recording only when you use those features. Paste works without either permission.").foregroundStyle(.secondary)
+                    Text("Press Option–Space, then click a word anywhere on screen—even in an image. A subtle highlight stays; no lookup popup opens. Escape or Option–Space again clears it. Open Kamihi Lens when you want to translate, save or practise.")
+                    Text("Allow Screen Recording in Settings for screen selection. Recognition stays on this Mac. Accessibility is only needed for Capture selected text. Paste works without either permission.").foregroundStyle(.secondary)
                 case 2:
                     Text("Choose Save word after translating. Pick a single word from the sentence, translate its meaning, then save. Your words get suggested categories immediately.")
                     Text("Categorize all uses your chosen local AI. You can change a category yourself; manual choices stay put. Review reveals meanings one at a time.").foregroundStyle(.secondary)

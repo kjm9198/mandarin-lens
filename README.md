@@ -6,7 +6,7 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 ## Private native macOS app
 
-The separate native Mandarin Lens 3.7 app adds Option–Space word lookup, a personal dictionary, local chat and optional offline speaking practice. See [native setup](native/README.md) and the [native acceptance report](native/reports/LEARNING-UPDATE.md). Its development DMG is generated locally; no native public binary release is published here. The extension version above is unchanged.
+The separate native Kamihi Lens 3.8 app adds quiet Option–Space screen selection, a personal dictionary, local chat and optional offline speaking practice. See [native setup](native/README.md) and the [native acceptance report](native/reports/KAMIHI-LENS-3.8.md). Its development DMG is generated locally; no native public binary release is published here. The extension version above is unchanged.
 
 ## Install locally or share with a friend
 
