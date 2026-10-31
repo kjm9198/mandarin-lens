@@ -1,5 +1,13 @@
 # 2.1.1 · 30 October 2026
 
+## Kamihi Lens 4.2.0 — easier selection and translation controls
+
+- Switch Word, Sentence and Section directly in the screen selector. Drag a section from any mode; click a sentence to capture its full text.
+- Visible From/To pickers, Swap, selected-strategy offline readiness and language preparation.
+- Natural/Fast requests for Apple Translation, with system fallback and macOS 15 compatibility. The Qwen study model remains separate.
+- Section translation respects the chosen source, rejoins likely wrapped sentences, and matches batch results by identifier.
+- Cached results distinguish source preference and translation mode.
+
 ## Kamihi Lens 4.1.0 — native design update
 
 - Shared adaptive paper, charcoal and Kamihi teal palette, system typography, branded sidebar and compact toolbar.

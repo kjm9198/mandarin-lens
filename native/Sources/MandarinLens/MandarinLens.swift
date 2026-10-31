@@ -22,10 +22,12 @@ struct Entry: Codable, Identifiable {
     var error: String?
     var usageExample: ChineseExample?
     var sourceLanguage: String?
+    var sourcePreference: String?
+    var quality: String?
     var pronunciation: String { source.range(of: "\\p{Han}", options: .regularExpression) == nil ? "" : source.applyingTransform(.mandarinToLatin, reverse: false) ?? "" }
 }
 extension Entry {
-    enum CodingKeys: String, CodingKey { case id, source, translation, language, date, kind, context, favorite, error, usageExample, sourceLanguage }
+    enum CodingKeys: String, CodingKey { case id, source, translation, language, date, kind, context, favorite, error, usageExample, sourceLanguage, sourcePreference, quality }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
@@ -39,6 +41,8 @@ extension Entry {
         error = try c.decodeIfPresent(String.self, forKey: .error)
         usageExample = try c.decodeIfPresent(ChineseExample.self,forKey: .usageExample)
         sourceLanguage = try c.decodeIfPresent(String.self,forKey: .sourceLanguage)
+        sourcePreference = try c.decodeIfPresent(String.self,forKey: .sourcePreference)
+        quality = try c.decodeIfPresent(String.self,forKey: .quality)
     }
 }
 @MainActor final class Lens: ObservableObject {
@@ -80,7 +84,8 @@ extension Entry {
     @Published var explanationLanguage = UserDefaults.standard.string(forKey: "explanationLanguage") ?? "en" { didSet { if savesPreferences { UserDefaults.standard.set(explanationLanguage, forKey: "explanationLanguage") } } }
     @Published var input = "" { didSet { if oldValue != input { invalidateTranslation(); capturedContext = "" } } }
     @Published var output = "Press Option–Space, then click a word anywhere on screen. Or paste text here."
-    @Published var sourceChoice = UserDefaults.standard.string(forKey: "sourceChoice") ?? "auto" { didSet { if savesPreferences { UserDefaults.standard.set(sourceChoice,forKey: "sourceChoice") }; if oldValue != sourceChoice { invalidateTranslation(); if !input.isEmpty { translate() } } } }
+    @Published var sourceChoice = UserDefaults.standard.string(forKey: "sourceChoice") ?? "auto" { didSet { if savesPreferences { UserDefaults.standard.set(sourceChoice,forKey: "sourceChoice") }; if oldValue != sourceChoice { invalidateTranslation(); if !input.isEmpty && !restoringTranslation { translate() } } } }
+    @Published var translationQuality = UserDefaults.standard.string(forKey: "translationQuality") ?? "fast" { didSet { if savesPreferences { UserDefaults.standard.set(translationQuality,forKey: "translationQuality") }; if oldValue != translationQuality { invalidateTranslation(); if !input.isEmpty && !restoringTranslation { translate() } } } }
     @Published var usageExample: ChineseExample?
     @Published var exampleStatus = ""
     @Published var exampleJob: ChineseExampleJob?
@@ -265,6 +270,15 @@ extension Entry {
             }
         }
     }
+    func swapTranslationLanguages() {
+        guard canSaveWord else { return }
+        let source = TranslationSource.language(text: input,context: capturedContext,preference: sourceChoice)
+        guard source != "und", source != target else { return }
+        let previousTarget = target, text = output
+        restoringTranslation = true
+        input = text; sourceChoice = previousTarget; target = source; captureKind = .typed
+        restoringTranslation = false; translate()
+    }
     func invalidateTranslation() {
         exampleTask?.cancel(); exampleTask = nil; exampleJob = nil; usageExample = nil; exampleStatus = ""
         areaJobs = []; areaPlan = nil; areaResults = [:]; completedAreaJobs = []
@@ -276,9 +290,9 @@ extension Entry {
         if let request = translationRequest, request.text == text, request.target == target, output == "Translating…" { return }
         translationTask?.cancel(); configuration = nil; areaJobs = []
         let detected = TranslationSource.language(text: text,context: capturedContext,preference: sourceChoice)
-        let request = TranslationRequest(text: text, target: target, kind: captureKind, context: capturedContext,sourceLanguage: detected)
+        let request = TranslationRequest(text: text, target: target, kind: captureKind, context: capturedContext,sourceLanguage: detected,sourcePreference: sourceChoice,quality: translationQuality)
         translationRequest = request; translatedRequest = nil; output = "Translating…"
-        if let cached = history.first(where: { $0.source == text && $0.kind == captureKind && $0.language == target && $0.sourceLanguage == request.sourceLanguage && $0.error == nil && !$0.translation.isEmpty }) {
+        if let cached = history.first(where: { $0.source == text && $0.kind == captureKind && $0.language == target && $0.sourceLanguage == request.sourceLanguage && ($0.sourcePreference ?? "auto") == request.sourcePreference && ($0.quality ?? "natural") == request.quality && $0.error == nil && !$0.translation.isEmpty }) {
             completeTranslation(cached.translation, request: request); return
         }
         if request.kind == .area { beginAreaTranslation(request); return }
@@ -289,7 +303,9 @@ extension Entry {
             completeTranslation(text.applyingTransform(transform, reverse: false) ?? text, request: request); return
         }
         if detected == target { completeTranslation(text, request: request); return }
-        configurationSeed.source = source; configurationSeed.target = Locale.Language(identifier: target); configurationSeed.invalidate()
+        configurationSeed.source = source; configurationSeed.target = Locale.Language(identifier: target)
+        if #available(macOS 26.4,*) { configurationSeed.preferredStrategy = translationQuality == "fast" ? .lowLatency : .highFidelity }
+        configurationSeed.invalidate()
         configuration = configurationSeed
     }
     func performTranslation(_ session: TranslationSession, request: TranslationRequest) async {
@@ -321,7 +337,7 @@ extension Entry {
         if let id = historyRequests[request.id], let index = history.firstIndex(where: { $0.id == id }) {
             history[index].translation = result; history[index].error = error
         } else {
-            let entry = Entry(source: request.text,translation: result,language: request.target,kind: request.kind,context: request.context,error: error,sourceLanguage: request.sourceLanguage)
+            let entry = Entry(source: request.text,translation: result,language: request.target,kind: request.kind,context: request.context,error: error,sourceLanguage: request.sourceLanguage,sourcePreference: request.sourcePreference,quality: request.quality)
             historyRequests[request.id] = entry.id; history.insert(entry,at: 0)
         }
         persist()

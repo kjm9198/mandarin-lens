@@ -138,6 +138,7 @@ enum SelectionOCR {
             let view = SelectionSurface(frame: CGRect(origin: .zero,size: screen.frame.size)); view.mode = mode
             view.onMove = { [weak self] point in self?.hover(point) }; view.onClick = { [weak self] point in self?.choose(point) }
             view.onRegion = { [weak self] rect in self?.chooseArea(rect) }; view.onCancel = { [weak self] in self?.cancel() }
+            view.onMode = { [weak self] mode in self?.switchMode(mode) }
             view.onStep = { [weak self] step in self?.stepWord(step) }; view.onConfirm = { [weak self] in self?.confirmWord() }
             view.setAccessibilityElement(true); view.setAccessibilityRole(.group); view.setAccessibilityLabel("\(mode.title) selection")
             view.setAccessibilityHelp(mode == .area ? "Drag an area. Space selects this display. Escape cancels." : "Click text, or use arrows then Return. Escape cancels.")
@@ -182,6 +183,17 @@ enum SelectionOCR {
             }
         }
     }
+    private func switchMode(_ kind: CaptureKind) {
+        guard active, selected == nil else { return }
+        mode = kind; pendingClick = nil; pendingRegion = nil; keyboardIndex = nil
+        for view in views {
+            view.mode = kind; view.preview = nil; view.status = ""
+            view.setAccessibilityLabel("\(kind.title) selection")
+            view.setAccessibilityHelp("Choose Word, Sentence or Section. Click text or drag a section. Escape cancels.")
+            view.needsDisplay = true; view.window?.makeFirstResponder(view)
+        }
+        onStatus?("\(kind.title) selection · Escape cancels")
+    }
     private func hint(_ text: String) { onStatus?(text); for view in views { view.status = text; view.needsDisplay = true } }
     private func target(_ point: CGPoint) -> ScreenWord? {
         mode == .sentence ? SelectionGeometry.sentence(at: point,words: words,lines: lines) : SelectionGeometry.word(at: point,in: words)
@@ -217,7 +229,15 @@ enum SelectionOCR {
 private final class SelectionPanel: NSPanel { override var canBecomeKey: Bool { true }; override var canBecomeMain: Bool { false } }
 private final class SelectionSurface: NSView {
     var image: NSImage? { didSet { needsDisplay = true } }
-    var mode: CaptureKind = .word
+    var mode: CaptureKind = .word { didSet { refreshToolbar() } }
+    private var dragging = false
+    private lazy var toolbar = NSHostingView(rootView: toolbarView)
+    private var toolbarView: SelectionToolbar { SelectionToolbar(mode: mode,select: { [weak self] in self?.onMode?($0) },cancel: { [weak self] in self?.onCancel?() }) }
+    private func refreshToolbar() { toolbar.rootView = toolbarView }
+    override init(frame frameRect: NSRect) { super.init(frame: frameRect); addSubview(toolbar) }
+    required init?(coder: NSCoder) { nil }
+    override func layout() { super.layout(); let width = min(610,bounds.width-32); toolbar.frame = CGRect(x: (bounds.width-width)/2,y: bounds.height-116,width: width,height: 88) }
+    var onMode: ((CaptureKind)->Void)?
     var preview: CGRect?, anchor: CGPoint?
     var status = ""
     var onMove: ((CGPoint)->Void)?, onClick: ((CGPoint)->Void)?, onRegion: ((CGRect)->Void)?
@@ -229,16 +249,25 @@ private final class SelectionSurface: NSView {
     override func cursorUpdate(with event: NSEvent) { NSCursor.crosshair.set() }
     override func mouseMoved(with event: NSEvent) { onMove?(point(event)) }
     override func mouseDown(with event: NSEvent) {
-        if mode == .area { anchor = point(event); preview = nil; if event.clickCount == 2, let frame = window?.frame { onRegion?(frame) } }
-        else { onClick?(point(event)) }
+        anchor = point(event); dragging = false; preview = nil; needsDisplay = true
     }
     override func mouseDragged(with event: NSEvent) {
-        guard mode == .area, let anchor, let frame = window?.frame else { return }
-        let p = point(event); preview = CGRect(x: min(p.x,anchor.x),y: min(p.y,anchor.y),width: abs(p.x-anchor.x),height: abs(p.y-anchor.y)).intersection(frame); needsDisplay = true
+        guard let anchor, let frame = window?.frame else { return }
+        let p = point(event)
+        guard abs(p.x-anchor.x) > 6 || abs(p.y-anchor.y) > 6 else { return }
+        dragging = true
+        preview = CGRect(x: min(p.x,anchor.x),y: min(p.y,anchor.y),width: abs(p.x-anchor.x),height: abs(p.y-anchor.y)).intersection(frame); needsDisplay = true
     }
-    override func mouseUp(with event: NSEvent) { guard mode == .area, let rect = preview, rect.width > 6, rect.height > 6 else { return }; onRegion?(rect) }
+    override func mouseUp(with event: NSEvent) {
+        defer { anchor = nil; dragging = false }
+        if dragging, let rect = preview, rect.width > 6, rect.height > 6 { onRegion?(rect) }
+        else if mode != .area { onClick?(point(event)) }
+    }
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
+        case 18: onMode?(.word)
+        case 19: onMode?(.sentence)
+        case 20: onMode?(.area)
         case 53: onCancel?()
         case 123,126: onStep?(-1)
         case 124,125: onStep?(1)
@@ -253,18 +282,35 @@ private final class SelectionSurface: NSView {
         if let preview, let window {
             let rect = window.convertFromScreen(preview).insetBy(dx: -2,dy: -1)
             let path = NSBezierPath(roundedRect: rect,xRadius: 3,yRadius: 3)
-            if mode == .area {
+            if mode == .area || dragging {
                 let outside = NSBezierPath(rect: bounds); outside.append(NSBezierPath(rect: rect)); outside.windingRule = .evenOdd
                 NSColor.black.withAlphaComponent(0.18).setFill(); outside.fill()
             } else { NSColor.controlAccentColor.withAlphaComponent(0.13).setFill(); path.fill() }
             NSColor.controlAccentColor.setStroke(); path.lineWidth = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? 2 : 1; path.stroke()
         }
-        let message = status.isEmpty ? (mode == .area ? "Drag an area  ·  Space: whole display  ·  Escape: cancel" : "Click a \(mode == .sentence ? "sentence" : "word")  ·  Arrow keys: move  ·  Escape: cancel") : status
+        guard !status.isEmpty else { return }
+        let message = status
         let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 12,weight: .medium),.foregroundColor: NSColor.labelColor]
         let size = (message as NSString).size(withAttributes: attrs)
         let rect = CGRect(x: max(12,(bounds.width-size.width-24)/2),y: 24,width: min(bounds.width-24,size.width+24),height: 32)
         NSColor.windowBackgroundColor.setFill(); NSBezierPath(roundedRect: rect,xRadius: 10,yRadius: 10).fill()
         (message as NSString).draw(at: CGPoint(x: rect.minX+12,y: rect.minY+8),withAttributes: attrs)
+    }
+}
+private struct SelectionToolbar: View {
+    let mode: CaptureKind
+    let select: (CaptureKind)->Void
+    let cancel: ()->Void
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 5) {
+                ForEach([CaptureKind.word,.sentence,.area],id: \.self) { kind in
+                    Button { select(kind) } label: { Label(kind == .area ? "Section" : kind.title,systemImage: kind.symbol).frame(maxWidth: .infinity,minHeight: 30).contentShape(Rectangle()) }.buttonStyle(LensRowStyle(selected: mode == kind)).accessibilityAddTraits(mode == kind ? .isSelected : [])
+                }
+                Button(action: cancel) { Image(systemName: "xmark").frame(width: 28,height: 30) }.buttonStyle(.plain).accessibilityLabel("Cancel selection")
+            }.font(.system(size: 12,weight: .medium))
+            Text(mode == .area ? "Drag around a paragraph or section · Space: whole display · Esc: cancel" : mode == .sentence ? "Click anywhere in a sentence · Or drag a section · Esc: cancel" : "Click a word · Or drag a section · Esc: cancel").font(.system(size: 11)).foregroundStyle(.secondary)
+        }.padding(12).background(Color.lensCanvas,in: RoundedRectangle(cornerRadius: 12)).overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.lensLine,lineWidth: 1)).tint(.lensAccent)
     }
 }
 struct SelectionHighlight: View {

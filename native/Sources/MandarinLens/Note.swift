@@ -63,7 +63,7 @@ struct Note: View {
             sidebarGroup("Study",items: [.words,.play,.recap,.learn]).padding(.top,24)
             Spacer(minLength: 20)
             sidebarGroup(nil,items: [.models,.settings])
-            HStack(spacing: 7) { Circle().fill(Color.lensAccent).frame(width: 5,height: 5); Text("On this Mac"); Spacer(); Text("4.1").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.horizontal,20).padding(.vertical,20)
+            HStack(spacing: 7) { Circle().fill(Color.lensAccent).frame(width: 5,height: 5); Text("On this Mac"); Spacer(); Text("4.2").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.horizontal,20).padding(.vertical,20)
         }.frame(width: 196).background(Color.lensSidebar).overlay(alignment: .trailing) { Rectangle().fill(Color.lensLine.opacity(0.45)).frame(width: 1) }
     }
     private func sidebarGroup(_ title: String?,items: [LensPage]) -> some View {
@@ -93,18 +93,21 @@ struct Note: View {
         }.padding(.horizontal,16).padding(.bottom,10)
     }
     private var translator: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(alignment: .leading,spacing: lens.workspaceMode ? 24 : 16) {
-                if lens.workspaceMode || lens.input.isEmpty { LensPageHeading(title: "Translate into \(languageName(lens.target))",detail: "Select text anywhere on screen, or enter it below.") }
+                if lens.workspaceMode || lens.input.isEmpty { LensPageHeading(title: "Translate into \(languageName(lens.target))",detail: "Click a sentence, drag a section, or paste text below.") }
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { captureButton("Word",shortcut: "⌥ Space",kind: .word); captureButton("Sentence",shortcut: "⌃ Space",kind: .sentence); captureButton("Area",shortcut: "⌃⌥ Space",kind: .area) }
-                    VStack(spacing: 8) { captureButton("Word",shortcut: "⌥ Space",kind: .word); captureButton("Sentence",shortcut: "⌃ Space",kind: .sentence); captureButton("Area",shortcut: "⌃⌥ Space",kind: .area) }
+                    HStack(spacing: 10) { captureButton("Word",shortcut: "⌥ Space",kind: .word); captureButton("Sentence",shortcut: lens.sentenceShortcutChoice == "Control–Shift–Space" ? "⌃⇧ Space" : "⌃ Space",kind: .sentence); captureButton("Section",shortcut: "⌃⌥ Space",kind: .area) }
+                    VStack(spacing: 8) { captureButton("Word",shortcut: "⌥ Space",kind: .word); captureButton("Sentence",shortcut: lens.sentenceShortcutChoice == "Control–Shift–Space" ? "⌃⇧ Space" : "⌃ Space",kind: .sentence); captureButton("Section",shortcut: "⌃⌥ Space",kind: .area) }
                 }
+                if lens.workspaceMode { Text("Sentence: click anywhere in it. Section: drag around several lines. You can switch modes while selecting.").font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false,vertical: true) }
+                TranslationLanguageBar(lens: lens)
                 if lens.workspaceMode {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top,spacing: 16) { sourcePane.frame(minWidth: 245); resultPane.frame(minWidth: 245) }
-                        VStack(spacing: 16) { sourcePane; resultPane }
-                    }
+                    if geometry.size.width >= 620 {
+                        let column = (min(1050,geometry.size.width)-72)/2
+                        HStack(alignment: .top,spacing: 16) { sourcePane.frame(width: column); resultPane.frame(width: column) }
+                    } else { VStack(spacing: 16) { sourcePane; resultPane } }
                 } else {
                     if lens.input.isEmpty { sourcePane }
                     else { DisclosureGroup("Original · \(String(lens.input.prefix(28)))") { sourcePane.padding(.top,10) }.font(.system(size: 12)).foregroundStyle(.secondary) }
@@ -113,6 +116,7 @@ struct Note: View {
                 if !lens.capturedContext.isEmpty && lens.capturedContext != lens.input { DisclosureGroup("Source context") { Text(lens.capturedContext).font(.system(size: 13)).foregroundStyle(.secondary).textSelection(.enabled).padding(.top,8) }.font(.system(size: 12)).foregroundStyle(.secondary) }
                 HStack(spacing: 8) { Image(systemName: "lock").font(.system(size: 10)); Text("Screen recognition and translation stay on your Mac.") }.font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(lens.workspaceMode ? 28 : 20).frame(maxWidth: 1050,alignment: .leading).frame(maxWidth: .infinity,alignment: .topLeading)
+        }
         }
     }
     private var sourcePane: some View {
@@ -131,7 +135,7 @@ struct Note: View {
     }
     private var resultPane: some View {
         VStack(alignment: .leading,spacing: lens.workspaceMode ? 18 : 12) {
-            HStack { Text("Translation").font(.system(size: 12,weight: .semibold)); Spacer(); LanguagePicker(target: $lens.target).labelsHidden().fixedSize().controlSize(.small).accessibilityLabel("Translate into") }
+            HStack { Text("Translation").font(.system(size: 12,weight: .semibold)); Spacer(); Text(languageName(lens.target)).font(.system(size: 11)).foregroundStyle(.secondary) }
             if lens.input.isEmpty {
                 VStack(alignment: .leading,spacing: 12) { Text("字").font(.system(size: 44,weight: .light)).foregroundStyle(Color.lensAccent); Text("Your translation appears here.").font(.system(size: 13)).foregroundStyle(.secondary); Text("Chinese words include pinyin and an example.").font(.system(size: 12)).foregroundStyle(.secondary) }.frame(maxWidth: .infinity,minHeight: 188,alignment: .topLeading).padding(.top,8)
             } else {
@@ -152,7 +156,7 @@ struct Note: View {
         }.frame(maxWidth: .infinity,alignment: .leading).lensSurface().onChange(of: lens.output) { _,_ in copied = false }
     }
     private func captureButton(_ title: String,shortcut: String,kind: CaptureKind) -> some View {
-        Button { lens.startSelection(kind) } label: { HStack(spacing: lens.workspaceMode ? 9 : 6) { Image(systemName: kind.symbol).font(.system(size: lens.workspaceMode ? 14 : 12)).foregroundStyle(Color.lensAccent); Text(title).font(.system(size: 12,weight: .medium)).lineLimit(1).fixedSize(); Spacer(minLength: 4); if lens.workspaceMode { LensKeycap(text: shortcut) } }.padding(lens.workspaceMode ? 10 : 8).frame(minWidth: lens.workspaceMode ? 140 : 76,maxWidth: .infinity).contentShape(Rectangle()) }.buttonStyle(LensRowStyle()).overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.lensLine.opacity(0.6),lineWidth: 1))
+        Button { lens.startSelection(kind) } label: { HStack(spacing: lens.workspaceMode ? 9 : 6) { Image(systemName: kind.symbol).font(.system(size: lens.workspaceMode ? 14 : 12)).foregroundStyle(Color.lensAccent); Text(title).font(.system(size: 12,weight: .medium)).lineLimit(1).fixedSize(); Spacer(minLength: 4); if lens.workspaceMode { LensKeycap(text: shortcut) } }.padding(lens.workspaceMode ? 10 : 8).frame(minWidth: lens.workspaceMode ? 140 : 76,maxWidth: .infinity).contentShape(Rectangle()) }.buttonStyle(LensRowStyle()).overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.lensLine.opacity(0.6),lineWidth: 1)).help(kind == .area ? "Drag a rectangle around a paragraph or section. Space selects the whole display." : kind == .sentence ? "Click anywhere in a sentence, including one that wraps across lines." : "Click a word. You can also drag to select a section.")
     }
     private var history: some View {
         VStack(alignment: .leading,spacing: 20) {
@@ -191,7 +195,7 @@ struct Note: View {
                 LensPageHeading(title: "Settings",detail: "Translation, shortcuts and how Lens appears on your Mac.")
                 settingsSection("Languages") {
                     LanguagePicker(target: $lens.target)
-                    Picker("Translate from",selection: $lens.sourceChoice) { Text("Automatic").tag("auto"); Text("English").tag("en"); Text("Polski").tag("pl"); Text("Tiếng Việt").tag("vi"); Text("中文").tag("zh-Hans") }
+                    SourceLanguagePicker(source: $lens.sourceChoice)
                     Text("Automatic uses surrounding text, or English for short Latin words.").font(.system(size: 11)).foregroundStyle(.secondary)
                     Picker("AI explanations in",selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
                 }
@@ -242,7 +246,7 @@ struct LensMenu: View {
             VStack(spacing: 3) {
                 menuAction("Select a word",shortcut: "⌥ Space",kind: .word)
                 menuAction("Select a sentence",shortcut: "⌃ Space",kind: .sentence)
-                menuAction("Translate an area",shortcut: "⌃⌥ Space",kind: .area)
+                menuAction("Select a section",shortcut: "⌃⌥ Space",kind: .area)
             }
             Divider()
             Button("Open compact window") { lens.showWorkspace(compact: true) }.buttonStyle(.plain).font(.system(size: 12))

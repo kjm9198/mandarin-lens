@@ -261,3 +261,29 @@ import Carbon
     #expect(Set(polish.jobs.map(\.source)) == ["en","zh-Hans"])
     #expect(polish.jobs.allSatisfy { $0.parent != request.id })
 }
+
+@Test func sectionRespectsExplicitSourceAndRejoinsWrappedSentences() throws {
+    let polish = AreaTranslationPlan(request: TranslationRequest(text: "kawa\nherbata",target: "en",kind: .area,sourceLanguage: "pl",sourcePreference: "pl"))
+    #expect(polish.immediate.isEmpty)
+    #expect(polish.jobs.count == 1 && polish.jobs[0].source == "pl")
+    #expect(polish.jobs[0].lines.map(\.text) == ["kawa","herbata"])
+    let wrapped = AreaTranslationPlan(request: TranslationRequest(text: "I would like to book a table\nfor two people at seven.\n\n• Keep the receipt\n• Bring your ticket",target: "vi",kind: .area,sourcePreference: "en"))
+    #expect(wrapped.jobs[0].lines.map(\.text) == ["I would like to book a table for two people at seven.","• Keep the receipt","• Bring your ticket"])
+    #expect(wrapped.combined([0:"Đặt bàn cho hai người lúc bảy giờ.",2:"",3:"Giữ hóa đơn",4:"Mang vé"]) == "Đặt bàn cho hai người lúc bảy giờ.\n\nGiữ hóa đơn\nMang vé")
+}
+@Test @MainActor func changingTranslationModeInvalidatesCacheAndSwapUsesDetectedSource() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let lens = Lens(dataDirectory: root)
+    lens.sourceChoice = "pl"; lens.target = "en"; lens.translationQuality = "fast"; lens.input = "kawa"; lens.translate()
+    let fast = try #require(lens.translationRequest)
+    lens.completeTranslation("coffee",request: fast)
+    lens.translationQuality = "natural"
+    #expect(lens.translationRequest?.quality == "natural" && lens.output == "Translating…")
+    lens.completeTranslation("stale fast",request: fast)
+    #expect(lens.output == "Translating…")
+    lens.completeTranslation("coffee",request: try #require(lens.translationRequest))
+    lens.swapTranslationLanguages()
+    #expect(lens.input == "coffee" && lens.sourceChoice == "en" && lens.target == "pl")
+    #expect(lens.translationRequest?.sourceLanguage == "en")
+}

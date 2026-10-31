@@ -10,6 +10,8 @@ struct TranslationRequest: Equatable {
     var kind: CaptureKind = .typed
     var context: String = ""
     var sourceLanguage: String?
+    var sourcePreference = "auto"
+    var quality = "fast"
 }
 struct CapturedTarget: Sendable {
     let text: String

@@ -6,7 +6,7 @@ Compact Chinese, pinyin and English learning captions for desktop Chrome. Free, 
 
 ## Kamihi Lens — native macOS app
 
-Kamihi Lens 4.1 adds word, sentence and screen-area translation with small cursor results, pinyin, a personal dictionary, searchable history, local AI recaps and seven vocabulary games inspired by Sproutsly. The redesigned native workspace shares a paper/charcoal/teal theme, readable Chinese typography, full-width sidebar targets and consistent controls across screens. See [native setup and shortcuts](native/README.md) and [4.1 design and acceptance](native/reports/DESIGN-4.1.md). The Apple Silicon DMG is a development preview, not notarized; find it in [Releases](https://github.com/kjm9198/mandarin-lens/releases). The Chrome extension remains separate.
+Kamihi Lens 4.2 adds word, sentence and screen-area translation with small cursor results, pinyin, a personal dictionary, searchable history, local AI recaps and seven vocabulary games inspired by Sproutsly. Sentence/section selection has an in-screen mode switcher, and visible From/To controls with Natural/Fast Apple translation modes. The redesigned native workspace shares a paper/charcoal/teal theme, readable Chinese typography, full-width sidebar targets and consistent controls across screens. See [native setup and shortcuts](native/README.md) and [4.2 selection and translation checks](native/reports/SELECTION-TRANSLATION-4.2.md). The Apple Silicon DMG is a development preview, not notarized; find it in [Releases](https://github.com/kjm9198/mandarin-lens/releases). The Chrome extension remains separate.
 
 ## Install locally or share with a friend
 
