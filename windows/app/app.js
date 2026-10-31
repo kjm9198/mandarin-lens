@@ -8,6 +8,9 @@
 
   // Bidirectional Dictionaries for Polish, English, Chinese
   const POLISH_TO_ENGLISH = {
+    "strajk": "Strike",
+    "strajki": "Strikes",
+    "strajkować": "To strike",
     "dzień dobry": "Good morning / Hello",
     "dzien dobry": "Good morning / Hello",
     "dziękuję": "Thank you",
@@ -49,10 +52,25 @@
     "pieniądze": "Money",
     "pieniadze": "Money",
     "sklep": "Shop / Store",
-    "pomoc": "Help"
+    "pomoc": "Help",
+    "czas": "Time",
+    "życie": "Life",
+    "zycie": "Life",
+    "ludzie": "People",
+    "człowiek": "Person",
+    "droga": "Road",
+    "morze": "Sea",
+    "miasto": "City",
+    "świat": "World",
+    "pokój": "Peace / Room",
+    "wojna": "War",
+    "protest": "Protest",
+    "wolność": "Freedom"
   };
 
   const ENGLISH_TO_POLISH = {
+    "strike": "Strajk",
+    "strikes": "Strajki",
     "good morning": "Dzień dobry",
     "hello": "Cześć / Dzień dobry",
     "hi": "Cześć",
@@ -91,6 +109,8 @@
   };
 
   const ENGLISH_TO_CHINESE = {
+    "strike": { term: "罢工", pinyin: "bà gōng" },
+    "strikes": { term: "罢工", pinyin: "bà gōng" },
     "good morning": { term: "早上好", pinyin: "zǎo shang hǎo" },
     "hello": { term: "你好", pinyin: "nǐ hǎo" },
     "hi": { term: "你好", pinyin: "nǐ hǎo" },
@@ -393,6 +413,26 @@
     document.getElementById('resultTerm').textContent = primary.term || input;
     document.getElementById('resultPinyin').textContent = primary.pinyin || (window.PinyinEngine && window.PinyinEngine.hasHan(primary.term || input) ? window.PinyinEngine.toPinyin(primary.term || input) : '');
     document.getElementById('resultMeaning').textContent = primary.meaning || input;
+
+    // Online fetch fallback for full sentences or unlisted words
+    if (primary.term.startsWith('Translated:') || primary.term.startsWith('Przetłumaczono:') || primary.term === input) {
+      const qTarget = target.startsWith('zh') ? 'zh-CN' : target;
+      fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${qTarget}&dt=t&q=${encodeURIComponent(input)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && Array.isArray(data[0])) {
+            const translated = data[0].map(s => s[0]).join('');
+            if (translated) {
+              document.getElementById('resultTerm').textContent = translated;
+              if (window.PinyinEngine && window.PinyinEngine.hasHan(translated)) {
+                document.getElementById('resultPinyin').textContent = window.PinyinEngine.toPinyin(translated);
+              }
+              document.getElementById('resultMeaning').textContent = `Translated: ${input}`;
+            }
+          }
+        })
+        .catch(() => {});
+    }
 
     // Secondary
     const secBox = document.getElementById('secondaryResultBox');

@@ -330,7 +330,6 @@ struct Note: View {
     private func permissionRow(_ title: String,detail: String,action: String,perform: @escaping ()->Void) -> some View {
         VStack(alignment: .leading,spacing: 8) { Text(title).font(.system(size: 13,weight: .medium)); Text(detail).font(.system(size: 12)).foregroundStyle(.secondary); Button(action,action: perform).buttonStyle(LensButtonStyle(small: true)) }
     }
-    private func languageName(_ code: String) -> String { code.hasPrefix("zh") ? (code == "zh-Hant" ? "Traditional Chinese" : "Chinese") : code == "vi" ? "Vietnamese" : code == "pl" ? "Polish" : "English" }
 }
 struct LensMenu: View {
     @EnvironmentObject var lens: Lens

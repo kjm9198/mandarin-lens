@@ -7,13 +7,13 @@ export default {
       const payload = {
         latestVersion: "4.3.0",
         releaseDate: "2026-10-31",
-        changelog: "Added simultaneous dual-target translation (English to Chinese and Polish), slower speech rate for clear comprehension, robust Polish bidirectional translation, standalone Windows edition, and in-app update downloader.",
+        changelog: "Added robust Polish bidirectional translation with instant offline dictionary and online fallback (fixes single-word Polish lookups like strajk), interactive live demo, slower speech playback, dual simultaneous translation, standalone Windows edition, and in-app update downloader.",
         macos: {
           version: "4.3.0",
           filename: "KamihiLens-4.3.0-macOS-arm64.dmg",
           url: `${url.origin}/download/macos/latest`,
           directUrl: `${url.origin}/downloads/KamihiLens-4.3.0-macOS-arm64.dmg`,
-          sha256: "e5c4f869d30fdf8f69eb0b34db932a9bc9efc92dc28d74e4f2ec17062c5b6c1e",
+          sha256: "0698390e81e29758e92fa4b22f3cf92dba99c8a4a9f1d27ba7cc0998d1e44bd7",
           minOs: "macOS 15.0"
         },
         windows: {
@@ -21,7 +21,7 @@ export default {
           filename: "KamihiLens-4.3.0-Windows-x64.zip",
           url: `${url.origin}/download/windows/latest`,
           directUrl: `${url.origin}/downloads/KamihiLens-4.3.0-Windows-x64.zip`,
-          sha256: "309afa6d8c65700bc985bee4c830fe27198c84bd01071d497a2d3e3756f81055",
+          sha256: "d6a30d79b54ad9cbffc408ac623b6f25e546f5bd121e09c250159ae57897d7e2",
           minOs: "Windows 10 / 11"
         },
         earlierVersions: [

@@ -1,6 +1,14 @@
 import SwiftUI
 import Translation
 import NaturalLanguage
+import AppKit
+
+func languageName(_ code: String) -> String {
+    if code.hasPrefix("zh") { return code == "zh-Hant" ? "Traditional Chinese" : "Chinese" }
+    if code == "vi" { return "Vietnamese" }
+    if code == "pl" { return "Polish" }
+    return "English"
+}
 
 struct ChineseExample: Codable, Equatable {
     let word: String
@@ -9,35 +17,83 @@ struct ChineseExample: Codable, Equatable {
     var pinyin: String { chinese.applyingTransform(.mandarinToLatin,reverse: false) ?? "" }
 }
 enum TranslationSource {
+    static let commonPolishWords: Set<String> = [
+        "tak", "nie", "dobry", "dzien", "dzień", "prosze", "proszę", "dziekuje", "dziękuję",
+        "dzięki", "dzieki", "czesc", "cześć", "herbata", "kawa", "woda", "praca", "szkola",
+        "szkoła", "dom", "kot", "pies", "jutro", "dzisiaj", "bardzo", "jestem", "jestes",
+        "jesteś", "jest", "co", "jak", "gdzie", "kiedy", "dlaczego", "kto", "przepraszam",
+        "chleb", "obiad", "śniadanie", "sniadanie", "kolacja", "mleko", "cukier", "dobre",
+        "dobra", "witam", "strajk", "strajki", "strajkować", "protest", "manifestacja",
+        "czas", "rok", "ludzie", "człowiek", "czlowiek", "kobieta", "mężczyzna", "mezczyzna",
+        "dziecko", "życie", "zycie", "droga", "samochód", "samochod", "auto", "pociąg", "pociag",
+        "dworzec", "lotnisko", "miasto", "państwo", "panstwo", "kraj", "świat", "swiat",
+        "rząd", "rzad", "sejm", "prawo", "sąd", "sad", "policja", "wojna", "pokój", "pokoj",
+        "wolność", "wolnosc", "solidarność", "solidarnosc", "sklep", "pieniądze", "pieniadze",
+        "cena", "rachunek", "karta", "bank", "serce", "morze", "góry", "gory", "las",
+        "słońce", "slonce", "deszcz", "śnieg", "snieg", "wiatr", "chmura", "drzewo",
+        "zegar", "godzina", "minuta", "tydzień", "tydzien", "miesiąc", "miesiac",
+        "wiadomości", "wiadomosci", "gazeta", "książka", "ksiazka", "film", "muzyka",
+        "lekarz", "szpital", "zdrowie", "pomoc", "koniec", "początek", "poczatek",
+        "pytanie", "odpowiedź", "odpowiedz", "nauka", "język", "jezyk", "słowo", "slowo"
+    ]
+
+    static func isVietnamese(_ text: String) -> Bool {
+        text.range(of: "[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]", options: [.caseInsensitive, .regularExpression]) != nil
+    }
+
     static func isPolish(_ text: String) -> Bool {
+        if isVietnamese(text) { return false }
         if text.range(of: "[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", options: .regularExpression) != nil { return true }
         let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let polishWords: Set<String> = [
-            "tak", "nie", "dobry", "dzien", "dzień", "prosze", "proszę", "dziekuje", "dziękuję",
-            "czesc", "cześć", "herbata", "kawa", "woda", "praca", "szkola", "szkoła", "dom",
-            "kot", "pies", "jutro", "dzisiaj", "bardzo", "jestem", "jestes", "jesteś", "jest",
-            "co", "jak", "gdzie", "kiedy", "dlaczego", "kto", "przepraszam", "chleb", "obiad",
-            "śniadanie", "sniadanie", "kolacja", "mleko", "cukier", "dobre", "dobra", "witam"
-        ]
         let tokens = lower.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init)
-        return tokens.contains(where: { polishWords.contains($0) })
+        if tokens.contains(where: { commonPolishWords.contains($0) }) { return true }
+
+        for token in tokens {
+            if token.range(of: "(sz|cz|rz|dz|dż|dź|prz|strz|trz|wstrz|wrz|krz|grz|brz|drz|jk|ści|źnie|wski|wska)", options: .regularExpression) != nil {
+                let englishFalseFriends: Set<String> = [
+                    "catch", "match", "watch", "witch", "rich", "much", "such", "check", "chain",
+                    "chair", "child", "choose", "church", "chance", "change", "charge", "chart",
+                    "chase", "cheap", "cheat", "cheese", "chemical", "chest", "chief", "chicken",
+                    "chin", "chip", "choice"
+                ]
+                if !englishFalseFriends.contains(token) { return true }
+            }
+        }
+
+        if tokens.count <= 3 {
+            let checker = NSSpellChecker.shared
+            var plValidCount = 0
+            var enMisspelledCount = 0
+            for token in tokens {
+                let plRange = checker.checkSpelling(of: token, startingAt: 0, language: "pl_PL", wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+                let enRange = checker.checkSpelling(of: token, startingAt: 0, language: "en_US", wrap: false, inSpellDocumentWithTag: 0, wordCount: nil)
+                if plRange.location == NSNotFound { plValidCount += 1 }
+                if enRange.location != NSNotFound { enMisspelledCount += 1 }
+            }
+            if plValidCount > 0 && enMisspelledCount > 0 { return true }
+        }
+        return false
     }
+
     static func language(text: String,context: String = "",preference: String = "auto") -> String {
         // A Chinese selection is already unambiguous, even when English is the preferred source.
         if text.range(of: "\\p{Han}",options: .regularExpression) != nil,
            text.range(of: "[\\p{Hiragana}\\p{Katakana}]",options: .regularExpression) == nil { return "zh-Hans" }
         if preference != "auto" { return preference }
+        if isVietnamese(text) { return "vi" }
         if isPolish(text) { return "pl" }
         let recognizer = NLLanguageRecognizer(); recognizer.processString(text)
         let detected = recognizer.dominantLanguage?.rawValue ?? "und"
+        if detected == "pl" { return "pl" }
         if WordTools.tokens(text).count <= 2, text.range(of: "^[A-Za-z0-9’' -]+$",options: .regularExpression) != nil {
             // Single Latin words are unreliable: “Control” is guessed as Romanian on this Mac.
-            // Prefer a confident surrounding line; otherwise use the English word-learning default.
+            // Prefer a confident surrounding line; otherwise check Polish before English fallback.
             if context != text, WordTools.tokens(context).count >= 4 {
                 let surrounding = NLLanguageRecognizer(); surrounding.processString(context)
                 let guesses = surrounding.languageHypotheses(withMaximum: 1)
                 if let guess = guesses.first, guess.value >= 0.8 { return guess.key.rawValue }
             }
+            if isPolish(text) { return "pl" }
             return "en"
         }
         return detected

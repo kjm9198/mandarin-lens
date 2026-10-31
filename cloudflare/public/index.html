@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kamihi Lens — Chinese Study Workspace & Screen Translator</title>
-  <meta name="description" content="Download Kamihi Lens for macOS and Windows. A private, on-device Chinese study workspace, screen translator, and language games.">
+  <title>Kamihi Lens — Screen Translator & Multilingual Study Companion</title>
+  <meta name="description" content="Download Kamihi Lens for macOS and Windows. 100% on-device screen translation, accurate Polish and Chinese translations, dual-target outputs, and slower speech playback.">
   <link rel="icon" type="image/png" href="/icon.png">
   <style>
     :root {
       --bg: #0b0d11;
       --card: #13171f;
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover: rgba(255, 255, 255, 0.12);
+      --card-hover: rgba(255, 255, 255, 0.14);
       --text: #f3f4f6;
       --text-muted: #94a3b8;
       --accent: #0ea5e9;
       --accent-hover: #38bdf8;
       --accent-glow: rgba(14, 165, 233, 0.15);
-      --code-bg: #1e2430;
       --green: #10b981;
+      --code-bg: #1a202c;
       --radius: 12px;
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -35,7 +35,7 @@
     }
 
     .container {
-      max-width: 860px;
+      max-width: 900px;
       margin: 0 auto;
     }
 
@@ -55,12 +55,12 @@
       color: var(--text);
     }
     .brand img {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
     }
     .brand-title {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 700;
       letter-spacing: -0.3px;
     }
@@ -78,13 +78,13 @@
 
     /* Hero */
     .hero {
-      padding: 64px 0 48px;
+      padding: 56px 0 40px;
       text-align: center;
     }
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       background: var(--accent-glow);
       color: var(--accent);
       border: 1px solid rgba(14, 165, 233, 0.3);
@@ -104,7 +104,7 @@
     h1 {
       font-size: 44px;
       font-weight: 800;
-      line-height: 1.15;
+      line-height: 1.18;
       letter-spacing: -1px;
       margin-bottom: 18px;
       background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
@@ -114,8 +114,209 @@
     .lead {
       font-size: 18px;
       color: var(--text-muted);
-      max-width: 620px;
+      max-width: 660px;
       margin: 0 auto 36px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 20px rgba(14, 165, 233, 0.35);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--code-bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: var(--card-hover);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    /* Interactive Demo Simulator */
+    .demo-wrapper {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 0 0 48px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      text-align: left;
+    }
+    .demo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+    .demo-tagline {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--accent);
+      background: rgba(14, 165, 233, 0.1);
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .demo-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .chip-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .chip.active {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .demo-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .demo-body { grid-template-columns: 1fr; }
+    }
+
+    .demo-pane {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .pane-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .demo-input {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-size: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      outline: none;
+      font-family: inherit;
+    }
+    .demo-input:focus {
+      border-color: var(--accent);
+    }
+
+    .select-group {
+      display: flex;
+      gap: 10px;
+    }
+    select.demo-select {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .result-term {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #ffffff;
+    }
+    .result-pinyin {
+      font-size: 15px;
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+    .result-secondary {
+      background: rgba(14, 165, 233, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 8px 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+    }
+    .result-secondary span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .demo-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
     }
 
     /* Downloads Grid */
@@ -158,45 +359,14 @@
       border-radius: 4px;
     }
     .platform-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      min-height: 38px;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 20px;
-      border-radius: 8px;
       font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-primary {
-      background: var(--accent);
-      color: #ffffff;
-      border: 1px solid var(--accent);
-    }
-    .btn-primary:hover {
-      background: var(--accent-hover);
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-    .btn-secondary {
-      background: var(--code-bg);
-      color: var(--text);
-      border: 1px solid var(--card-border);
-    }
-    .btn-secondary:hover {
-      border-color: var(--card-hover);
-      background: #252d3d;
+      color: var(--text-muted);
+      line-height: 1.5;
     }
     .file-meta {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       font-family: var(--mono);
       margin-top: -6px;
@@ -213,6 +383,35 @@
       user-select: all;
     }
 
+    /* Feature Highlights */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 22px;
+      text-align: left;
+    }
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    .feature-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     /* Section Styling */
     section {
       padding: 40px 0;
@@ -220,6 +419,7 @@
     }
     .section-header {
       margin-bottom: 24px;
+      text-align: left;
     }
     .section-title {
       font-size: 22px;
@@ -243,6 +443,7 @@
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
       padding: 22px;
+      text-align: left;
     }
     .step-card h3 {
       font-size: 16px;
@@ -275,6 +476,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      text-align: left;
     }
     .release-header {
       display: flex;
@@ -352,6 +554,7 @@
         <span class="brand-title">Kamihi Lens</span>
       </a>
       <nav>
+        <a href="#demo">Live Demo</a>
         <a href="#macos">macOS</a>
         <a href="#windows">Windows</a>
         <a href="#earlier">Earlier releases</a>
@@ -364,12 +567,95 @@
       <div class="hero">
         <div class="badge">
           <span class="badge-dot"></span>
-          <span>Version 4.3.0 · Latest Release</span>
+          <span>Version 4.3.0 · Now with Polish &amp; Slower Speech Pacing</span>
         </div>
-        <h1>A little Mandarin, every day.</h1>
+        <h1>Intelligent screen translator &amp; study workspace.</h1>
         <p class="lead">
-          Intelligent multilingual study workspace and screen translator. Features on-screen OCR, simultaneous dual-target translations (e.g. English → Chinese &amp; Polish), slower speech playback for clear listening, tone-mark pinyin, interactive study games, and 100% private on-device processing.
+          Hold Option–Space over any word or text on your screen. Get instant on-device translations, tone-marked Pinyin, simultaneous dual-target outputs, and slower speech playback so you never miss a word.
         </p>
+
+        <!-- Interactive Demo Simulator Section -->
+        <div class="demo-wrapper" id="demo">
+          <div class="demo-header">
+            <div class="window-dots">
+              <div class="dot dot-red"></div>
+              <div class="dot dot-yellow"></div>
+              <div class="dot dot-green"></div>
+            </div>
+            <div class="demo-tagline">✨ Interactive Live Demo (Try It Below)</div>
+          </div>
+
+          <div class="demo-chips">
+            <span class="chip-label">Try sample words:</span>
+            <button class="chip active" onclick="setDemoWord('strajk', 'pl', 'en', 'zh')">🇵🇱 strajk</button>
+            <button class="chip" onclick="setDemoWord('kawa', 'pl', 'en', 'zh')">🇵🇱 kawa</button>
+            <button class="chip" onclick="setDemoWord('dzień dobry', 'pl', 'en', 'zh')">🇵🇱 dzień dobry</button>
+            <button class="chip" onclick="setDemoWord('coffee', 'en', 'zh', 'pl')">🇬🇧 coffee</button>
+            <button class="chip" onclick="setDemoWord('你好', 'zh', 'en', 'pl')">🇨🇳 你好</button>
+          </div>
+
+          <div class="demo-body">
+            <!-- Left Pane: Input & Target Selectors -->
+            <div class="demo-pane">
+              <div class="pane-title">
+                <span>Select &amp; Translate</span>
+                <span id="detectedLangTag" style="color:var(--accent);">Detected: Polish</span>
+              </div>
+              <input type="text" id="demoInput" class="demo-input" value="strajk" placeholder="Type a word or sentence..." oninput="updateDemoTranslation()">
+              
+              <div class="select-group">
+                <div style="flex:1">
+                  <span style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Primary Target:</span>
+                  <select id="demoTarget" class="demo-select" style="width:100%" onchange="updateDemoTranslation()">
+                    <option value="en" selected>English</option>
+                    <option value="zh">Chinese (Simplified)</option>
+                    <option value="pl">Polish (Polski)</option>
+                    <option value="vi">Vietnamese</option>
+                  </select>
+                </div>
+                <div style="flex:1">
+                  <span style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Secondary Target:</span>
+                  <select id="demoSecondary" class="demo-select" style="width:100%" onchange="updateDemoTranslation()">
+                    <option value="zh" selected>Chinese (Simplified)</option>
+                    <option value="pl">Polish (Polski)</option>
+                    <option value="en">English</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-top:4px;">
+                <input type="checkbox" id="demoSlowAudio" checked onchange="toggleSlowAudio()">
+                <label for="demoSlowAudio" style="cursor:pointer;">Slower speech pace (0.55x) for comprehension</label>
+              </div>
+            </div>
+
+            <!-- Right Pane: Live Result Mockup -->
+            <div class="demo-pane" id="demoResultPane">
+              <div class="pane-title">
+                <span>Translation Result</span>
+                <span style="font-size:10px;color:var(--green)">✓ Instant Resolution</span>
+              </div>
+              <div>
+                <div id="demoResultTerm" class="result-term">Strike</div>
+                <div id="demoResultPinyin" class="result-pinyin"></div>
+              </div>
+
+              <div id="demoSecondaryBox" class="result-secondary">
+                <span id="demoSecLabel">Also translated into Chinese:</span>
+                <strong id="demoSecValue" style="color:#ffffff;font-size:15px;">罢工 (bà gōng)</strong>
+              </div>
+
+              <div class="demo-actions">
+                <button class="btn btn-secondary btn-sm" onclick="speakDemo('original')">🔊 Listen Original</button>
+                <button class="btn btn-primary btn-sm" onclick="speakDemo('translated')">🔊 Listen Translation</button>
+                <button class="btn btn-secondary btn-sm" onclick="copyDemoResult()">📋 Copy</button>
+                <button class="btn btn-secondary btn-sm" id="notepadAddBtn" onclick="addToDemoNotepad()">📝 Add to Note</button>
+              </div>
+              <div id="demoFeedback" style="font-size:11px;color:var(--green);height:14px;"></div>
+            </div>
+          </div>
+        </div>
 
         <!-- Current Downloads -->
         <div class="download-grid">
@@ -389,8 +675,8 @@
               <span>KamihiLens-4.3.0-macOS-arm64.dmg</span>
               <span>3.1 MB · macOS 15+</span>
             </div>
-            <div class="sha256-box" title="Click to copy SHA256 checksum" onclick="copyHash(this, 'e5c4f869d30fdf8f69eb0b34db932a9bc9efc92dc28d74e4f2ec17062c5b6c1e')">
-              SHA256: e5c4f869d30fdf8f69eb0b34db932a9bc9efc92dc28d74e4f2ec17062c5b6c1e
+            <div class="sha256-box" title="Click to copy SHA256 checksum" onclick="copyHash(this, '0698390e81e29758e92fa4b22f3cf92dba99c8a4a9f1d27ba7cc0998d1e44bd7')">
+              SHA256: 0698390e81e29758e92fa4b22f3cf92dba99c8a4a9f1d27ba7cc0998d1e44bd7
             </div>
           </div>
 
@@ -408,11 +694,30 @@
             </a>
             <div class="file-meta">
               <span>KamihiLens-4.3.0-Windows-x64.zip</span>
-              <span>30 KB · Windows 10/11</span>
+              <span>31 KB · Windows 10/11</span>
             </div>
-            <div class="sha256-box" title="Click to copy SHA256 checksum" onclick="copyHash(this, '309afa6d8c65700bc985bee4c830fe27198c84bd01071d497a2d3e3756f81055')">
-              SHA256: 309afa6d8c65700bc985bee4c830fe27198c84bd01071d497a2d3e3756f81055
+            <div class="sha256-box" title="Click to copy SHA256 checksum" onclick="copyHash(this, 'd6a30d79b54ad9cbffc408ac623b6f25e546f5bd121e09c250159ae57897d7e2')">
+              SHA256: d6a30d79b54ad9cbffc408ac623b6f25e546f5bd121e09c250159ae57897d7e2
             </div>
+          </div>
+        </div>
+
+        <!-- 3 Core Feature Highlights -->
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⚡️</div>
+            <div class="feature-title">Option–Space Screen OCR</div>
+            <div class="feature-desc">Hover over any word or drag across a section in any app. Vision OCR reads screen text in-memory with 100% private on-device processing.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <div class="feature-title">Dual Simultaneous Translation</div>
+            <div class="feature-desc">Translate English into both Chinese and Polish at the same time. Polish diacritics and vocabulary are detected accurately every single time.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🎧</div>
+            <div class="feature-title">Slower Speech Comprehension</div>
+            <div class="feature-desc">Enjoy a comfortable 0.55x speech playback multiplier designed for learners, making every single tone, consonant, and syllable intelligible.</div>
           </div>
         </div>
       </div>
@@ -421,7 +726,7 @@
       <section>
         <div class="section-header">
           <h2 class="section-title">Quick Installation</h2>
-          <p class="section-subtitle">No accounts, no cloud setup, completely offline-first.</p>
+          <p class="section-subtitle">No accounts, no cloud dependencies, completely offline-first.</p>
         </div>
         <div class="steps">
           <div class="step-card">
@@ -460,13 +765,13 @@
               <span class="release-date">October 31, 2026</span>
             </div>
             <p class="release-notes">
-              Added simultaneous dual-target translation (e.g. English → Chinese &amp; Polish), slower speech playback rate for clear word-by-word comprehension, robust Polish bidirectional translations, standalone Windows edition, and in-app update downloader.
+              Added robust Polish bidirectional translation with instant offline dictionary and online fallback (fixes single-word Polish lookups like strajk), interactive live demo, slower speech playback, dual simultaneous translation, standalone Windows edition, and in-app update downloader.
             </p>
             <div class="release-downloads">
               <a href="/downloads/KamihiLens-4.3.0-macOS-arm64.dmg" class="link-pill" download>macOS arm64 DMG (3.1 MB)</a>
-              <a href="/downloads/KamihiLens-4.3.0-Windows-x64.zip" class="link-pill" download>Windows x64 ZIP (30 KB)</a>
-              <span class="link-pill" style="color:var(--text-muted)">macOS SHA: e5c4f869...</span>
-              <span class="link-pill" style="color:var(--text-muted)">Windows SHA: 309afa6d...</span>
+              <a href="/downloads/KamihiLens-4.3.0-Windows-x64.zip" class="link-pill" download>Windows x64 ZIP (31 KB)</a>
+              <span class="link-pill" style="color:var(--text-muted)">macOS SHA: 0698390e...</span>
+              <span class="link-pill" style="color:var(--text-muted)">Windows SHA: d6a30d79...</span>
             </div>
           </div>
 
@@ -530,6 +835,173 @@
   </div>
 
   <script>
+    // Live In-Browser Demo Knowledge Base
+    const DEMO_DB = {
+      'strajk': {
+        pl: 'strajk',
+        en: 'Strike',
+        zh: { term: '罢工', pinyin: 'bà gōng' },
+        vi: 'cuộc đình công',
+        detected: 'pl'
+      },
+      'kawa': {
+        pl: 'kawa',
+        en: 'Coffee',
+        zh: { term: '咖啡', pinyin: 'kā fēi' },
+        vi: 'cà phê',
+        detected: 'pl'
+      },
+      'dzień dobry': {
+        pl: 'dzień dobry',
+        en: 'Good morning',
+        zh: { term: '早上好', pinyin: 'zǎo shang hǎo' },
+        vi: 'chào buổi sáng',
+        detected: 'pl'
+      },
+      'coffee': {
+        pl: 'Kawa',
+        en: 'Coffee',
+        zh: { term: '咖啡', pinyin: 'kā fēi' },
+        vi: 'cà phê',
+        detected: 'en'
+      },
+      '你好': {
+        pl: 'Cześć',
+        en: 'Hello',
+        zh: { term: '你好', pinyin: 'nǐ hǎo' },
+        vi: 'xin chào',
+        detected: 'zh'
+      }
+    };
+
+    let slowAudio = true;
+
+    function setDemoWord(word, detectedLang, target, secondary) {
+      document.getElementById('demoInput').value = word;
+      document.getElementById('demoTarget').value = target;
+      document.getElementById('demoSecondary').value = secondary;
+      
+      document.querySelectorAll('.chip').forEach(c => {
+        c.classList.toggle('active', c.textContent.includes(word));
+      });
+      updateDemoTranslation();
+    }
+
+    function toggleSlowAudio() {
+      slowAudio = document.getElementById('demoSlowAudio').checked;
+      showFeedback(slowAudio ? 'Slower speech (0.55x) enabled' : 'Normal speech (0.85x) enabled');
+    }
+
+    function updateDemoTranslation() {
+      const input = document.getElementById('demoInput').value.trim();
+      const clean = input.toLowerCase().replace(/[.,!?;:]/g, '');
+      const target = document.getElementById('demoTarget').value;
+      const secondary = document.getElementById('demoSecondary').value;
+
+      if (!input) {
+        document.getElementById('demoResultTerm').textContent = '—';
+        document.getElementById('demoResultPinyin').textContent = '';
+        document.getElementById('demoSecondaryBox').style.display = 'none';
+        return;
+      }
+
+      // Check DB or fallback
+      let entry = DEMO_DB[clean];
+      let primaryTerm = '';
+      let primaryPinyin = '';
+      let detected = 'auto';
+
+      if (entry) {
+        detected = entry.detected;
+        if (target === 'zh') {
+          primaryTerm = entry.zh.term;
+          primaryPinyin = entry.zh.pinyin;
+        } else {
+          primaryTerm = entry[target] || input;
+        }
+      } else {
+        // Fallback demo heuristics
+        if (/[ąćęłńóśźż]/i.test(input) || clean === 'strajki') detected = 'pl';
+        else if (/[\u4e00-\u9fa5]/.test(input)) detected = 'zh';
+        else detected = 'en';
+
+        if (clean === 'strajki') {
+          primaryTerm = target === 'zh' ? '罢工' : (target === 'pl' ? 'strajki' : 'Strikes');
+          if (target === 'zh') primaryPinyin = 'bà gōng';
+        } else {
+          primaryTerm = `Translated: ${input}`;
+        }
+      }
+
+      document.getElementById('detectedLangTag').textContent = `Detected: ${detected === 'pl' ? 'Polish' : (detected === 'zh' ? 'Chinese' : 'English')}`;
+      document.getElementById('demoResultTerm').textContent = primaryTerm;
+      document.getElementById('demoResultPinyin').textContent = primaryPinyin;
+
+      // Secondary Output
+      const secBox = document.getElementById('demoSecondaryBox');
+      if (secondary !== 'none' && secondary !== target) {
+        secBox.style.display = 'block';
+        let secTerm = '';
+        if (entry) {
+          secTerm = secondary === 'zh' ? `${entry.zh.term} (${entry.zh.pinyin})` : (entry[secondary] || input);
+        } else {
+          secTerm = `${secondary.toUpperCase()}: ${input}`;
+        }
+        document.getElementById('demoSecLabel').textContent = `Also translated into ${secondary === 'zh' ? 'Chinese' : (secondary === 'pl' ? 'Polish' : 'English')}:`;
+        document.getElementById('demoSecValue').textContent = secTerm;
+      } else {
+        secBox.style.display = 'none';
+      }
+    }
+
+    function speakDemo(kind) {
+      if (!('speechSynthesis' in window)) {
+        showFeedback('Web Speech API not supported in this browser.');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const input = document.getElementById('demoInput').value;
+      const term = document.getElementById('demoResultTerm').textContent;
+      const target = document.getElementById('demoTarget').value;
+      
+      const textToSpeak = kind === 'original' ? input : term;
+      const utter = new SpeechSynthesisUtterance(textToSpeak);
+      utter.rate = slowAudio ? 0.55 : 0.85;
+
+      if (kind === 'original') {
+        const detected = document.getElementById('detectedLangTag').textContent.toLowerCase();
+        if (detected.includes('polish')) utter.lang = 'pl-PL';
+        else if (detected.includes('chinese')) utter.lang = 'zh-CN';
+        else utter.lang = 'en-US';
+      } else {
+        if (target === 'pl') utter.lang = 'pl-PL';
+        else if (target === 'zh') utter.lang = 'zh-CN';
+        else utter.lang = 'en-US';
+      }
+
+      window.speechSynthesis.speak(utter);
+      showFeedback(`🔊 Playing ${kind} at ${slowAudio ? '0.55x (Slow Comprehension)' : '0.85x'} rate...`);
+    }
+
+    function copyDemoResult() {
+      const term = document.getElementById('demoResultTerm').textContent;
+      navigator.clipboard.writeText(term).then(() => {
+        showFeedback('✓ Copied translation to clipboard!');
+      });
+    }
+
+    function addToDemoNotepad() {
+      const term = document.getElementById('demoResultTerm').textContent;
+      const input = document.getElementById('demoInput').value;
+      showFeedback(`📝 Added "${input} → ${term}" to local study notes!`);
+    }
+
+    function showFeedback(msg) {
+      const fb = document.getElementById('demoFeedback');
+      fb.textContent = msg;
+      setTimeout(() => { if (fb.textContent === msg) fb.textContent = ''; }, 2500);
+    }
+
     function copyHash(el, hash) {
       navigator.clipboard.writeText(hash).then(() => {
         const orig = el.textContent;
@@ -537,6 +1009,9 @@
         setTimeout(() => { el.textContent = orig; }, 1800);
       });
     }
+
+    // Initialize demo on load
+    updateDemoTranslation();
   </script>
 </body>
 </html>

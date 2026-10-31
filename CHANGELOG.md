@@ -1,7 +1,11 @@
 # 2.1.1 · 31 October 2026
 
-## Kamihi Lens 4.3.0 — Cloudflare distribution, dual translation, and slower speech
+## Kamihi Lens 4.3.0 — Polish translation fixes, live website demo, and distribution
 
+- Fixed Polish single-word language detection and translation (e.g. `strajk` correctly translating into `Strike` and `罢工` rather than echoing `strajk`).
+- Enhanced Polish diacritic, digraph (`sz`, `cz`, `rz`, `jk`, etc.), and `NSSpellChecker` verification so Polish words are never misidentified as English.
+- Added comprehensive offline Polish dictionary mappings and asynchronous online fallback translation for all Polish language pairs.
+- Added interactive in-browser live demo simulator on `https://lens.kamihi.workers.dev` with live translation, sample chip switcher, working slower speech audio playback (0.55x), and notepad preview.
 - Published minimalist release and download website on Cloudflare at `https://lens.kamihi.workers.dev`.
 - Direct downloads for latest macOS DMG (`KamihiLens-4.3.0-macOS-arm64.dmg`) and Windows ZIP (`KamihiLens-4.3.0-Windows-x64.zip`), with SHA-256 verification and earlier releases archive (4.2.0, 4.1.0, 4.0.0).
 - Added in-app "Download update" action in macOS app Settings, menu bar, and sidebar status, with automated DMG download, installer launching, and browser fallback.

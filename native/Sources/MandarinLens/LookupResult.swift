@@ -66,6 +66,16 @@ struct LookupResult: View {
                     if lens.output == "Translating…" { HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Translating…").foregroundStyle(.secondary) }.font(.callout) }
                     else { Text(lens.output).font(.system(size: lens.target.hasPrefix("zh") && lens.captureKind == .word ? 38 : 19)).textSelection(.enabled).fixedSize(horizontal: false,vertical: true) }
                     if !chinese.isEmpty && lens.captureKind != .area { Text(chinese.applyingTransform(.mandarinToLatin,reverse: false) ?? "").font(.system(size: 15,weight: .medium)).foregroundStyle(Color.lensAccent).textSelection(.enabled) }
+                    if lens.secondaryTarget != "none" && lens.secondaryTarget != lens.target && !lens.secondaryOutput.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Also translated into \(languageName(lens.secondaryTarget))").font(.system(size: 10,weight: .medium)).foregroundStyle(.secondary).padding(.top, 4)
+                            if lens.secondaryOutput == "Translating…" {
+                                HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Translating…").foregroundStyle(.secondary) }.font(.caption)
+                            } else {
+                                Text(lens.secondaryOutput).font(.system(size: 16, weight: .medium)).foregroundStyle(Color.lensAccent).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
                     CurrentChineseExample(lens: lens)
                 }.frame(maxWidth: .infinity,alignment: .leading)
             }

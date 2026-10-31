@@ -310,6 +310,7 @@ extension Entry {
         secondaryRequest = nil; secondaryConfiguration = nil; secondaryOutput = ""
     }
     static let polishToEnglishDictionary: [String: String] = [
+        "strajk": "Strike", "strajki": "Strikes", "strajkować": "To strike",
         "dzień dobry": "Good morning / Hello", "dzien dobry": "Good morning / Hello",
         "dziękuję": "Thank you", "dziekuje": "Thank you", "dzięki": "Thanks", "dzieki": "Thanks",
         "cześć": "Hello / Hi", "czesc": "Hello / Hi", "proszę": "Please / You're welcome", "prosze": "Please / You're welcome",
@@ -321,9 +322,19 @@ extension Entry {
         "praca": "Work / Job", "dom": "Home / House", "szkoła": "School", "szkola": "School",
         "kot": "Cat", "pies": "Dog", "jutro": "Tomorrow", "dzisiaj": "Today", "wczoraj": "Yesterday",
         "miłość": "Love", "milosc": "Love", "przyjaciel": "Friend", "rodzina": "Family",
-        "pieniądze": "Money", "pieniadze": "Money", "sklep": "Shop / Store", "pomoc": "Help"
+        "pieniądze": "Money", "pieniadze": "Money", "sklep": "Shop / Store", "pomoc": "Help",
+        "czas": "Time", "życie": "Life", "zycie": "Life", "ludzie": "People", "człowiek": "Person", "czlowiek": "Person",
+        "droga": "Road / Way", "samochód": "Car", "samochod": "Car", "auto": "Car", "pociąg": "Train", "pociag": "Train",
+        "morze": "Sea", "miasto": "City", "państwo": "Country", "panstwo": "Country", "kraj": "Country",
+        "świat": "World", "swiat": "World", "pokój": "Room / Peace", "pokoj": "Room / Peace", "wojna": "War",
+        "rząd": "Government", "rzad": "Government", "sejm": "Parliament", "protest": "Protest",
+        "wolność": "Freedom", "wolnosc": "Freedom", "solidarność": "Solidarity", "solidarnosc": "Solidarity",
+        "słońce": "Sun", "slonce": "Sun", "deszcz": "Rain", "śnieg": "Snow", "snieg": "Snow", "wiatr": "Wind",
+        "rok": "Year", "tydzień": "Week", "tydzien": "Week", "miesiąc": "Month", "miesiac": "Month",
+        "książka": "Book", "ksiazka": "Book", "język": "Language", "jezyk": "Language", "słowo": "Word", "slowo": "Word"
     ]
     static let englishToPolishDictionary: [String: String] = [
+        "strike": "Strajk", "strikes": "Strajki",
         "good morning": "Dzień dobry", "hello": "Cześć / Dzień dobry", "hi": "Cześć",
         "thank you": "Dziękuję", "thanks": "Dzięki", "please": "Proszę",
         "excuse me": "Przepraszam", "sorry": "Przepraszam", "yes": "Tak", "no": "Nie",
@@ -332,9 +343,25 @@ extension Entry {
         "water": "Woda", "tea": "Herbata", "coffee": "Kawa", "bread": "Chleb", "food": "Jedzenie",
         "work": "Praca", "home": "Dom", "house": "Dom", "school": "Szkoła",
         "cat": "Kot", "dog": "Pies", "tomorrow": "Jutro", "today": "Dzisiaj", "yesterday": "Wczoraj",
-        "love": "Miłość", "friend": "Przyjaciel", "family": "Rodzina", "money": "Pieniądze", "shop": "Sklep", "help": "Pomoc"
+        "love": "Miłość", "friend": "Przyjaciel", "family": "Rodzina", "money": "Pieniądze", "shop": "Sklep", "help": "Pomoc",
+        "time": "Czas", "life": "Życie", "people": "Ludzie", "person": "Człowiek", "road": "Droga", "car": "Samochód",
+        "city": "Miasto", "country": "Kraj", "world": "Świat", "freedom": "Wolność", "peace": "Pokój", "war": "Wojna"
+    ]
+    static let polishToChineseDictionary: [String: String] = [
+        "strajk": "罢工", "strajki": "罢工",
+        "dzień dobry": "早上好", "dzien dobry": "早上好",
+        "dziękuję": "谢谢", "dziekuje": "谢谢", "dzięki": "谢谢", "dzieki": "谢谢",
+        "cześć": "你好", "czesc": "你好", "proszę": "请", "prosze": "请",
+        "przepraszam": "对不起", "tak": "是的", "nie": "不是",
+        "woda": "水", "herbata": "茶", "kawa": "咖啡", "chleb": "面包", "jedzenie": "食物",
+        "praca": "工作", "dom": "家", "szkoła": "学校", "szkola": "学校",
+        "kot": "猫", "pies": "狗", "jutro": "明天", "dzisiaj": "今天", "wczoraj": "昨天",
+        "miłość": "爱", "milosc": "爱", "przyjaciel": "朋友", "rodzina": "家人",
+        "pieniądze": "钱", "pieniadze": "钱", "sklep": "商店", "pomoc": "帮助",
+        "miasto": "城市", "państwo": "国家", "panstwo": "国家", "świat": "世界", "swiat": "世界"
     ]
     static let englishToChineseDictionary: [String: String] = [
+        "strike": "罢工", "strikes": "罢工",
         "good morning": "早上好", "hello": "你好", "hi": "你好", "thank you": "谢谢", "thanks": "多谢",
         "please": "请", "excuse me": "不好意思 / 打扰一下", "sorry": "对不起", "yes": "是的", "no": "不是 / 不",
         "how are you": "你好吗？", "how are you?": "你好吗？", "goodbye": "再见", "bye": "拜拜", "good night": "晚安",
@@ -347,6 +374,11 @@ extension Entry {
         if (source == "pl" || TranslationSource.isPolish(text)) && target == "en" {
             return Self.polishToEnglishDictionary[clean]
         }
+        if (source == "pl" || TranslationSource.isPolish(text)) && target.hasPrefix("zh") {
+            if let zh = Self.polishToChineseDictionary[clean] { return zh }
+            if let en = Self.polishToEnglishDictionary[clean]?.lowercased().split(separator: "/").first?.trimmingCharacters(in: .whitespaces),
+               let zh = Self.englishToChineseDictionary[en] { return zh }
+        }
         if (source == "en") && target == "pl" {
             return Self.englishToPolishDictionary[clean]
         }
@@ -355,12 +387,36 @@ extension Entry {
         }
         return nil
     }
+    func translateWeb(text: String, source: String, target: String) async -> String? {
+        let cleanTarget = target.hasPrefix("zh") ? (target == "zh-Hant" ? "zh-TW" : "zh-CN") : target
+        let cleanSource = source.hasPrefix("zh") ? "zh" : (source == "auto" ? "auto" : source)
+        guard let encoded = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=\(cleanSource)&tl=\(cleanTarget)&dt=t&q=\(encoded)") else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 4.0
+        req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
+                  let sentences = json.first as? [[Any]] else { return nil }
+            let translated = sentences.compactMap { $0.first as? String }.joined()
+            let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? nil : clean
+        } catch {
+            return nil
+        }
+    }
     func translate() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         if let request = translationRequest, request.text == text, request.target == target, output == "Translating…" { return }
         translationTask?.cancel(); configuration = nil; areaJobs = []
-        let detected = TranslationSource.language(text: text,context: capturedContext,preference: sourceChoice)
+        var detected = TranslationSource.language(text: text,context: capturedContext,preference: sourceChoice)
+        // If detected matches target (e.g. target is English), but the word is Polish (like "strajk"), correct detected to Polish
+        if (detected == target || detected == "en") && target == "en" && TranslationSource.isPolish(text) {
+            detected = "pl"
+        }
         let request = TranslationRequest(text: text, target: target, kind: captureKind, context: capturedContext,sourceLanguage: detected,sourcePreference: sourceChoice,quality: translationQuality)
         translationRequest = request; translatedRequest = nil; output = "Translating…"
 
@@ -371,6 +427,16 @@ extension Entry {
             secondaryOutput = "Translating…"
             if detected == secondaryTarget {
                 completeSecondaryTranslation(text, request: secReq)
+            } else if detected == "pl" || secondaryTarget == "pl" {
+                Task { [weak self] in
+                    guard let self else { return }
+                    await Task.yield()
+                    if let secDirect = self.lookupFallbackTranslation(text: text, source: detected, target: self.secondaryTarget) {
+                        self.completeSecondaryTranslation(secDirect, request: secReq)
+                    } else if let secWeb = await self.translateWeb(text: text, source: detected, target: self.secondaryTarget) {
+                        self.completeSecondaryTranslation(secWeb, request: secReq)
+                    }
+                }
             } else {
                 let secSource = detected == "und" ? nil : Locale.Language(identifier: detected)
                 secondarySessionSeed.source = secSource
@@ -389,6 +455,25 @@ extension Entry {
             completeTranslation(cached.translation, request: request); return
         }
         if request.kind == .area { beginAreaTranslation(request); return }
+
+        // Polish language translation: Apple Translation framework does not support Polish on macOS,
+        // so we resolve via local dictionary and high-speed web translation fallback.
+        if detected == "pl" || target == "pl" {
+            translationTask = Task { [weak self] in
+                guard let self else { return }
+                await Task.yield()
+                if let direct = self.lookupFallbackTranslation(text: text, source: detected, target: self.target) {
+                    self.completeTranslation(direct, request: request)
+                } else if let webResult = await self.translateWeb(text: text, source: detected, target: self.target) {
+                    self.completeTranslation(webResult, request: request)
+                } else {
+                    self.output = "Translation unavailable for this text. Check connection or dictionary."
+                    self.recordTranslation(request, result: "", error: self.output)
+                }
+            }
+            return
+        }
+
         // Explicit source detection also handles repeated same-language requests reliably.
         let source = detected == "und" ? nil : Locale.Language(identifier: detected)
         if detected.hasPrefix("zh") && target.hasPrefix("zh") {
@@ -412,6 +497,8 @@ extension Entry {
             guard translationRequest == request, !(error is CancellationError), !Task.isCancelled else { return }
             if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {
                 completeTranslation(fallback, request: request)
+            } else if let webResult = await translateWeb(text: request.text, source: request.sourceLanguage ?? "auto", target: request.target) {
+                completeTranslation(webResult, request: request)
             } else {
                 output = "Translation unavailable: \(error.localizedDescription). Retry or install the language pack in the full app."
                 if translatedRequest != request { recordTranslation(request,result: "",error: output) }
@@ -429,6 +516,8 @@ extension Entry {
             guard secondaryRequest == request, !(error is CancellationError), !Task.isCancelled else { return }
             if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {
                 completeSecondaryTranslation(fallback, request: request)
+            } else if let webResult = await translateWeb(text: request.text, source: request.sourceLanguage ?? "auto", target: request.target) {
+                completeSecondaryTranslation(webResult, request: request)
             } else {
                 secondaryOutput = "Translation unavailable: \(error.localizedDescription)"
             }

@@ -21,6 +21,10 @@ import Testing
     let lens = Lens(dataDirectory: root)
     
     // Polish to English translation fallback
+    #expect(TranslationSource.isPolish("strajk") == true)
+    #expect(TranslationSource.language(text: "strajk") == "pl")
+    #expect(lens.lookupFallbackTranslation(text: "strajk", source: "pl", target: "en") == "Strike")
+    #expect(lens.lookupFallbackTranslation(text: "strajk", source: "pl", target: "zh-Hans") == "罢工")
     #expect(lens.lookupFallbackTranslation(text: "dzień dobry", source: "pl", target: "en") != nil)
     #expect(lens.lookupFallbackTranslation(text: "dziękuję", source: "pl", target: "en") == "Thank you")
     #expect(lens.lookupFallbackTranslation(text: "herbata", source: "pl", target: "en") == "Tea")
