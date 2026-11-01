@@ -24,12 +24,16 @@ enum SelectionGeometry {
         return dx * dx + dy * dy
     }
     static func word(at point: CGPoint, in words: [ScreenWord]) -> ScreenWord? {
-        let direct = words.filter { $0.bounds.insetBy(dx: -4, dy: -4).contains(point) }
+        let direct = words.filter { $0.bounds.insetBy(dx: -6, dy: -6).contains(point) }
         if let best = direct.min(by: { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height }) {
             return best
         }
-        let nearby = words.filter { distSq($0.bounds, point) <= 12 * 12 }
-        return nearby.min { distSq($0.bounds, point) < distSq($1.bounds, point) }
+        let nearby = words.filter { distSq($0.bounds, point) <= 36 * 36 }
+        if let best = nearby.min(by: { distSq($0.bounds, point) < distSq($1.bounds, point) }) {
+            return best
+        }
+        let extended = words.filter { distSq($0.bounds, point) <= 80 * 80 }
+        return extended.min(by: { distSq($0.bounds, point) < distSq($1.bounds, point) })
     }
     static func joined(_ lines: [ScreenWord]) -> String {
         lines.reduce("") { result, line in
@@ -40,21 +44,23 @@ enum SelectionGeometry {
     }
     static func sentence(at point: CGPoint, words: [ScreenWord], lines: [ScreenWord]) -> ScreenWord? {
         guard !lines.isEmpty else { return nil }
-        let directLine = lines.firstIndex { $0.bounds.insetBy(dx: -6, dy: -6).contains(point) }
+        let directLine = lines.firstIndex { $0.bounds.insetBy(dx: -8, dy: -8).contains(point) }
         let at: Int
         if let directLine {
             at = directLine
-        } else if let nearestLine = lines.indices.filter({ distSq(lines[$0].bounds, point) <= 24 * 24 }).min(by: { distSq(lines[$0].bounds, point) < distSq(lines[$1].bounds, point) }) {
+        } else if let nearestLine = lines.indices.filter({ distSq(lines[$0].bounds, point) <= 48 * 48 }).min(by: { distSq(lines[$0].bounds, point) < distSq(lines[$1].bounds, point) }) {
             at = nearestLine
         } else if let hit = word(at: point, in: words), let lineIdx = lines.firstIndex(where: { $0.lineIndex == hit.lineIndex }) {
             at = lineIdx
+        } else if let closest = lines.indices.min(by: { distSq(lines[$0].bounds, point) < distSq(lines[$1].bounds, point) }), distSq(lines[closest].bounds, point) <= 120 * 120 {
+            at = closest
         } else {
             return nil
         }
         func connected(_ upper: ScreenWord, _ lower: ScreenWord) -> Bool {
             let a = upper.bounds, b = lower.bounds
             let overlap = max(0, min(a.maxX,b.maxX) - max(a.minX,b.minX))
-            return abs(a.height-b.height) < max(a.height,b.height) * 0.6 && a.midY > b.midY && a.minY-b.maxY < max(a.height,b.height)*1.6 && (overlap > min(a.width,b.width)*0.4 || abs(a.minX-b.minX) < 24)
+            return abs(a.height-b.height) < max(a.height,b.height) * 0.7 && a.midY > b.midY && a.minY-b.maxY < max(a.height,b.height)*2.0 && (overlap > min(a.width,b.width)*0.3 || abs(a.minX-b.minX) < 32)
         }
         func ends(_ text: String) -> Bool { text.range(of: "[。！？.!?][”’\\\"']*$", options: .regularExpression) != nil }
         var first = at, last = at
@@ -76,9 +82,11 @@ enum SelectionGeometry {
         let tokenizer = NLTokenizer(unit: .sentence); tokenizer.string = text
         let index = String.Index(utf16Offset: min(max(0,offset),max(0,text.utf16.count-1)), in: text)
         let range = tokenizer.tokenRange(at: index)
-        let value = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let extracted = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = !extracted.isEmpty ? extracted : (line.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? text : line.text)
         guard !value.isEmpty else { return nil }
-        return ScreenWord(text: value, context: text, bounds: group.dropFirst().reduce(group[0].bounds) { $0.union($1.bounds) }, kind: .sentence)
+        let groupBounds = group.dropFirst().reduce(group[0].bounds) { $0.union($1.bounds) }
+        return ScreenWord(text: value, context: text, bounds: groupBounds, kind: .sentence)
     }
     static func paragraph(at point: CGPoint, lines: [ScreenWord]) -> ScreenWord? {
         guard !lines.isEmpty else { return nil }
@@ -137,19 +145,30 @@ enum SelectionOCR {
             let tokenizer = NLTokenizer(unit: .word); tokenizer.string = text
             if text.range(of: "\\p{Han}", options: .regularExpression) != nil { tokenizer.setLanguage(.simplifiedChinese) }
             var addedOnLine = 0
+            let lineRect = SelectionGeometry.screenRect(observation.boundingBox, in: screen)
+            let totalLen = max(1, text.utf16.count)
             tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
                 let token = String(text[range])
-                guard token.rangeOfCharacter(from: .letters.union(.decimalDigits)) != nil, let box = try? candidate.boundingBox(for: range) else { return true }
-                let rect = SelectionGeometry.screenRect(box.boundingBox,in: screen)
+                guard token.rangeOfCharacter(from: .letters.union(.decimalDigits)) != nil else { return true }
+                let rect: CGRect
+                if let box = try? candidate.boundingBox(for: range) {
+                    rect = SelectionGeometry.screenRect(box.boundingBox, in: screen)
+                } else {
+                    let offset = NSRange(range, in: text).location
+                    let startRatio = CGFloat(offset) / CGFloat(totalLen)
+                    let lenRatio = CGFloat(token.utf16.count) / CGFloat(totalLen)
+                    let estX = lineRect.minX + startRatio * lineRect.width
+                    let estWidth = max(6, lenRatio * lineRect.width)
+                    rect = CGRect(x: estX, y: lineRect.minY, width: estWidth, height: lineRect.height)
+                }
                 if rect.width > 0 && rect.height > 0 {
-                    words.append(ScreenWord(text: token,context: text,bounds: rect,lineIndex: lineIndex,utf16Offset: NSRange(range,in: text).location))
+                    words.append(ScreenWord(text: token, context: text, bounds: rect, lineIndex: lineIndex, utf16Offset: NSRange(range, in: text).location))
                     addedOnLine += 1
                 }
                 return true
             }
             if addedOnLine == 0 && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let rect = SelectionGeometry.screenRect(observation.boundingBox,in: screen)
-                words.append(ScreenWord(text: text, context: text, bounds: rect, lineIndex: lineIndex, utf16Offset: 0))
+                words.append(ScreenWord(text: text, context: text, bounds: lineRect, lineIndex: lineIndex, utf16Offset: 0))
             }
         }
         return OCRPage(words: words,lines: lines)
@@ -178,6 +197,12 @@ enum SelectionOCR {
         escape.activate = { [weak self] in self?.cancel() }
         guard escape.register(choice: "Escape") == 0 else { onStatus?("Escape is reserved by another app. Resolve the shortcut conflict and try again."); return }
         self.mode = mode; active = true; selected = nil; words = []; lines = []; pendingClick = nil; pendingRegion = nil; keyboardIndex = nil
+        for panel in panels {
+            panel.orderOut(nil)
+            panel.contentView = nil
+            panel.close()
+        }
+        panels = []; views = []
         generation = UUID(); let id = generation
         let screens = NSScreen.screens
         guard !screens.isEmpty else { cancel(); return }
@@ -268,8 +293,22 @@ enum SelectionOCR {
                 return
             }
         }
-        guard let word = target(point) else { pendingClick = point; return }
-        finish(word)
+        if let word = target(point) {
+            finish(word)
+            return
+        }
+        if job != nil {
+            pendingClick = point
+            return
+        }
+        if mode == .sentence, let closestLine = lines.min(by: { SelectionGeometry.distSq($0.bounds, point) < SelectionGeometry.distSq($1.bounds, point) }), SelectionGeometry.distSq(closestLine.bounds, point) <= 120 * 120 {
+            finish(ScreenWord(text: closestLine.text, context: closestLine.text, bounds: closestLine.bounds, kind: .sentence))
+            return
+        } else if let closestWord = words.min(by: { SelectionGeometry.distSq($0.bounds, point) < SelectionGeometry.distSq($1.bounds, point) }), SelectionGeometry.distSq(closestWord.bounds, point) <= 120 * 120 {
+            finish(closestWord)
+            return
+        }
+        cancel()
     }
     private func chooseArea(_ rect: CGRect) {
         guard active, selected == nil else { return }
@@ -279,14 +318,24 @@ enum SelectionOCR {
     private func finish(_ result: ScreenWord) {
         selected = result; active = false; escape.unregister()
         pendingClick = nil; pendingRegion = nil; generation = UUID(); job?.cancel(); job = nil
-        panels.forEach { $0.orderOut(nil) }; panels = []; views = []; words = []; lines = []
+        for panel in panels {
+            panel.orderOut(nil)
+            panel.contentView = nil
+            panel.close()
+        }
+        panels = []; views = []; words = []; lines = []
         onHighlight?(result.bounds); onSelect?(result); onStatus?("\(result.kind.title) translated near your cursor · Escape dismisses")
     }
     func cancel(clearStatus: Bool = true, notify: Bool = true) {
         let wasActive = active
         generation = UUID(); job?.cancel(); job = nil; escape.unregister(); active = false; selected = nil
         pendingClick = nil; pendingRegion = nil; words = []; lines = []; keyboardIndex = nil
-        panels.forEach { $0.orderOut(nil) }; panels = []; views = []; onHighlight?(nil)
+        for panel in panels {
+            panel.orderOut(nil)
+            panel.contentView = nil
+            panel.close()
+        }
+        panels = []; views = []; onHighlight?(nil)
         if notify && wasActive { onDismiss?() }
         if clearStatus && wasActive { onStatus?("Ready · choose a word, sentence or screen area") }
     }

@@ -130,6 +130,7 @@ extension Entry {
     var previousApplication: NSRunningApplication?
     var panel: NSPanel?
     var highlight: NSPanel?
+    var highlightTimer: Timer?
     var monitors: [Any] = []
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var started = false
@@ -187,8 +188,13 @@ extension Entry {
         applyWindowPreferences(); NSApp.unhide(nil); panel?.center(); panel?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
         if output == "Translating…", translationRequest?.kind != .area, translationRequest != nil { configurationSeed.invalidate(); configuration = configurationSeed }
     }
-    func showHighlight(_ bounds: CGRect?) {
+    func clearHighlight() {
+        highlightTimer?.invalidate()
+        highlightTimer = nil
         highlight?.orderOut(nil)
+    }
+    func showHighlight(_ bounds: CGRect?) {
+        clearHighlight()
         guard let bounds else { return }
         if highlight == nil {
             let p = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
@@ -198,6 +204,9 @@ extension Entry {
             highlight = p
         }
         highlight?.setFrame(bounds.insetBy(dx: -4, dy: -4), display: true); highlight?.orderFrontRegardless()
+        highlightTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.clearHighlight() }
+        }
     }
     func acceptScreenWord(_ word: ScreenWord, showResult: Bool = true) {
         invalidateTranslation()
@@ -206,6 +215,7 @@ extension Entry {
         if showResult { showPopup() }; translate()
     }
     func startSelection(_ kind: CaptureKind) {
+        clearHighlight()
         selection.toggle(mode: kind)
     }
     func screenPermission() {
@@ -270,7 +280,7 @@ extension Entry {
         observers.append((NSWorkspace.shared.notificationCenter, NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.applyWindowPreferences() } }))
 
     }
-    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); areaShortcut.unregister(); sentenceShortcut.unregister(); notesShortcut.unregister(); notepad.flush(); speaker.stop(); notepadPanel?.orderOut(nil); recapTask?.cancel(); exampleTask?.cancel(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); selection.cancel(); highlight?.orderOut(nil) }
+    func stop() { started = false; observers.forEach { $0.0.removeObserver($0.1) }; observers = []; shortcut.unregister(); areaShortcut.unregister(); sentenceShortcut.unregister(); notesShortcut.unregister(); notepad.flush(); speaker.stop(); notepadPanel?.orderOut(nil); recapTask?.cancel(); exampleTask?.cancel(); monitors.forEach { NSEvent.removeMonitor($0) }; monitors = []; stopChat(); models.job?.cancel(); models.installJob?.cancel(); translationTask?.cancel(); selection.cancel(); clearHighlight() }
     func permission() { let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }
     func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? { TargetCapture.attribute(element, name) }
     func capture(selectionOnly: Bool = false) {
@@ -308,6 +318,7 @@ extension Entry {
         restoringTranslation = false; translate()
     }
     func invalidateTranslation() {
+        clearHighlight()
         speaker.stop()
         exampleTask?.cancel(); exampleTask = nil; exampleJob = nil; usageExample = nil; exampleStatus = ""
         areaJobs = []; areaPlan = nil; areaResults = [:]; completedAreaJobs = []

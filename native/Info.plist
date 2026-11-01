@@ -9,9 +9,9 @@
 	<key>CFBundleName</key>
 	<string>Kamihi Lens</string>
 	<key>CFBundleVersion</key>
-	<string>43</string>
+	<string>44</string>
 	<key>CFBundleShortVersionString</key>
-	<string>4.3.0</string>
+	<string>4.3.1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>

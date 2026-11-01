@@ -23,6 +23,7 @@ extension Lens {
         NSApp.unhideWithoutActivation(); popup?.orderFrontRegardless()
     }
     func dismissPopup(cancelTranslation: Bool = true) {
+        clearHighlight()
         speaker.stop(); popup?.orderOut(nil); popupVisible = false
         if cancelTranslation && translationHost == "lookup" { invalidateTranslation() }
     }

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = "4.3.0";
+  const CURRENT_VERSION = "4.3.1";
   const UPDATE_API = "https://lens.kamihi.workers.dev/api/version";
   const DOWNLOAD_URL = "https://lens.kamihi.workers.dev/download/windows/latest";
 

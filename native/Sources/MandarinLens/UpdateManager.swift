@@ -50,7 +50,7 @@ final class UpdateManager: ObservableObject {
         if let short = bundle.infoDictionary?["CFBundleShortVersionString"] as? String, !short.isEmpty {
             self.currentVersion = short
         } else {
-            self.currentVersion = "4.3.0"
+            self.currentVersion = "4.3.1"
         }
     }
 
