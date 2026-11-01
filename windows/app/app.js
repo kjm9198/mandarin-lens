@@ -224,9 +224,18 @@
     });
 
     const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const savedTheme = localStorage.getItem('kamihi_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      document.body.classList.toggle('theme-light', savedTheme === 'light');
+      document.body.classList.toggle('theme-dark', savedTheme === 'dark');
+    }
     themeToggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('theme-light');
-      document.body.classList.toggle('theme-dark');
+      const light = !document.body.classList.contains('theme-light');
+      document.body.classList.toggle('theme-light', light);
+      document.body.classList.toggle('theme-dark', !light);
+      localStorage.setItem('kamihi_theme', light ? 'light' : 'dark');
+      const selector = document.getElementById('themeSelect');
+      if (selector) selector.value = light ? 'light' : 'dark';
     });
 
     const checkUpdatesQuickBtn = document.getElementById('checkUpdatesQuickBtn');
@@ -272,6 +281,7 @@
 
     clearInputBtn.addEventListener('click', () => {
       translateInput.value = '';
+      performTranslate();
       translateInput.focus();
     });
 
@@ -400,64 +410,100 @@
     return { term: input, pinyin: pinyin, meaning: `Translated into Chinese: ${input}` };
   }
 
-  function performTranslate() {
-    const input = document.getElementById('translateInput').value.trim();
-    if (!input) return;
+  let translationRequestId = 0;
+  let translationAbortController = null;
 
+  async function performTranslate() {
+    const input = document.getElementById('translateInput').value.trim();
+    const resultTerm = document.getElementById('resultTerm');
+    const resultPinyin = document.getElementById('resultPinyin');
+    const resultMeaning = document.getElementById('resultMeaning');
+    const secBox = document.getElementById('secondaryResultBox');
+    const requestId = ++translationRequestId;
+    if (translationAbortController) translationAbortController.abort();
+    translationAbortController = new AbortController();
+    const signal = translationAbortController.signal;
+    if (!input) {
+      resultTerm.textContent = '';
+      resultPinyin.textContent = '';
+      resultMeaning.textContent = '';
+      secBox.style.display = 'none';
+      state.currentSecondaryText = '';
+      return;
+    }
     const target = document.getElementById('targetLangSelect').value;
     const secondaryTarget = document.getElementById('secondaryTargetSelect').value;
     const clean = input.toLowerCase().replace(/[.,!?;:]/g, '').trim();
 
-    // Primary
-    const primary = translateForTarget(input, clean, target);
-    document.getElementById('resultTerm').textContent = primary.term || input;
-    document.getElementById('resultPinyin').textContent = primary.pinyin || (window.PinyinEngine && window.PinyinEngine.hasHan(primary.term || input) ? window.PinyinEngine.toPinyin(primary.term || input) : '');
-    document.getElementById('resultMeaning').textContent = primary.meaning || input;
-
-    // Online fetch fallback for full sentences or unlisted words
-    if (primary.term.startsWith('Translated:') || primary.term.startsWith('Przetłumaczono:') || primary.term === input) {
-      const qTarget = target.startsWith('zh') ? 'zh-CN' : target;
-      fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${qTarget}&dt=t&q=${encodeURIComponent(input)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data) && Array.isArray(data[0])) {
-            const translated = data[0].map(s => s[0]).join('');
-            if (translated) {
-              document.getElementById('resultTerm').textContent = translated;
-              if (window.PinyinEngine && window.PinyinEngine.hasHan(translated)) {
-                document.getElementById('resultPinyin').textContent = window.PinyinEngine.toPinyin(translated);
-              }
-              document.getElementById('resultMeaning').textContent = `Translated: ${input}`;
-            }
-          }
-        })
-        .catch(() => {});
+    // Only display a local result when the dictionary actually knows the translation.
+    function localResult(language) {
+      const candidate = translateForTarget(input, clean, language);
+      if (!candidate || candidate.term === input ||
+          candidate.term.startsWith('Translated:') ||
+          candidate.term.startsWith('Przetłumaczono:')) return null;
+      return candidate;
     }
-
-    // Secondary
-    const secBox = document.getElementById('secondaryResultBox');
-    if (secondaryTarget !== 'none' && secondaryTarget !== target) {
-      const secondary = translateForTarget(input, clean, secondaryTarget);
+    async function resolve(language) {
+      const local = localResult(language);
+      if (local) return { ...local, origin: 'local' };
+      const code = language.startsWith('zh') ? (language === 'zh-Hant' ? 'zh-TW' : 'zh-CN') : language;
+      const endpoint = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' +
+        encodeURIComponent(code) + '&dt=t&q=' + encodeURIComponent(input);
+      const response = await fetch(endpoint, { signal });
+      if (!response.ok) throw new Error('Translation service unavailable');
+      const data = await response.json();
+      const translated = Array.isArray(data?.[0]) ? data[0].map(part => part?.[0] || '').join('').trim() : '';
+      if (!translated || translated === input) throw new Error('No verified translation returned');
+      return {
+        term: translated,
+        pinyin: window.PinyinEngine && window.PinyinEngine.hasHan(translated) ?
+          window.PinyinEngine.toPinyin(translated) : '',
+        meaning: input,
+        origin: 'online'
+      };
+    }
+    resultTerm.textContent = 'Translating…';
+    resultPinyin.textContent = '';
+    resultMeaning.textContent = '';
+    secBox.style.display = 'none';
+    state.currentSecondaryText = '';
+    const [primary, secondary] = await Promise.allSettled([
+      resolve(target),
+      secondaryTarget !== 'none' && secondaryTarget !== target ? resolve(secondaryTarget) : Promise.resolve(null)
+    ]);
+    if (requestId !== translationRequestId || signal.aborted) return;
+    if (primary.status === 'fulfilled') {
+      const value = primary.value;
+      resultTerm.textContent = value.term;
+      resultPinyin.textContent = value.pinyin || '';
+      resultMeaning.textContent = value.origin === 'online' ?
+        'Online translation · ' + input : 'Offline dictionary · ' + input;
+      state.history.unshift({
+        id: Date.now().toString(),
+        source: input,
+        translation: value.term,
+        pinyin: value.pinyin,
+        date: new Date().toLocaleDateString()
+      });
+      state.history = state.history.slice(0, 100);
+      saveHistory();
+    } else {
+      resultTerm.textContent = 'Translation unavailable';
+      resultMeaning.textContent = 'No offline dictionary match. Check your internet connection and try again.';
+    }
+    if (secondary.status === 'fulfilled' && secondary.value) {
+      const value = secondary.value;
       secBox.style.display = 'block';
       document.getElementById('secLangName').textContent = getLanguageName(secondaryTarget);
-      document.getElementById('secResultMeaning').textContent = secondary.term || secondary.meaning;
-      state.currentSecondaryText = secondary.term || secondary.meaning;
-      state.currentSecondaryLang = secondaryTarget === 'pl' ? 'pl-PL' : (secondaryTarget.startsWith('zh') ? 'zh-CN' : 'en-US');
-    } else {
-      secBox.style.display = 'none';
-      state.currentSecondaryText = "";
+      document.getElementById('secResultMeaning').textContent = value.term;
+      state.currentSecondaryText = value.term;
+      state.currentSecondaryLang = secondaryTarget === 'pl' ? 'pl-PL' :
+        secondaryTarget.startsWith('zh') ? 'zh-CN' : secondaryTarget === 'vi' ? 'vi-VN' : 'en-US';
+    } else if (secondaryTarget !== 'none' && secondaryTarget !== target) {
+      secBox.style.display = 'block';
+      document.getElementById('secLangName').textContent = getLanguageName(secondaryTarget);
+      document.getElementById('secResultMeaning').textContent = 'Translation unavailable';
     }
-
-    // Add to history
-    state.history.unshift({
-      id: Date.now().toString(),
-      source: input,
-      translation: primary.term,
-      pinyin: primary.pinyin,
-      date: new Date().toLocaleDateString()
-    });
-    if (state.history.length > 100) state.history.pop();
-    saveHistory();
   }
 
   // 2. HISTORY
@@ -903,6 +949,16 @@
 
     checkUpdatesBtn.addEventListener('click', () => checkUpdates(true));
     downloadUpdateBtn.addEventListener('click', () => downloadUpdate());
+    const themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+      themeSelect.value = document.body.classList.contains('theme-light') ? 'light' : 'dark';
+      themeSelect.addEventListener('change', () => {
+        const light = themeSelect.value === 'light';
+        document.body.classList.toggle('theme-light', light);
+        document.body.classList.toggle('theme-dark', !light);
+        localStorage.setItem('kamihi_theme', themeSelect.value);
+      });
+    }
   }
 
   function checkUpdates(manual = false) {
