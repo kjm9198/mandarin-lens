@@ -287,3 +287,23 @@ import Carbon
     #expect(lens.input == "coffee" && lens.sourceChoice == "en" && lens.target == "pl")
     #expect(lens.translationRequest?.sourceLanguage == "en")
 }
+
+@Test func sentenceSelectionAllowsClickingOnSpacesOrPunctuation() throws {
+    let line = ScreenWord(text: "Hello world, this is a test.", context: "Hello world, this is a test.", bounds: CGRect(x: 50, y: 100, width: 250, height: 24), lineIndex: 0)
+    let words = [
+        ScreenWord(text: "Hello", context: line.text, bounds: CGRect(x: 50, y: 100, width: 45, height: 24), lineIndex: 0, utf16Offset: 0),
+        ScreenWord(text: "world", context: line.text, bounds: CGRect(x: 100, y: 100, width: 45, height: 24), lineIndex: 0, utf16Offset: 6),
+        ScreenWord(text: "this", context: line.text, bounds: CGRect(x: 155, y: 100, width: 35, height: 24), lineIndex: 0, utf16Offset: 13),
+        ScreenWord(text: "is", context: line.text, bounds: CGRect(x: 195, y: 100, width: 20, height: 24), lineIndex: 0, utf16Offset: 18),
+        ScreenWord(text: "test", context: line.text, bounds: CGRect(x: 235, y: 100, width: 40, height: 24), lineIndex: 0, utf16Offset: 23)
+    ]
+    // Clicking on comma and space between "world," and "this" (around x: 148, y: 110)
+    let hitPunctuation = try #require(SelectionGeometry.sentence(at: CGPoint(x: 148, y: 110), words: words, lines: [line]))
+    #expect(hitPunctuation.text == "Hello world, this is a test.")
+    #expect(hitPunctuation.kind == .sentence)
+
+    // Paragraph selection on single click in section mode
+    let para = try #require(SelectionGeometry.paragraph(at: CGPoint(x: 148, y: 110), lines: [line]))
+    #expect(para.text == "Hello world, this is a test.")
+    #expect(para.kind == .area)
+}

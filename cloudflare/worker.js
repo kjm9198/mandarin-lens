@@ -3,7 +3,7 @@ export default {
     const url = new URL(request.url);
 
     // API: Version Check Endpoint for in-app updates
-    if (url.pathname === "/api/version" || url.pathname === "/api/latest.json") {
+    if (url.pathname === "/api/version" || url.pathname === "/api/latest.json" || url.pathname === "/api/update") {
       const payload = {
         latestVersion: "4.3.0",
         releaseDate: "2026-10-31",
@@ -13,7 +13,7 @@ export default {
           filename: "KamihiLens-4.3.0-macOS-arm64.dmg",
           url: `${url.origin}/download/macos/latest`,
           directUrl: `${url.origin}/downloads/KamihiLens-4.3.0-macOS-arm64.dmg`,
-          sha256: "0698390e81e29758e92fa4b22f3cf92dba99c8a4a9f1d27ba7cc0998d1e44bd7",
+          sha256: "c3e370e6d255b977ce84a36dc9e82c77df74f4118e605c89171eb950912ca8ce",
           minOs: "macOS 15.0"
         },
         windows: {

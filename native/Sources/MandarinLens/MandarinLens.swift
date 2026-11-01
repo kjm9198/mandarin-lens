@@ -242,7 +242,11 @@ extension Entry {
         registerShortcut()
         monitors.append(NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
             if event.type == .keyUp && event.keyCode == 49 { self?.shortcut.releasePressedState(); self?.areaShortcut.releasePressedState(); self?.sentenceShortcut.releasePressedState() }
-            if event.type == .keyDown && event.keyCode == 53, self?.selection.active == true { self?.selection.cancel(); return nil }; return event
+            if event.type == .keyDown && event.keyCode == 53 {
+                if self?.selection.active == true { self?.selection.cancel(); return nil }
+                if self?.popupVisible == true { self?.dismissPopup(); return nil }
+            }
+            return event
         } as Any)
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .keyUp) { [weak self] event in
             guard event.keyCode == 49 else { return }
@@ -251,14 +255,15 @@ extension Entry {
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.keyCode == 53 else { return }
             Task { @MainActor in
-                guard let self, self.selection.active else { return }
-                self.selection.cancel()
+                guard let self else { return }
+                if self.selection.active { self.selection.cancel() }
+                else if self.popupVisible { self.dismissPopup() }
             }
         } as Any)
         monitors.append(NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown,.rightMouseDown]) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.popupVisible, !self.sticky else { return }
-                self.selection.cancel()
+                self.dismissPopup()
             }
         } as Any)
         observers.append((NotificationCenter.default, NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.selection.cancel() } }))
