@@ -13,7 +13,7 @@ export default {
           filename: "KamihiLens-4.3.0-macOS-arm64.dmg",
           url: `${url.origin}/download/macos/latest`,
           directUrl: `${url.origin}/downloads/KamihiLens-4.3.0-macOS-arm64.dmg`,
-          sha256: "c3e370e6d255b977ce84a36dc9e82c77df74f4118e605c89171eb950912ca8ce",
+          sha256: "a6ffa6898f463d78d8a0262322281016658fe98cd29bf7cea0e9d97808fad73c",
           minOs: "macOS 15.0"
         },
         windows: {

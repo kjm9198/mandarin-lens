@@ -28,10 +28,15 @@ import Testing
     #expect(lens.lookupFallbackTranslation(text: "dzień dobry", source: "pl", target: "en") != nil)
     #expect(lens.lookupFallbackTranslation(text: "dziękuję", source: "pl", target: "en") == "Thank you")
     #expect(lens.lookupFallbackTranslation(text: "herbata", source: "pl", target: "en") == "Tea")
+    #expect(lens.lookupFallbackTranslation(text: "globalny", source: "pl", target: "en") == "Global")
 
     // English to Polish fallback
     #expect(lens.lookupFallbackTranslation(text: "good morning", source: "en", target: "pl") == "Dzień dobry")
     #expect(lens.lookupFallbackTranslation(text: "thank you", source: "en", target: "pl") == "Dziękuję")
+    #expect(lens.lookupFallbackTranslation(text: "global", source: "en", target: "pl") == "Globalny")
+    #expect(lens.lookupFallbackTranslation(text: "same", source: "en", target: "pl") == "Taki sam / To samo")
+    #expect(lens.lookupFallbackTranslation(text: "button", source: "en", target: "pl") == "Przycisk")
+    #expect(lens.lookupFallbackTranslation(text: "sound", source: "en", target: "pl") == "Dźwięk")
 
     // Dual target translation (English -> Chinese + Polish)
     lens.sourceChoice = "en"

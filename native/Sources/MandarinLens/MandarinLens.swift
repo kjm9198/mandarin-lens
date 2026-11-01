@@ -314,7 +314,7 @@ extension Entry {
         translationTask?.cancel(); translationTask = nil; translationRequest = nil; translatedRequest = nil; configuration = nil
         secondaryRequest = nil; secondaryConfiguration = nil; secondaryOutput = ""
     }
-    static let polishToEnglishDictionary: [String: String] = [
+    nonisolated static let polishToEnglishDictionary: [String: String] = [
         "strajk": "Strike", "strajki": "Strikes", "strajkować": "To strike",
         "dzień dobry": "Good morning / Hello", "dzien dobry": "Good morning / Hello",
         "dziękuję": "Thank you", "dziekuje": "Thank you", "dzięki": "Thanks", "dzieki": "Thanks",
@@ -336,9 +336,25 @@ extension Entry {
         "wolność": "Freedom", "wolnosc": "Freedom", "solidarność": "Solidarity", "solidarnosc": "Solidarity",
         "słońce": "Sun", "slonce": "Sun", "deszcz": "Rain", "śnieg": "Snow", "snieg": "Snow", "wiatr": "Wind",
         "rok": "Year", "tydzień": "Week", "tydzien": "Week", "miesiąc": "Month", "miesiac": "Month",
-        "książka": "Book", "ksiazka": "Book", "język": "Language", "jezyk": "Language", "słowo": "Word", "slowo": "Word"
+        "książka": "Book", "ksiazka": "Book", "język": "Language", "jezyk": "Language", "słowo": "Word", "slowo": "Word",
+        "słowa": "Words", "slowa": "Words", "zdanie": "Sentence", "zdania": "Sentences",
+        "globalny": "Global", "globalna": "Global", "globalne": "Global", "globalnie": "Globally",
+        "taki sam": "Same", "to samo": "Same / The same", "taka sama": "Same",
+        "przycisk": "Button", "przyciski": "Buttons", "dźwięk": "Sound / Audio", "dzwiek": "Sound / Audio",
+        "audio": "Audio", "klik": "Click", "kliknij": "Click", "kliknięcie": "Click", "klikniecie": "Click",
+        "rozmiar": "Size", "rozmiary": "Sizes", "ekran": "Screen", "ekrany": "Screens",
+        "okno": "Window", "okna": "Windows", "tekst": "Text", "teksty": "Texts",
+        "aktualizacja": "Update", "aktualizacje": "Updates", "pobierz": "Download", "pobieranie": "Download",
+        "najnowszy": "Latest / Newest", "najnowsza": "Latest / Newest", "najnowsze": "Latest / Newest",
+        "wersja": "Version", "wersje": "Versions", "ustawienia": "Settings", "opcje": "Options",
+        "notatka": "Note", "notatki": "Notes", "notatnik": "Notepad",
+        "zapisz": "Save", "zapisano": "Saved", "zapisane": "Saved",
+        "kopiuj": "Copy", "skopiowano": "Copied", "tłumaczenie": "Translation", "tlumaczenie": "Translation",
+        "szybki": "Fast", "szybka": "Fast", "szybko": "Fast / Quickly",
+        "wolny": "Slow", "wolna": "Slow", "wolno": "Slowly",
+        "mowa": "Speech", "wymowa": "Pronunciation"
     ]
-    static let englishToPolishDictionary: [String: String] = [
+    nonisolated static let englishToPolishDictionary: [String: String] = [
         "strike": "Strajk", "strikes": "Strajki",
         "good morning": "Dzień dobry", "hello": "Cześć / Dzień dobry", "hi": "Cześć",
         "thank you": "Dziękuję", "thanks": "Dzięki", "please": "Proszę",
@@ -350,9 +366,33 @@ extension Entry {
         "cat": "Kot", "dog": "Pies", "tomorrow": "Jutro", "today": "Dzisiaj", "yesterday": "Wczoraj",
         "love": "Miłość", "friend": "Przyjaciel", "family": "Rodzina", "money": "Pieniądze", "shop": "Sklep", "help": "Pomoc",
         "time": "Czas", "life": "Życie", "people": "Ludzie", "person": "Człowiek", "road": "Droga", "car": "Samochód",
-        "city": "Miasto", "country": "Kraj", "world": "Świat", "freedom": "Wolność", "peace": "Pokój", "war": "Wojna"
+        "city": "Miasto", "country": "Kraj", "world": "Świat", "freedom": "Wolność", "peace": "Pokój", "war": "Wojna",
+        "global": "Globalny", "globally": "Globalnie",
+        "same": "Taki sam / To samo", "the same": "Taki sam / To samo",
+        "button": "Przycisk", "buttons": "Przyciski",
+        "sound": "Dźwięk", "audio": "Dźwięk / Audio",
+        "word": "Słowo", "words": "Słowa",
+        "sentence": "Zdanie", "sentences": "Zdania",
+        "click": "Kliknięcie / Kliknij", "clicked": "Kliknięto",
+        "size": "Rozmiar", "sizes": "Rozmiary",
+        "screen": "Ekran", "screens": "Ekrany",
+        "window": "Okno", "windows": "Okna",
+        "text": "Tekst", "texts": "Teksty",
+        "update": "Aktualizacja", "updates": "Aktualizacje",
+        "download": "Pobierz", "downloads": "Pobrane",
+        "latest": "Najnowszy", "newest": "Najnowszy",
+        "version": "Wersja", "versions": "Wersje",
+        "settings": "Ustawienia", "options": "Opcje",
+        "note": "Notatka", "notes": "Notatki", "notepad": "Notatnik",
+        "save": "Zapisz", "saved": "Zapisano",
+        "copy": "Kopiuj", "copied": "Skopiowano",
+        "translate": "Przetłumacz", "translation": "Tłumaczenie",
+        "language": "Język", "languages": "Języki",
+        "fast": "Szybki", "quick": "Szybki",
+        "slow": "Wolny", "speech": "Mowa", "pronunciation": "Wymowa",
+        "context": "Kontekst", "source": "Źródło"
     ]
-    static let polishToChineseDictionary: [String: String] = [
+    nonisolated static let polishToChineseDictionary: [String: String] = [
         "strajk": "罢工", "strajki": "罢工",
         "dzień dobry": "早上好", "dzien dobry": "早上好",
         "dziękuję": "谢谢", "dziekuje": "谢谢", "dzięki": "谢谢", "dzieki": "谢谢",
@@ -363,54 +403,82 @@ extension Entry {
         "kot": "猫", "pies": "狗", "jutro": "明天", "dzisiaj": "今天", "wczoraj": "昨天",
         "miłość": "爱", "milosc": "爱", "przyjaciel": "朋友", "rodzina": "家人",
         "pieniądze": "钱", "pieniadze": "钱", "sklep": "商店", "pomoc": "帮助",
-        "miasto": "城市", "państwo": "国家", "panstwo": "国家", "świat": "世界", "swiat": "世界"
+        "miasto": "城市", "państwo": "国家", "panstwo": "国家", "świat": "世界", "swiat": "世界",
+        "globalny": "全球的", "globalna": "全球的", "globalne": "全球的",
+        "taki sam": "一样的", "to samo": "相同的", "przycisk": "按钮", "dźwięk": "声音",
+        "słowo": "词", "zdanie": "句子", "ekran": "屏幕", "okno": "窗口", "tekst": "文本"
     ]
-    static let englishToChineseDictionary: [String: String] = [
+    nonisolated static let englishToChineseDictionary: [String: String] = [
         "strike": "罢工", "strikes": "罢工",
         "good morning": "早上好", "hello": "你好", "hi": "你好", "thank you": "谢谢", "thanks": "多谢",
         "please": "请", "excuse me": "不好意思 / 打扰一下", "sorry": "对不起", "yes": "是的", "no": "不是 / 不",
         "how are you": "你好吗？", "how are you?": "你好吗？", "goodbye": "再见", "bye": "拜拜", "good night": "晚安",
         "water": "水", "tea": "茶", "coffee": "咖啡", "bread": "面包", "food": "食物",
         "work": "工作", "home": "家", "house": "房子", "school": "学校", "cat": "猫", "dog": "狗",
-        "tomorrow": "明天", "today": "今天", "yesterday": "昨天", "friend": "朋友", "family": "家人"
+        "tomorrow": "明天", "today": "今天", "yesterday": "昨天", "friend": "朋友", "family": "家人",
+        "global": "全球的", "same": "同一的", "button": "按钮", "sound": "声音", "audio": "音频",
+        "word": "单词", "sentence": "句子", "click": "点击", "size": "大小", "screen": "屏幕",
+        "window": "窗口", "text": "文本", "update": "更新", "download": "下载", "latest": "最新",
+        "version": "版本", "settings": "设置", "note": "笔记", "notepad": "记事本"
     ]
     func lookupFallbackTranslation(text: String, source: String?, target: String) -> String? {
         let clean = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: .punctuationCharacters)
         if (source == "pl" || TranslationSource.isPolish(text)) && target == "en" {
-            return Self.polishToEnglishDictionary[clean]
+            if let en = Self.polishToEnglishDictionary[clean] { return en }
         }
         if (source == "pl" || TranslationSource.isPolish(text)) && target.hasPrefix("zh") {
             if let zh = Self.polishToChineseDictionary[clean] { return zh }
             if let en = Self.polishToEnglishDictionary[clean]?.lowercased().split(separator: "/").first?.trimmingCharacters(in: .whitespaces),
                let zh = Self.englishToChineseDictionary[en] { return zh }
         }
-        if (source == "en") && target == "pl" {
-            return Self.englishToPolishDictionary[clean]
+        if (source == "en" || source == "auto" || source == nil) && target == "pl" {
+            if let pl = Self.englishToPolishDictionary[clean] { return pl }
         }
-        if (source == "en") && target.hasPrefix("zh") {
-            return Self.englishToChineseDictionary[clean]
+        if (source == "en" || source == "auto" || source == nil) && target.hasPrefix("zh") {
+            if let zh = Self.englishToChineseDictionary[clean] { return zh }
         }
         return nil
     }
     func translateWeb(text: String, source: String, target: String) async -> String? {
         let cleanTarget = target.hasPrefix("zh") ? (target == "zh-Hant" ? "zh-TW" : "zh-CN") : target
         let cleanSource = source.hasPrefix("zh") ? "zh" : (source == "auto" ? "auto" : source)
-        guard let encoded = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=\(cleanSource)&tl=\(cleanTarget)&dt=t&q=\(encoded)") else { return nil }
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 4.0
-        req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
-        do {
-            let (data, response) = try await URLSession.shared.data(for: req)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
-                  let sentences = json.first as? [[Any]] else { return nil }
-            let translated = sentences.compactMap { $0.first as? String }.joined()
-            let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
-            return clean.isEmpty ? nil : clean
-        } catch {
-            return nil
+        guard let encoded = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+
+        // Tier 1: MyMemory API (high speed, accurate, supports Polish/English/Chinese without 429 rate limits)
+        let mmSource = cleanSource == "auto" ? (TranslationSource.isPolish(text) ? "pl" : "en") : cleanSource
+        let mmTarget = cleanTarget == "zh-CN" || cleanTarget == "zh-TW" ? "zh" : cleanTarget
+        if let mmUrl = URL(string: "https://api.mymemory.translated.net/get?q=\(encoded)&langpair=\(mmSource)|\(mmTarget)") {
+            var mmReq = URLRequest(url: mmUrl)
+            mmReq.timeoutInterval = 3.5
+            mmReq.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+            if let (data, response) = try? await URLSession.shared.data(for: mmReq),
+               let http = response as? HTTPURLResponse, http.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let resData = json["responseData"] as? [String: Any],
+               let translated = resData["translatedText"] as? String {
+                let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !clean.isEmpty && !clean.hasPrefix("MYMEMORY WARNING:") && clean.lowercased() != text.lowercased() {
+                    return clean
+                }
+            }
         }
+
+        // Tier 2: Google GTX Web Fallback
+        if let gtxUrl = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=\(cleanSource)&tl=\(cleanTarget)&dt=t&q=\(encoded)") {
+            var gtxReq = URLRequest(url: gtxUrl)
+            gtxReq.timeoutInterval = 3.5
+            gtxReq.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+            if let (data, response) = try? await URLSession.shared.data(for: gtxReq),
+               let http = response as? HTTPURLResponse, http.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [Any],
+               let sentences = json.first as? [[Any]] {
+                let translated = sentences.compactMap { $0.first as? String }.joined()
+                let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !clean.isEmpty { return clean }
+            }
+        }
+
+        return nil
     }
     func translate() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -440,6 +508,8 @@ extension Entry {
                         self.completeSecondaryTranslation(secDirect, request: secReq)
                     } else if let secWeb = await self.translateWeb(text: text, source: detected, target: self.secondaryTarget) {
                         self.completeSecondaryTranslation(secWeb, request: secReq)
+                    } else {
+                        self.completeSecondaryTranslation("Translation unavailable", request: secReq)
                     }
                 }
             } else {
@@ -456,7 +526,14 @@ extension Entry {
             secondaryOutput = ""
         }
 
-        if let cached = history.first(where: { $0.source == text && $0.kind == captureKind && $0.language == target && $0.sourceLanguage == request.sourceLanguage && ($0.sourcePreference ?? "auto") == request.sourcePreference && ($0.quality ?? "natural") == request.quality && $0.error == nil && !$0.translation.isEmpty }) {
+        if let cached = history.first(where: {
+            $0.source == text && $0.kind == captureKind && $0.language == target &&
+            $0.sourceLanguage == request.sourceLanguage &&
+            ($0.sourcePreference ?? "auto") == request.sourcePreference &&
+            ($0.quality ?? "natural") == request.quality &&
+            $0.error == nil && !$0.translation.isEmpty &&
+            ($0.translation.lowercased() != $0.source.lowercased() || $0.language == $0.sourceLanguage)
+        }) {
             completeTranslation(cached.translation, request: request); return
         }
         if request.kind == .area { beginAreaTranslation(request); return }
@@ -593,7 +670,7 @@ extension Entry {
     }
     func stopChat() { chatTask?.cancel(); models.job?.cancel() }
     func newChat() { stopChat(); chatGeneration = UUID(); busy = false; answer = ""; question = ""; chats.newConversation() }
-    var canSaveWord: Bool { translatedRequest?.text == input.trimmingCharacters(in: .whitespacesAndNewlines) && translatedRequest?.target == target && translatedRequest != nil }
+    var canSaveWord: Bool { translatedRequest?.text == input.trimmingCharacters(in: .whitespacesAndNewlines) && translatedRequest?.target == target && translatedRequest != nil && !output.isEmpty && output != "Translating…" && !output.contains("unavailable") }
     func restoreTranslation(source: String, translated: String, language: String, context: String = "", usageExample: ChineseExample? = nil) {
         invalidateTranslation(); restoringTranslation = true
         input = source; target = language; output = translated; capturedContext = context

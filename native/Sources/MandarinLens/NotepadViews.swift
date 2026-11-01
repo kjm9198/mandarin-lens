@@ -55,15 +55,383 @@ struct NotepadView: View {
     }
     private func create(_ template: NoteTemplate) { if notes.create(template) != nil { showTrash = false; showList = false; search = "" } }
 }
-private enum NoteEditorMode: String, CaseIterable { case write = "Write", preview = "Preview", recall = "Recall" }
+private enum NoteEditorMode: String, CaseIterable {
+    case cards = "Cards"
+    case write = "Write"
+    case preview = "Preview"
+    case recall = "Recall"
+}
+
+struct NoteStructuredSections {
+    var original: String = ""
+    var translation: String = ""
+    var pinyin: String = ""
+    var secondTranslation: String = ""
+    var secondLanguage: String = ""
+    var secondPinyin: String = ""
+    var exampleSentence: (chinese: String, pinyin: String, english: String)? = nil
+    var sourceContext: String = ""
+    var myNotes: String = ""
+    var extraSections: [(title: String, body: String)] = []
+
+    var isTranslationNote: Bool {
+        !original.isEmpty || !translation.isEmpty
+    }
+
+    static func parse(body: String) -> NoteStructuredSections {
+        var sections = NoteStructuredSections()
+        let rawSections = body.components(separatedBy: "\n## ")
+        for (idx, raw) in rawSections.enumerated() {
+            let sectionText = (idx == 0 && raw.hasPrefix("## ")) ? String(raw.dropFirst(3)) : raw
+            let lines = sectionText.components(separatedBy: "\n")
+            guard let headerLine = lines.first else { continue }
+            let title = headerLine.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "#", with: "").trimmingCharacters(in: .whitespaces)
+            let contentLines = lines.dropFirst().joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanContent = contentLines.replacingOccurrences(of: "\n---\n", with: "\n").trimmingCharacters(in: CharacterSet(charactersIn: "-\n \t"))
+
+            let lowerTitle = title.lowercased()
+            if lowerTitle.hasPrefix("original") {
+                sections.original = cleanContent
+            } else if lowerTitle.hasPrefix("translation") {
+                let parts = cleanContent.components(separatedBy: "\n\n")
+                sections.translation = parts.first ?? ""
+                if parts.count > 1 {
+                    sections.pinyin = parts.dropFirst().joined(separator: "\n\n")
+                }
+            } else if lowerTitle.hasPrefix("second translation") {
+                if let open = title.firstIndex(of: "("), let close = title.firstIndex(of: ")"), open < close {
+                    sections.secondLanguage = String(title[title.index(after: open)..<close])
+                } else {
+                    sections.secondLanguage = "2nd Language"
+                }
+                let parts = cleanContent.components(separatedBy: "\n\n")
+                sections.secondTranslation = parts.first ?? ""
+                if parts.count > 1 {
+                    sections.secondPinyin = parts.dropFirst().joined(separator: "\n\n")
+                }
+            } else if lowerTitle.hasPrefix("source context") || lowerTitle.hasPrefix("context") {
+                sections.sourceContext = cleanContent
+            } else if lowerTitle.hasPrefix("example sentence") || lowerTitle.hasPrefix("example") {
+                let parts = cleanContent.components(separatedBy: "\n\n")
+                let chinese = parts.indices.contains(0) ? parts[0] : ""
+                let pinyin = parts.indices.contains(1) ? parts[1] : ""
+                let english = parts.indices.contains(2) ? parts[2] : ""
+                sections.exampleSentence = (chinese, pinyin, english)
+            } else if lowerTitle.hasPrefix("my notes") || lowerTitle.hasPrefix("notes") {
+                sections.myNotes = cleanContent
+            } else if !title.isEmpty && !cleanContent.isEmpty {
+                sections.extraSections.append((title, cleanContent))
+            }
+        }
+        return sections
+    }
+
+    func serialize(originalBody: String) -> String {
+        var body = "## Original\n\(original)\n\n## Translation\n\(translation)"
+        if !pinyin.isEmpty {
+            body += "\n\n\(pinyin)"
+        }
+        if !secondTranslation.isEmpty {
+            body += "\n\n---\n## Second Translation (\(secondLanguage))\n\(secondTranslation)"
+            if !secondPinyin.isEmpty {
+                body += "\n\n\(secondPinyin)"
+            }
+        }
+        if let ex = exampleSentence {
+            body += "\n\n---\n## Example sentence\n\(ex.chinese)\n\n\(ex.pinyin)\n\n\(ex.english)"
+        }
+        if !sourceContext.isEmpty {
+            body += "\n\n---\n## Source context\n\(sourceContext)"
+        }
+        for extra in extraSections {
+            body += "\n\n---\n## \(extra.title)\n\(extra.body)"
+        }
+        if !myNotes.isEmpty {
+            body += "\n\n---\n## My Notes\n\(myNotes)"
+        }
+        return body
+    }
+}
+
+private struct NoteCardsView: View {
+    @ObservedObject var lens: Lens
+    let note: LensNote
+    let onUpdateBody: (String) -> Void
+    @State private var sections: NoteStructuredSections
+    @State private var myNotesText: String
+    @State private var copiedOriginal = false
+    @State private var copiedTranslation = false
+    @State private var copiedSecond = false
+
+    init(lens: Lens, note: LensNote, onUpdateBody: @escaping (String) -> Void) {
+        self.lens = lens
+        self.note = note
+        self.onUpdateBody = onUpdateBody
+        let parsed = NoteStructuredSections.parse(body: note.body)
+        _sections = State(initialValue: parsed)
+        _myNotesText = State(initialValue: parsed.myNotes)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Card 1: Original Text
+                cardContainer {
+                    VStack(alignment: .leading, spacing: 10) {
+                        cardHeader(title: "ORIGINAL", icon: "character.textbox", color: .secondary) {
+                            HStack(spacing: 6) {
+                                Button {
+                                    let lang = TranslationSource.language(text: sections.original, preference: lens.sourceChoice)
+                                    lens.speaker.speak(sections.original, language: lang)
+                                } label: {
+                                    Image(systemName: "speaker.wave.2.fill").font(.system(size: 11))
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                                .help("Listen to original")
+
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(sections.original, forType: .string)
+                                    copiedOriginal = true
+                                } label: {
+                                    Image(systemName: copiedOriginal ? "checkmark" : "doc.on.doc").font(.system(size: 11))
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                                .help("Copy original text")
+                            }
+                        }
+
+                        Text(sections.original.isEmpty ? "No original text" : sections.original)
+                            .font(.system(size: 17, weight: .regular))
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                // Card 2: Translation
+                cardContainer {
+                    VStack(alignment: .leading, spacing: 12) {
+                        cardHeader(title: "TRANSLATION (\(languageName(lens.target).uppercased()))", icon: "globe", color: Color.lensAccent) {
+                            HStack(spacing: 6) {
+                                Button {
+                                    lens.speaker.speak(sections.translation, language: lens.target)
+                                } label: {
+                                    Image(systemName: "speaker.wave.2.fill").font(.system(size: 11))
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                                .help("Listen to translation")
+
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(sections.translation, forType: .string)
+                                    copiedTranslation = true
+                                } label: {
+                                    Image(systemName: copiedTranslation ? "checkmark" : "doc.on.doc").font(.system(size: 11))
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                                .help("Copy translation")
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(sections.translation.isEmpty ? "No translation" : sections.translation)
+                                .font(.system(size: sections.translation.range(of: "\\p{Han}", options: .regularExpression) != nil ? 28 : 20, weight: .semibold))
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if !sections.pinyin.isEmpty {
+                                Text(sections.pinyin)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(Color.lensAccent)
+                                    .textSelection(.enabled)
+                            }
+                        }
+
+                        // Secondary Translation (if available)
+                        if !sections.secondTranslation.isEmpty {
+                            Divider().padding(.vertical, 4)
+
+                            cardHeader(title: "SECOND TRANSLATION (\(sections.secondLanguage.uppercased()))", icon: "character.bubble.fill", color: .teal) {
+                                HStack(spacing: 6) {
+                                    Button {
+                                        let lang = sections.secondLanguage.lowercased().contains("pol") ? "pl" : "en"
+                                        lens.speaker.speak(sections.secondTranslation, language: lang)
+                                    } label: {
+                                        Image(systemName: "speaker.wave.2.fill").font(.system(size: 11))
+                                    }
+                                    .buttonStyle(LensButtonStyle(small: true))
+
+                                    Button {
+                                        NSPasteboard.general.clearContents()
+                                        NSPasteboard.general.setString(sections.secondTranslation, forType: .string)
+                                        copiedSecond = true
+                                    } label: {
+                                        Image(systemName: copiedSecond ? "checkmark" : "doc.on.doc").font(.system(size: 11))
+                                    }
+                                    .buttonStyle(LensButtonStyle(small: true))
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(sections.secondTranslation)
+                                    .font(.system(size: 19, weight: .medium))
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                if !sections.secondPinyin.isEmpty {
+                                    Text(sections.secondPinyin)
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color.lensAccent)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Card 3: Example Sentence (if present)
+                if let ex = sections.exampleSentence {
+                    cardContainer {
+                        VStack(alignment: .leading, spacing: 8) {
+                            cardHeader(title: "EXAMPLE SENTENCE", icon: "text.quote", color: .secondary) {
+                                Button {
+                                    lens.speaker.speak(ex.chinese, language: "zh-Hans")
+                                } label: {
+                                    Image(systemName: "speaker.wave.2.fill").font(.system(size: 11))
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(ex.chinese).font(.system(size: 17, weight: .medium)).textSelection(.enabled)
+                                if !ex.pinyin.isEmpty {
+                                    Text(ex.pinyin).font(.system(size: 13)).foregroundStyle(Color.lensAccent).textSelection(.enabled)
+                                }
+                                if !ex.english.isEmpty {
+                                    Text(ex.english).font(.system(size: 13)).foregroundStyle(.secondary).textSelection(.enabled)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Card 4: Source Context (if present)
+                if !sections.sourceContext.isEmpty {
+                    cardContainer {
+                        VStack(alignment: .leading, spacing: 8) {
+                            cardHeader(title: "SOURCE CONTEXT", icon: "viewfinder", color: .secondary) { EmptyView() }
+
+                            HStack(alignment: .top, spacing: 10) {
+                                RoundedRectangle(cornerRadius: 1.5)
+                                    .fill(Color.lensAccent)
+                                    .frame(width: 3)
+                                Text(sections.sourceContext)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+
+                // Card 5: Personal Study Notes
+                cardContainer {
+                    VStack(alignment: .leading, spacing: 10) {
+                        cardHeader(title: "MY NOTES", icon: "pencil.and.outline", color: Color.lensAccent) {
+                            HStack(spacing: 6) {
+                                Button("+ Checklist") {
+                                    if !myNotesText.hasSuffix("\n") && !myNotesText.isEmpty { myNotesText += "\n" }
+                                    myNotesText += "- [ ] "
+                                    saveNotes()
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+
+                                Button("+ Bullet") {
+                                    if !myNotesText.hasSuffix("\n") && !myNotesText.isEmpty { myNotesText += "\n" }
+                                    myNotesText += "- "
+                                    saveNotes()
+                                }
+                                .buttonStyle(LensButtonStyle(small: true))
+                            }
+                        }
+
+                        TextEditor(text: $myNotesText)
+                            .font(.system(size: 14))
+                            .lineSpacing(4)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 110)
+                            .padding(8)
+                            .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.lensLine.opacity(0.4), lineWidth: 1))
+                            .onChange(of: myNotesText) { _, _ in
+                                saveNotes()
+                            }
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .onChange(of: note.body) { _, newBody in
+            let parsed = NoteStructuredSections.parse(body: newBody)
+            sections = parsed
+            if myNotesText != parsed.myNotes {
+                myNotesText = parsed.myNotes
+            }
+        }
+    }
+
+    private func saveNotes() {
+        sections.myNotes = myNotesText
+        let serialized = sections.serialize(originalBody: note.body)
+        onUpdateBody(serialized)
+    }
+
+    private func cardContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.lensSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+    }
+
+    private func cardHeader<Trailing: View>(title: String, icon: String, color: Color, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(color)
+                Text(title)
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(0.6)
+                    .foregroundStyle(color)
+            }
+            Spacer()
+            trailing()
+        }
+    }
+}
+
 private struct NotepadEditor: View {
     @ObservedObject var lens: Lens
     @ObservedObject var notes: NotepadStore
     let noteID: UUID
-    @State private var mode = NoteEditorMode.write
+    @State private var mode = NoteEditorMode.cards
     @State private var revealed = false
     @FocusState private var writing: Bool
     private var note: LensNote? { notes.notes.first { $0.id == noteID } }
+
+    private var hasTranslationSections: Bool {
+        guard let note else { return false }
+        return note.body.contains("## Original") || note.body.contains("## Translation")
+    }
+
     var body: some View {
         if let note {
             VStack(alignment: .leading,spacing: 14) {
@@ -73,7 +441,20 @@ private struct NotepadEditor: View {
                     ScrollView { NoteMarkdown(text: note.body) }
                 } else {
                     HStack(spacing: 12) {
-                        Picker("Note view",selection: $mode) { Text("Write").tag(NoteEditorMode.write); Text("Preview").tag(NoteEditorMode.preview); if note.body.contains("## Translation\n") { Text("Recall").tag(NoteEditorMode.recall) } }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 230)
+                        Picker("Note view",selection: $mode) {
+                            if hasTranslationSections {
+                                Text("Cards").tag(NoteEditorMode.cards)
+                            }
+                            Text("Write").tag(NoteEditorMode.write)
+                            Text("Preview").tag(NoteEditorMode.preview)
+                            if note.body.contains("## Translation\n") {
+                                Text("Recall").tag(NoteEditorMode.recall)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(maxWidth: hasTranslationSections ? 290 : 230)
+
                         Spacer(minLength: 0)
                         Button { notes.pin(note.id) } label: { Image(systemName: note.pinned ? "pin.fill" : "pin") }.buttonStyle(.plain).foregroundStyle(note.pinned ? Color.lensAccent : .secondary).accessibilityLabel(note.pinned ? "Unpin note" : "Pin note")
                         Menu {
@@ -89,7 +470,12 @@ private struct NotepadEditor: View {
                     }
                     TextField("Untitled note",text: Binding(get: { notes.notes.first { $0.id == noteID }?.title ?? "" },set: { notes.update(noteID,title: $0) })).textFieldStyle(.plain).font(.system(size: 23,weight: .semibold)).accessibilityLabel("Note title")
                     Divider().overlay(Color.lensLine.opacity(0.3))
-                    if mode == .write {
+
+                    if mode == .cards && hasTranslationSections {
+                        NoteCardsView(lens: lens, note: note) { newBody in
+                            notes.update(noteID, body: newBody)
+                        }
+                    } else if mode == .write {
                         TextEditor(text: Binding(get: { notes.notes.first { $0.id == noteID }?.body ?? "" },set: { notes.update(noteID,body: $0) })).font(.system(size: 15)).lineSpacing(5).scrollContentBackground(.hidden).accessibilityLabel("Note text").focused($writing).frame(maxWidth: .infinity,maxHeight: .infinity)
                     } else if mode == .preview {
                         ScrollView { NoteMarkdown(text: note.body,toggle: { notes.toggleTask(note.id,line: $0) }).frame(maxWidth: .infinity,alignment: .leading) }
@@ -100,12 +486,28 @@ private struct NotepadEditor: View {
                 }
                 HStack { Text(notes.status).lineLimit(2); if notes.status.hasPrefix("Could not") { Button("Retry save") { notes.flush() } }; Spacer(); Text("\(note.wordCount) words").monospacedDigit() }.font(.system(size: 10)).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity,maxHeight: .infinity,alignment: .topLeading)
-                .onAppear { writing = true }
-                .onChange(of: noteID) { _,_ in mode = .write; revealed = false; writing = true }
+                .onAppear {
+                    if hasTranslationSections {
+                        mode = .cards
+                    } else {
+                        mode = .write
+                    }
+                    writing = mode == .write
+                }
+                .onChange(of: noteID) { _,_ in
+                    if hasTranslationSections {
+                        mode = .cards
+                    } else {
+                        mode = .write
+                    }
+                    revealed = false
+                    writing = mode == .write
+                }
                 .onChange(of: mode) { _,value in writing = value == .write }
         }
     }
 }
+
 private struct NoteMarkdown: View {
     let text: String
     var toggle: ((Int)->Void)?
@@ -114,11 +516,37 @@ private struct NoteMarkdown: View {
             ForEach(Array(text.components(separatedBy: "\n").enumerated()),id: \.offset) { index,line in
                 if line.hasPrefix("- [ ] ") || line.hasPrefix("- [x] ") {
                     Button { toggle?(index) } label: { HStack(alignment: .top,spacing: 9) { Image(systemName: line.hasPrefix("- [x]") ? "checkmark.square.fill" : "square").foregroundStyle(Color.lensAccent); Text(String(line.dropFirst(6))).strikethrough(line.hasPrefix("- [x]")); Spacer(minLength: 0) }.frame(maxWidth: .infinity,alignment: .leading).contentShape(Rectangle()) }.buttonStyle(.plain).disabled(toggle == nil).accessibilityLabel("Task \(index+1): "+String(line.dropFirst(6)))
-                } else if line.hasPrefix("## ") { Text(String(line.dropFirst(3))).font(.system(size: 18,weight: .semibold)).padding(.top,8).textSelection(.enabled) }
-                else if line.hasPrefix("# ") { Text(String(line.dropFirst(2))).font(.system(size: 24,weight: .semibold)).padding(.top,10).textSelection(.enabled) }
-                else { Text((try? AttributedString(markdown: line)) ?? AttributedString(line)).font(.system(size: 14)).lineSpacing(4).textSelection(.enabled).frame(minHeight: line.isEmpty ? 8 : nil) }
+                } else if line.trimmingCharacters(in: .whitespaces) == "---" || line.trimmingCharacters(in: .whitespaces) == "***" {
+                    Divider().overlay(Color.lensLine.opacity(0.4)).padding(.vertical, 6)
+                } else if line.hasPrefix("## ") {
+                    let sectionTitle = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+                    HStack(spacing: 6) {
+                        Image(systemName: iconForSection(sectionTitle))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.lensAccent)
+                        Text(sectionTitle)
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .padding(.top, 12)
+                    .textSelection(.enabled)
+                } else if line.hasPrefix("# ") {
+                    Text(String(line.dropFirst(2))).font(.system(size: 24,weight: .semibold)).padding(.top,10).textSelection(.enabled)
+                } else {
+                    Text((try? AttributedString(markdown: line)) ?? AttributedString(line)).font(.system(size: 14)).lineSpacing(4).textSelection(.enabled).frame(minHeight: line.isEmpty ? 8 : nil)
+                }
             }
         }.frame(maxWidth: .infinity,alignment: .leading)
+    }
+
+    private func iconForSection(_ title: String) -> String {
+        let lower = title.lowercased()
+        if lower.hasPrefix("original") { return "character.textbox" }
+        if lower.hasPrefix("second translation") { return "character.bubble.fill" }
+        if lower.hasPrefix("translation") { return "globe" }
+        if lower.hasPrefix("source context") || lower.hasPrefix("context") { return "viewfinder" }
+        if lower.hasPrefix("example") { return "text.quote" }
+        if lower.hasPrefix("my notes") || lower.hasPrefix("notes") { return "pencil.and.outline" }
+        return "bookmark.fill"
     }
 }
 
@@ -149,11 +577,24 @@ extension Lens {
         guard canSaveWord, let request = translatedRequest else { return }
         if notedTranslationID == request.id { notepad.flush(); return }
         let title = String(input.split(separator: "\n").first.map(String.init)?.prefix(60) ?? "Translation")
-        var body = "## Original\n"+input+"\n\n## Translation\n"+output
-        if output.range(of: "\\p{Han}",options: .regularExpression) != nil { body += "\n\n"+(output.applyingTransform(.mandarinToLatin,reverse: false) ?? "") }
-        if let example = usageExample { body += "\n\n## Example sentence\n"+example.chinese+"\n\n"+example.pinyin+"\n\n"+example.english }
-        if !capturedContext.isEmpty && capturedContext != input { body += "\n\n## Source context\n"+capturedContext }
-        if notepad.create(title: title,body: body) != nil { notedTranslationID = request.id }
+        var body = "## Original\n\(input)\n\n## Translation\n\(output)"
+        if output.range(of: "\\p{Han}", options: .regularExpression) != nil {
+            body += "\n\n" + (output.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
+        }
+        if secondaryTarget != "none" && secondaryTarget != target && !secondaryOutput.isEmpty && secondaryOutput != "Translating…" {
+            body += "\n\n---\n## Second Translation (\(languageName(secondaryTarget)))\n\(secondaryOutput)"
+            if secondaryOutput.range(of: "\\p{Han}", options: .regularExpression) != nil {
+                body += "\n\n" + (secondaryOutput.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
+            }
+        }
+        if let example = usageExample {
+            body += "\n\n---\n## Example sentence\n\(example.chinese)\n\n\(example.pinyin)\n\n\(example.english)"
+        }
+        if !capturedContext.isEmpty && capturedContext != input {
+            body += "\n\n---\n## Source context\n\(capturedContext)"
+        }
+        body += "\n\n---\n## My Notes\n- "
+        if notepad.create(title: title, body: body) != nil { notedTranslationID = request.id }
     }
     func translateNote(_ note: LensNote) {
         speaker.stop(); input = String(note.body.prefix(16000)); captureKind = .typed; showWorkspace(); workspacePage = "Translate"; translate()

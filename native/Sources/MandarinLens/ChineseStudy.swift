@@ -44,9 +44,10 @@ enum TranslationSource {
     static func isPolish(_ text: String) -> Bool {
         if isVietnamese(text) { return false }
         if text.range(of: "[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]", options: .regularExpression) != nil { return true }
-        let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: .punctuationCharacters)
+        if Lens.polishToEnglishDictionary[lower] != nil || Lens.polishToChineseDictionary[lower] != nil { return true }
         let tokens = lower.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation }).map(String.init)
-        if tokens.contains(where: { commonPolishWords.contains($0) }) { return true }
+        if tokens.contains(where: { commonPolishWords.contains($0) || Lens.polishToEnglishDictionary[$0] != nil || Lens.polishToChineseDictionary[$0] != nil }) { return true }
 
         for token in tokens {
             if token.range(of: "(sz|cz|rz|dz|dż|dź|prz|strz|trz|wstrz|wrz|krz|grz|brz|drz|jk|ści|źnie|wski|wska)", options: .regularExpression) != nil {

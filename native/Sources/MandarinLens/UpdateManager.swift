@@ -33,6 +33,15 @@ final class UpdateManager: ObservableObject {
     @Published var downloadedFileURL: URL? = nil
     @Published var releaseNotes: String = ""
     @Published var downloadURLString: String? = nil
+    @Published var lastCheckedDate: Date? = nil
+
+    var lastCheckedString: String {
+        guard let date = lastCheckedDate else { return "Not checked yet" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return "Today at " + formatter.string(from: date)
+    }
 
     private let updateCheckEndpoint = URL(string: "https://lens.kamihi.workers.dev/api/version")!
     private let fallbackWebsiteURL = URL(string: "https://lens.kamihi.workers.dev")!
@@ -83,22 +92,24 @@ final class UpdateManager: ObservableObject {
 
             let hasNew = Self.isVersion(remoteVer, newerThan: currentVersion)
             self.updateAvailable = hasNew
+            self.lastCheckedDate = Date()
 
             if hasNew {
-                self.statusMessage = "New version \(remoteVer) is available!"
+                self.statusMessage = "A new version of Kamihi Lens is available: v\(remoteVer)"
             } else {
-                self.statusMessage = "You’re up to date! Kamihi Lens \(currentVersion) is the latest version."
+                self.statusMessage = "Kamihi Lens is up to date (v\(currentVersion))."
+                self.downloadedFileURL = nil
             }
         } catch {
             if manual {
-                self.statusMessage = "Check failed. You can always download the latest installer from lens.kamihi.workers.dev."
+                self.statusMessage = "Check failed. You can always check lens.kamihi.workers.dev."
             }
         }
         isChecking = false
     }
 
     func downloadUpdate() {
-        guard !isDownloading else { return }
+        guard updateAvailable, !isDownloading else { return }
         isDownloading = true
         downloadProgress = 0.05
         statusMessage = "Starting download…"

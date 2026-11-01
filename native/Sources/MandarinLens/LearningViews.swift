@@ -128,33 +128,349 @@ struct TutorialView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var lens: Lens
     @State private var step = 0
-    private let titles = ["Choose your languages", "Select text on screen", "Build your dictionary", "Use local AI"]
-    private let symbols = ["character.book.closed", "viewfinder", "bookmark", "desktopcomputer"]
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack { Text("KAMIHI LENS · \(step + 1) OF 4").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.secondary); Spacer(); Button("Skip") { finish() }.buttonStyle(.plain) }
-            Image(systemName: symbols[step]).font(.system(size: 38, weight: .light)).foregroundStyle(Color.lensAccent)
-            Text(titles[step]).font(.system(size: 25, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
-            Group {
-                switch step {
-                case 0:
-                    Text("Choose a translation language. AI explanations can use a different language.")
-                    Picker("Translate into", selection: $lens.target) { Text("中文 · Simplified").tag("zh-Hans"); Text("繁體中文 · Traditional").tag("zh-Hant"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("English").tag("en") }
-                    Picker("Explain in", selection: $lens.explanationLanguage) { Text("English").tag("en"); Text("Tiếng Việt").tag("vi"); Text("Polski").tag("pl"); Text("中文").tag("zh-Hans") }
-                case 1:
-                    Text("Option–Space selects a word with pinyin and meaning. Control–Space selects a sentence. Control–Option–Space lets you drag a screen area; Space uses the whole display. A small result appears near your cursor. Escape clears it.")
-                    Text("Allow Screen Recording in Settings for screen selection. Recognition stays on this Mac. Accessibility is only needed for Capture selected text. Paste works without either permission.").foregroundStyle(.secondary)
-                case 2:
-                    Text("Choose Save word after translating. Pick a single word from the sentence, translate its meaning, then save. Your words get suggested categories immediately.")
-                    Text("Categorize all uses your chosen local AI. You can change a category yourself; manual choices stay put. Review reveals meanings one at a time.").foregroundStyle(.secondary)
-                default:
-                    Text("Open Choose model to use downloaded MLX models or a local LM Studio / Bionic server. No remote AI endpoint is used.")
-                    Text("On a 16 GB Mac, start small. Bigger models may take longer and need more memory. The question-mark button brings this guide back anytime.").foregroundStyle(.secondary)
-                }
-            }.font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
-            HStack { if step > 0 { Button("Back") { step -= 1 } }; Spacer(); Button(step == 3 ? "Let's try a word" : "Continue") { if step == 3 { finish() } else { step += 1 } }.buttonStyle(LensButtonStyle(prominent: true)) }
-        }.padding(24).frame(width: 330, height: 390).tint(.lensAccent)
+    @State private var hasScreenRecording = CGPreflightScreenCaptureAccess()
+    @State private var hasAccessibility = AXIsProcessTrusted()
+    @State private var permissionTimer: Timer?
+
+    private func checkPermissions() {
+        hasScreenRecording = CGPreflightScreenCaptureAccess()
+        hasAccessibility = AXIsProcessTrusted()
     }
-    private func finish() { UserDefaults.standard.set(true, forKey: "onboardingComplete"); dismiss() }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header Bar
+            HStack {
+                Text("STEP \(step + 1) OF 3")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1)
+                    .foregroundStyle(Color.lensAccent)
+                Spacer()
+                Button("Skip Tour") { finish() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, 24)
+            .padding(.bottom, 12)
+
+            // Content Area
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    switch step {
+                    case 0:
+                        welcomeStep
+                    case 1:
+                        permissionsStep
+                    default:
+                        setupStep
+                    }
+                }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 8)
+            }
+
+            Divider()
+
+            // Footer Navigation
+            HStack {
+                // Page Dots
+                HStack(spacing: 6) {
+                    ForEach(0..<3) { i in
+                        Circle()
+                            .fill(step == i ? Color.lensAccent : Color.secondary.opacity(0.3))
+                            .frame(width: 7, height: 7)
+                    }
+                }
+
+                Spacer()
+
+                if step > 0 {
+                    Button("Back") {
+                        withAnimation(.easeInOut(duration: 0.2)) { step -= 1 }
+                    }
+                    .buttonStyle(LensButtonStyle(small: true))
+                }
+
+                Button {
+                    if step == 2 {
+                        finish()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) { step += 1 }
+                    }
+                } label: {
+                    Text(step == 2 ? "Get Started" : "Continue")
+                }
+                .buttonStyle(LensButtonStyle(prominent: true, small: true))
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 16)
+            .background(Color.lensCanvas)
+        }
+        .frame(width: 530, height: 560)
+        .background(Color.lensSurface)
+        .onAppear {
+            checkPermissions()
+            permissionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                checkPermissions()
+            }
+        }
+        .onDisappear {
+            permissionTimer?.invalidate()
+            permissionTimer = nil
+        }
+    }
+
+    private var welcomeStep: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.lensAccent.opacity(0.14))
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 30, weight: .light))
+                        .foregroundStyle(Color.lensAccent)
+                }
+                .frame(width: 54, height: 54)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Welcome to Kamihi Lens")
+                        .font(.system(size: 24, weight: .bold))
+                    Text("Fast, private, on-device translation and screen capture.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(spacing: 14) {
+                featureCard(
+                    icon: "viewfinder",
+                    color: Color.lensAccent,
+                    title: "Instant Screen Selection",
+                    description: "Press ⌥ Space to click any word, ⌃ Space for sentences, or drag across any area. Zero lag, 100% on-device."
+                )
+
+                featureCard(
+                    icon: "character.bubble.fill",
+                    color: .teal,
+                    title: "Bilingual & Polish Translation",
+                    description: "Simultaneous dual translation into Chinese, Polish and English with pinyin pronunciation and slower audio playback."
+                )
+
+                featureCard(
+                    icon: "note.text.badge.plus",
+                    color: .orange,
+                    title: "Separated Study Notepad",
+                    description: "Keep translations neatly partitioned into original text, translation, context, and study notes."
+                )
+            }
+        }
+    }
+
+    private var permissionsStep: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Permissions Setup")
+                    .font(.system(size: 22, weight: .bold))
+                Text("Kamihi Lens operates entirely locally on your Mac. macOS requires these permissions to read text on your screen.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+
+            // Screen Recording Card
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "display")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color.lensAccent)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Screen Recording")
+                                .font(.system(size: 14, weight: .semibold))
+                            Spacer()
+                            if hasScreenRecording {
+                                Label("Granted", systemImage: "checkmark.circle.fill")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.green)
+                            } else {
+                                Label("Required", systemImage: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+
+                        Text("Enables instant OCR when you press ⌥ Space, ⌃ Space, or select an area. Your screen content is never uploaded or shared.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(2)
+                    }
+                }
+
+                if !hasScreenRecording {
+                    HStack {
+                        Spacer()
+                        Button("Allow Screen Recording…") {
+                            _ = CGRequestScreenCaptureAccess()
+                            checkPermissions()
+                        }
+                        .buttonStyle(LensButtonStyle(prominent: true, small: true))
+                    }
+                }
+            }
+            .padding(14)
+            .background(Color.lensCanvas, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+
+            // Accessibility Card
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "hand.point.up.braille.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Accessibility")
+                                .font(.system(size: 14, weight: .semibold))
+                            Spacer()
+                            if hasAccessibility {
+                                Label("Granted", systemImage: "checkmark.circle.fill")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.green)
+                            } else {
+                                Label("Optional", systemImage: "info.circle")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Text("Optional: Used for reading text selections with 'Capture selected text' in apps that support accessibility.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(2)
+                    }
+                }
+
+                if !hasAccessibility {
+                    HStack {
+                        Spacer()
+                        Button("Allow Accessibility…") {
+                            lens.permission()
+                            checkPermissions()
+                        }
+                        .buttonStyle(LensButtonStyle(small: true))
+                    }
+                }
+            }
+            .padding(14)
+            .background(Color.lensCanvas, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+        }
+    }
+
+    private var setupStep: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Languages & Shortcuts")
+                    .font(.system(size: 22, weight: .bold))
+                Text("Select your preferred translation languages and review quick shortcuts.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Translate into (Primary)").font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    Picker("Translate into", selection: $lens.target) {
+                        Text("中文 · Simplified").tag("zh-Hans")
+                        Text("Polski").tag("pl")
+                        Text("English").tag("en")
+                        Text("Tiếng Việt").tag("vi")
+                        Text("繁體中文 · Traditional").tag("zh-Hant")
+                    }
+                    .labelsHidden()
+                }
+
+                HStack {
+                    Text("+ 2nd Language (Simultaneous)").font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    Picker("2nd Language", selection: $lens.secondaryTarget) {
+                        Text("Polski").tag("pl")
+                        Text("中文 · Simplified").tag("zh-Hans")
+                        Text("English").tag("en")
+                        Text("None").tag("none")
+                    }
+                    .labelsHidden()
+                }
+
+                Toggle("Slower speech pronunciation (easier to understand)", isOn: $lens.slowSpeech)
+                    .font(.system(size: 12))
+            }
+            .padding(14)
+            .background(Color.lensCanvas, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+
+            // Shortcuts Guide
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Global Shortcuts").font(.system(size: 13, weight: .semibold))
+                HStack {
+                    Text("Word capture").font(.system(size: 12))
+                    Spacer()
+                    LensKeycap(text: "⌥ Space")
+                }
+                HStack {
+                    Text("Sentence capture").font(.system(size: 12))
+                    Spacer()
+                    LensKeycap(text: lens.sentenceShortcutChoice == "Control–Shift–Space" ? "⌃⇧ Space" : "⌃ Space")
+                }
+                HStack {
+                    Text("Section capture").font(.system(size: 12))
+                    Spacer()
+                    LensKeycap(text: "⌃⌥ Space")
+                }
+                HStack {
+                    Text("Floating Notepad").font(.system(size: 12))
+                    Spacer()
+                    LensKeycap(text: "⌃⌥N")
+                }
+            }
+            .padding(14)
+            .background(Color.lensCanvas, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+        }
+    }
+
+    private func featureCard(icon: String, color: Color, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(color)
+                .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(description)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(2)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.lensCanvas, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.lensLine.opacity(0.6), lineWidth: 1))
+    }
+
+    private func finish() {
+        permissionTimer?.invalidate()
+        permissionTimer = nil
+        UserDefaults.standard.set(true, forKey: "onboardingComplete")
+        dismiss()
+    }
 }

@@ -63,4 +63,10 @@ import Testing
     #expect(note.body.contains("kòng zhì") && note.body.contains("Please control your voice.") && note.body.contains("Control the volume, please."))
     #expect(!note.preview.contains("控制"))
     #expect(lens.input == "Control" && lens.output == "控制")
+
+    let sections = NoteStructuredSections.parse(body: note.body)
+    #expect(sections.original == "Control")
+    #expect(sections.translation == "控制")
+    #expect(sections.sourceContext.contains("Control the volume, please."))
+    #expect(sections.exampleSentence?.chinese == "请控制你的声音。")
 }

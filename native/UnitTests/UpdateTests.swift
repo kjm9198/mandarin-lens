@@ -54,3 +54,10 @@ import Testing
     #expect(!updater.isChecking)
     #expect(!updater.isDownloading)
 }
+
+@Test @MainActor func downloadUpdateIgnoredWhenNoUpdateAvailable() {
+    let updater = UpdateManager.shared
+    updater.updateAvailable = false
+    updater.downloadUpdate()
+    #expect(!updater.isDownloading)
+}

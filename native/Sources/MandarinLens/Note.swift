@@ -21,6 +21,8 @@ struct Note: View {
     @State private var showModels = false
     @State private var draftContext: WordDraftContext?
     @State private var copied = false
+    @State private var hasScreenRecording = CGPreflightScreenCaptureAccess()
+    @State private var hasAccessibility = AXIsProcessTrusted()
     @FocusState private var editing: Bool
     private var filtered: [Entry] { lens.history.filter { (!favoritesOnly || $0.favorite) && (search.isEmpty || $0.source.localizedCaseInsensitiveContains(search) || $0.translation.localizedCaseInsensitiveContains(search) || $0.pronunciation.localizedCaseInsensitiveContains(search)) } }
     var body: some View {
@@ -193,7 +195,9 @@ struct Note: View {
                         Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(lens.output,forType: .string); copied = true } label: { LensActionLabel(title: copied ? "Copied" : "Copy",symbol: copied ? "checkmark" : "doc.on.doc") }.buttonStyle(LensActionStyle()).accessibilityLabel(copied ? "Copied" : "Copy translation")
                         CaptureNoteButton(lens: lens,notes: lens.notepad)
                     }
-                } else if lens.output != "Translating…" { Button("Retry") { lens.translate() }.buttonStyle(LensButtonStyle(small: true)) }
+                } else if lens.output.contains("unavailable") || lens.output.contains("Check connection") {
+                    Button("Retry") { lens.translate() }.buttonStyle(LensButtonStyle(small: true))
+                }
             }
         }.frame(maxWidth: .infinity,alignment: .leading).lensSurface().onChange(of: lens.output) { _,_ in copied = false }
     }
@@ -255,10 +259,28 @@ struct Note: View {
                 }
                 settingsSection("Appearance") { appearanceControls }
                 settingsSection("Permissions") {
-                    permissionRow("Screen Recording",detail: "Read visible words in images, videos and other apps.",action: "Allow Screen Recording…") { lens.screenPermission() }
+                    permissionRow("Screen Recording",
+                                  detail: "Read visible words in images, videos and other apps.",
+                                  action: "Allow Screen Recording…",
+                                  granted: hasScreenRecording,
+                                  isRequired: true) {
+                        lens.screenPermission()
+                        hasScreenRecording = CGPreflightScreenCaptureAccess()
+                    }
                     Divider()
-                    permissionRow("Accessibility",detail: "Read existing text selections with Capture selected text.",action: "Allow access…") { lens.permission() }
+                    permissionRow("Accessibility",
+                                  detail: "Read existing text selections with Capture selected text.",
+                                  action: "Allow access…",
+                                  granted: hasAccessibility,
+                                  isRequired: false) {
+                        lens.permission()
+                        hasAccessibility = AXIsProcessTrusted()
+                    }
                     Text(lens.selectionStatus).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+                .onAppear {
+                    hasScreenRecording = CGPreflightScreenCaptureAccess()
+                    hasAccessibility = AXIsProcessTrusted()
                 }
                 settingsSection("Software update") {
                     softwareUpdateControls
@@ -282,53 +304,157 @@ struct Note: View {
         VStack(alignment: .leading,spacing: 20) { Text("Display options").font(.system(size: 15,weight: .semibold)); appearanceControls; Divider(); Button("All settings") { preferences = false; page = .settings }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Color.lensAccent) }.padding(22).frame(width: 300).background(Color.lensCanvas)
     }
     private var softwareUpdateControls: some View {
-        VStack(alignment: .leading,spacing: 12) {
-            HStack {
-                Text("Current version").font(.system(size: 13,weight: .medium))
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.lensAccent.opacity(0.12))
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.lensAccent)
+                }
+                .frame(width: 38, height: 38)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    if lens.updater.isChecking {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text("Checking for updates…")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        Text("Connecting to lens.kamihi.workers.dev…")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    } else if lens.updater.updateAvailable {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundStyle(Color.lensAccent)
+                            Text("Kamihi Lens \(lens.updater.latestVersion ?? "") is available")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        Text("Current version: v\(lens.updater.currentVersion)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("Kamihi Lens is up to date")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        Text("Version \(lens.updater.currentVersion) · Last checked: \(lens.updater.lastCheckedString)")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
-                Text("v\(lens.updater.currentVersion)").font(.system(size: 12,design: .monospaced)).foregroundStyle(.secondary)
-            }
-            if let latest = lens.updater.latestVersion {
-                HStack {
-                    Text("Latest release").font(.system(size: 13,weight: .medium))
-                    Spacer()
-                    Text("v\(latest)").font(.system(size: 12,design: .monospaced)).foregroundStyle(lens.updater.updateAvailable ? Color.lensAccent : .secondary)
-                }
-            }
-            Text(lens.updater.statusMessage).font(.system(size: 12)).foregroundStyle(lens.updater.updateAvailable ? Color.lensAccent : .secondary).fixedSize(horizontal: false,vertical: true)
-            if lens.updater.isDownloading {
-                ProgressView(value: lens.updater.downloadProgress).progressViewStyle(.linear)
-            }
-            HStack(spacing: 10) {
-                Button {
-                    lens.updater.downloadUpdate()
-                } label: {
-                    Label(lens.updater.isDownloading ? "Downloading…" : (lens.updater.downloadedFileURL != nil ? "Open installer again" : "Download update"),
-                          systemImage: "arrow.down.circle.fill")
-                }
-                .buttonStyle(LensButtonStyle(prominent: true,small: true))
-                .disabled(lens.updater.isDownloading)
 
                 Button {
                     Task { await lens.updater.checkForUpdates(manual: true) }
                 } label: {
-                    Label(lens.updater.isChecking ? "Checking…" : "Check for updates",systemImage: "arrow.clockwise")
+                    Label(lens.updater.isChecking ? "Checking…" : "Check for updates", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(LensButtonStyle(small: true))
                 .disabled(lens.updater.isChecking || lens.updater.isDownloading)
+            }
 
-                Button {
-                    lens.updater.openWebsiteFallback()
-                } label: {
-                    Label("Website",systemImage: "arrow.up.right.square")
+            if lens.updater.updateAvailable {
+                Divider()
+                VStack(alignment: .leading, spacing: 10) {
+                    if !lens.updater.releaseNotes.isEmpty {
+                        Text(lens.updater.releaseNotes)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+                    }
+
+                    if lens.updater.isDownloading {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ProgressView(value: lens.updater.downloadProgress).progressViewStyle(.linear)
+                            Text("Downloading update… \(Int(lens.updater.downloadProgress * 100))%")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        if lens.updater.downloadedFileURL != nil {
+                            Button {
+                                lens.updater.openInstaller()
+                            } label: {
+                                Label("Open installer", systemImage: "arrow.down.circle.fill")
+                            }
+                            .buttonStyle(LensButtonStyle(prominent: true, small: true))
+                        } else {
+                            Button {
+                                lens.updater.downloadUpdate()
+                            } label: {
+                                Label(lens.updater.isDownloading ? "Downloading…" : "Update now", systemImage: "arrow.down.circle.fill")
+                            }
+                            .buttonStyle(LensButtonStyle(prominent: true, small: true))
+                            .disabled(lens.updater.isDownloading)
+                        }
+
+                        Button {
+                            lens.updater.openWebsiteFallback()
+                        } label: {
+                            Label("Website", systemImage: "arrow.up.right.square")
+                        }
+                        .buttonStyle(LensButtonStyle(small: true))
+                    }
                 }
-                .buttonStyle(LensButtonStyle(small: true))
             }
         }
     }
     private func shortcutRow(_ title: String,key: String,status: String) -> some View { HStack { Text(title).font(.system(size: 12)); Spacer(); LensKeycap(text: key) }.help(status) }
-    private func permissionRow(_ title: String,detail: String,action: String,perform: @escaping ()->Void) -> some View {
-        VStack(alignment: .leading,spacing: 8) { Text(title).font(.system(size: 13,weight: .medium)); Text(detail).font(.system(size: 12)).foregroundStyle(.secondary); Button(action,action: perform).buttonStyle(LensButtonStyle(small: true)) }
+    private func permissionRow(_ title: String, detail: String, action: String, granted: Bool, isRequired: Bool = true, perform: @escaping () -> Void) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(title).font(.system(size: 13, weight: .medium))
+                    if granted {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill").font(.system(size: 11))
+                            Text("Granted").font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Color.green.opacity(0.12), in: Capsule())
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: isRequired ? "exclamationmark.triangle.fill" : "info.circle.fill").font(.system(size: 11))
+                            Text(isRequired ? "Required" : "Optional").font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundStyle(isRequired ? .orange : .secondary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background((isRequired ? Color.orange : Color.secondary).opacity(0.12), in: Capsule())
+                    }
+                }
+                Text(detail).font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if granted {
+                Button("Open Settings…") {
+                    if title.contains("Screen") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } else {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+                .buttonStyle(LensButtonStyle(small: true))
+            } else {
+                Button(action, action: perform)
+                    .buttonStyle(LensButtonStyle(prominent: isRequired, small: true))
+            }
+        }
     }
 }
 struct LensMenu: View {
