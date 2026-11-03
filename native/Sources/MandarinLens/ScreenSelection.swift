@@ -107,7 +107,11 @@ enum SelectionGeometry {
         return ScreenWord(text: String(text.prefix(16000)), context: String(text.prefix(16000)), bounds: bounds, kind: .area)
     }
     static func area(_ rect: CGRect, words: [ScreenWord]) -> ScreenWord? {
-        let chosen = words.filter { rect.contains(CGPoint(x: $0.bounds.midX,y: $0.bounds.midY)) }
+        var chosen = words.filter { rect.contains(CGPoint(x: $0.bounds.midX, y: $0.bounds.midY)) }
+        if chosen.isEmpty {
+            let expanded = rect.insetBy(dx: -8, dy: -8)
+            chosen = words.filter { expanded.intersects($0.bounds) || expanded.contains(CGPoint(x: $0.bounds.midX, y: $0.bounds.midY)) }
+        }
         guard !chosen.isEmpty else { return nil }
         let byLine: [Int: [ScreenWord]] = Dictionary(grouping: chosen,by: { $0.lineIndex })
         var grouped: [ScreenWord] = []
@@ -134,11 +138,26 @@ enum SelectionOCR {
     static func words(in image: CGImage, screen: CGRect, request: VNRecognizeTextRequest = VNRecognizeTextRequest()) throws -> [ScreenWord] { try page(in: image,screen: screen,request: request).words }
     static func page(in image: CGImage, screen: CGRect, request: VNRecognizeTextRequest = VNRecognizeTextRequest()) throws -> OCRPage {
         request.recognitionLevel = .accurate; request.usesLanguageCorrection = false; request.automaticallyDetectsLanguage = true
-        let supported = try request.supportedRecognitionLanguages()
-        request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US", "vi-VT", "pl-PL"].filter { supported.contains($0) }
-        try VNImageRequestHandler(cgImage: image).perform([request])
+        let supported = (try? request.supportedRecognitionLanguages()) ?? []
+        let langs = ["zh-Hans", "zh-Hant", "en-US", "vi-VT", "pl-PL"].filter { supported.contains($0) }
+        if !langs.isEmpty { request.recognitionLanguages = langs }
+        do {
+            try VNImageRequestHandler(cgImage: image).perform([request])
+        } catch {
+            let fallbackReq = VNRecognizeTextRequest()
+            fallbackReq.recognitionLevel = .fast
+            fallbackReq.usesLanguageCorrection = false
+            try? VNImageRequestHandler(cgImage: image).perform([fallbackReq])
+            if let fallbackResults = fallbackReq.results, !fallbackResults.isEmpty {
+                return parseResults(fallbackResults, screen: screen)
+            }
+            throw error
+        }
+        return parseResults(request.results ?? [], screen: screen)
+    }
+    private static func parseResults(_ results: [VNRecognizedTextObservation], screen: CGRect) -> OCRPage {
         var words: [ScreenWord] = [], lines: [ScreenWord] = []
-        for (lineIndex, observation) in (request.results ?? []).enumerated() {
+        for (lineIndex, observation) in results.enumerated() {
             guard let candidate = observation.topCandidates(1).first else { continue }
             let text = candidate.string
             lines.append(ScreenWord(text: text, context: text,bounds: SelectionGeometry.screenRect(observation.boundingBox,in: screen),lineIndex: lineIndex))
@@ -185,6 +204,7 @@ enum SelectionOCR {
     private var words: [ScreenWord] = [], lines: [ScreenWord] = []
     private var pendingClick: CGPoint?, pendingRegion: CGRect?
     private var keyboardIndex: Int?
+    private var isScanning = false
     private var job: Task<Void, Never>?
     private let escape = GlobalShortcut(signature: 0x4B4C4553)
     var onSelect: ((ScreenWord) -> Void)?
@@ -226,7 +246,12 @@ enum SelectionOCR {
         }
         panels[pointerScreen].makeKey(); onStatus?("\(mode.title) selection · Escape cancels")
         let excludedIDs = Set(panels.map { CGWindowID($0.windowNumber) })
+        isScanning = true
         job = Task { @MainActor [weak self] in
+            defer {
+                self?.isScanning = false
+                self?.job = nil
+            }
             do {
                 let content = try await SCShareableContent.excludingDesktopWindows(false,onScreenWindowsOnly: true)
                 guard let self, self.active, self.generation == id else { return }
@@ -249,9 +274,15 @@ enum SelectionOCR {
                     for i in page.words.indices { page.words[i].lineIndex += base }
                     for i in page.lines.indices { page.lines[i].lineIndex += base }
                     self.words += page.words; self.lines += page.lines
-                    if let rect = self.pendingRegion, frame.contains(CGPoint(x: rect.midX,y: rect.midY)) { self.chooseArea(rect) }
-                    else if let point = self.pendingClick, frame.contains(point) { self.choose(point) }
-                    else { self.hover(NSEvent.mouseLocation) }
+                    if let rect = self.pendingRegion, frame.contains(CGPoint(x: rect.midX,y: rect.midY)) {
+                        self.pendingRegion = nil
+                        self.chooseArea(rect)
+                    } else if let point = self.pendingClick, frame.contains(point) {
+                        self.pendingClick = nil
+                        self.choose(point)
+                    } else {
+                        self.hover(NSEvent.mouseLocation)
+                    }
                     if self.selected != nil { return }
                 }
                 guard self.active, self.generation == id else { return }
@@ -287,6 +318,10 @@ enum SelectionOCR {
     private func confirmWord() { guard let index = keyboardIndex, words.indices.contains(index) else { return }; let r = words[index].bounds; choose(CGPoint(x: r.midX,y: r.midY)) }
     private func choose(_ point: CGPoint) {
         guard active, selected == nil else { return }
+        for view in views {
+            let local = view.convert(point, from: nil)
+            if view.isPointInToolbar(local) { return }
+        }
         if mode == .area {
             if let paragraph = SelectionGeometry.paragraph(at: point, lines: lines) {
                 finish(paragraph)
@@ -297,8 +332,9 @@ enum SelectionOCR {
             finish(word)
             return
         }
-        if job != nil {
+        if isScanning && words.isEmpty {
             pendingClick = point
+            hint("Reading screen text…")
             return
         }
         if mode == .sentence, let closestLine = lines.min(by: { SelectionGeometry.distSq($0.bounds, point) < SelectionGeometry.distSq($1.bounds, point) }), SelectionGeometry.distSq(closestLine.bounds, point) <= 120 * 120 {
@@ -312,30 +348,63 @@ enum SelectionOCR {
     }
     private func chooseArea(_ rect: CGRect) {
         guard active, selected == nil else { return }
-        guard let result = SelectionGeometry.area(rect,words: words) else { pendingRegion = rect; hint("No text here yet · try another area or wait a moment"); return }
-        finish(result)
+        if isScanning && words.isEmpty {
+            pendingRegion = rect
+            hint("Reading screen text…")
+            return
+        }
+        if let result = SelectionGeometry.area(rect, words: words) {
+            finish(result)
+            return
+        }
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        if let para = SelectionGeometry.paragraph(at: center, lines: lines) {
+            finish(para)
+            return
+        }
+        if let sent = SelectionGeometry.sentence(at: center, words: words, lines: lines) {
+            finish(sent)
+            return
+        }
+        if let word = SelectionGeometry.word(at: center, in: words) {
+            finish(word)
+            return
+        }
+        if let closest = words.min(by: { SelectionGeometry.distSq(rect, CGPoint(x: $0.bounds.midX, y: $0.bounds.midY)) < SelectionGeometry.distSq(rect, CGPoint(x: $1.bounds.midX, y: $1.bounds.midY)) }),
+           SelectionGeometry.distSq(rect, CGPoint(x: closest.bounds.midX, y: closest.bounds.midY)) <= 120 * 120 {
+            finish(closest)
+            return
+        }
+        pendingRegion = nil
+        hint("Choose a word, sentence or drag a section · Esc cancels")
     }
     private func finish(_ result: ScreenWord) {
         selected = result; active = false; escape.unregister()
         pendingClick = nil; pendingRegion = nil; generation = UUID(); job?.cancel(); job = nil
-        for panel in panels {
-            panel.orderOut(nil)
-            panel.contentView = nil
-            panel.close()
-        }
+        for panel in panels { panel.orderOut(nil) }
+        let oldPanels = panels
         panels = []; views = []; words = []; lines = []
+        DispatchQueue.main.async {
+            for panel in oldPanels {
+                panel.contentView = nil
+                panel.close()
+            }
+        }
         onHighlight?(result.bounds); onSelect?(result); onStatus?("\(result.kind.title) translated near your cursor · Escape dismisses")
     }
     func cancel(clearStatus: Bool = true, notify: Bool = true) {
         let wasActive = active
         generation = UUID(); job?.cancel(); job = nil; escape.unregister(); active = false; selected = nil
         pendingClick = nil; pendingRegion = nil; words = []; lines = []; keyboardIndex = nil
-        for panel in panels {
-            panel.orderOut(nil)
-            panel.contentView = nil
-            panel.close()
-        }
+        for panel in panels { panel.orderOut(nil) }
+        let oldPanels = panels
         panels = []; views = []; onHighlight?(nil)
+        DispatchQueue.main.async {
+            for panel in oldPanels {
+                panel.contentView = nil
+                panel.close()
+            }
+        }
         if notify && wasActive { onDismiss?() }
         if clearStatus && wasActive { onStatus?("Ready · choose a word, sentence or screen area") }
     }
@@ -351,6 +420,7 @@ private final class SelectionSurface: NSView {
     override init(frame frameRect: NSRect) { super.init(frame: frameRect); addSubview(toolbar) }
     required init?(coder: NSCoder) { nil }
     override func layout() { super.layout(); let width = min(610,bounds.width-32); toolbar.frame = CGRect(x: (bounds.width-width)/2,y: bounds.height-116,width: width,height: 88) }
+    func isPointInToolbar(_ pointInView: CGPoint) -> Bool { toolbar.frame.insetBy(dx: -8, dy: -8).contains(pointInView) }
     var onMode: ((CaptureKind)->Void)?
     var preview: CGRect?, anchor: CGPoint?
     var status = ""
@@ -363,19 +433,23 @@ private final class SelectionSurface: NSView {
     override func cursorUpdate(with event: NSEvent) { NSCursor.crosshair.set() }
     override func mouseMoved(with event: NSEvent) { onMove?(point(event)) }
     override func mouseDown(with event: NSEvent) {
+        if isPointInToolbar(event.locationInWindow) { return }
         anchor = point(event); dragging = false; preview = nil; needsDisplay = true
     }
     override func mouseDragged(with event: NSEvent) {
         guard let anchor, let frame = window?.frame else { return }
         let p = point(event)
-        guard abs(p.x-anchor.x) > 6 || abs(p.y-anchor.y) > 6 else { return }
+        let dx = abs(p.x - anchor.x)
+        let dy = abs(p.y - anchor.y)
+        guard dx > 14 || dy > 14 else { return }
         dragging = true
-        preview = CGRect(x: min(p.x,anchor.x),y: min(p.y,anchor.y),width: abs(p.x-anchor.x),height: abs(p.y-anchor.y)).intersection(frame); needsDisplay = true
+        preview = CGRect(x: min(p.x,anchor.x),y: min(p.y,anchor.y),width: dx,height: dy).intersection(frame); needsDisplay = true
     }
     override func mouseUp(with event: NSEvent) {
+        if isPointInToolbar(event.locationInWindow) { return }
         defer { anchor = nil; dragging = false }
-        if dragging, let rect = preview, rect.width > 6, rect.height > 6 { onRegion?(rect) }
-        else { onClick?(point(event)) }
+        if dragging, let rect = preview, rect.width >= 14 && rect.height >= 14 { onRegion?(rect) }
+        else { onClick?(anchor ?? point(event)) }
     }
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
