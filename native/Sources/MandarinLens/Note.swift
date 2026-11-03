@@ -170,6 +170,11 @@ struct Note: View {
                         }
                         if lens.secondaryOutput == "Translating…" {
                             HStack { ProgressView().controlSize(.small); Text("Translating into \(languageName(lens.secondaryTarget))…").font(.system(size: 13)).foregroundStyle(.secondary) }
+                        } else if lens.secondaryOutput.contains("unavailable") {
+                            HStack(spacing: 8) {
+                                Text("Translation unavailable").font(.system(size: 13)).foregroundStyle(.secondary)
+                                Button("Retry") { lens.retrySecondaryTranslation() }.buttonStyle(LensButtonStyle(small: true))
+                            }
                         } else if !lens.secondaryOutput.isEmpty {
                             Text(lens.secondaryOutput)
                                 .font(.system(size: lens.secondaryTarget.hasPrefix("zh") && lens.secondaryOutput.count < 16 ? 32 : 20, weight: .medium))

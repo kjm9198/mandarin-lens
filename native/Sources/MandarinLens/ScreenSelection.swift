@@ -85,8 +85,18 @@ enum SelectionGeometry {
         let extracted = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
         let value = !extracted.isEmpty ? extracted : (line.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? text : line.text)
         guard !value.isEmpty else { return nil }
-        let groupBounds = group.dropFirst().reduce(group[0].bounds) { $0.union($1.bounds) }
-        return ScreenWord(text: value, context: text, bounds: groupBounds, kind: .sentence)
+        let relevantLines = group.filter { line in
+            let lineTrimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !lineTrimmed.isEmpty else { return false }
+            return value.contains(lineTrimmed) || lineTrimmed.contains(value)
+        }
+        let sentenceBounds: CGRect
+        if let first = relevantLines.first {
+            sentenceBounds = relevantLines.dropFirst().reduce(first.bounds) { $0.union($1.bounds) }
+        } else {
+            sentenceBounds = line.bounds
+        }
+        return ScreenWord(text: value, context: text, bounds: sentenceBounds, kind: .sentence)
     }
     static func paragraph(at point: CGPoint, lines: [ScreenWord]) -> ScreenWord? {
         guard !lines.isEmpty else { return nil }

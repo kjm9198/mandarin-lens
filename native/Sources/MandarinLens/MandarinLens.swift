@@ -204,11 +204,12 @@ extension Entry {
             highlight = p
         }
         highlight?.setFrame(bounds.insetBy(dx: -4, dy: -4), display: true); highlight?.orderFrontRegardless()
-        highlightTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+        highlightTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.clearHighlight() }
         }
     }
     func acceptScreenWord(_ word: ScreenWord, showResult: Bool = true) {
+        clearHighlight()
         invalidateTranslation()
         input = word.text; capturedContext = word.context; captureKind = word.kind
         popupAnchor = NSEvent.mouseLocation
@@ -434,29 +435,43 @@ extension Entry {
     ]
     func lookupFallbackTranslation(text: String, source: String?, target: String) -> String? {
         let clean = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: .punctuationCharacters)
-        if (source == "pl" || TranslationSource.isPolish(text)) && target == "en" {
+        if target == "en" {
             if let en = Self.polishToEnglishDictionary[clean] { return en }
         }
-        if (source == "pl" || TranslationSource.isPolish(text)) && target.hasPrefix("zh") {
-            if let zh = Self.polishToChineseDictionary[clean] { return zh }
-            if let en = Self.polishToEnglishDictionary[clean]?.lowercased().split(separator: "/").first?.trimmingCharacters(in: .whitespaces),
-               let zh = Self.englishToChineseDictionary[en] { return zh }
-        }
-        if (source == "en" || source == "auto" || source == nil) && target == "pl" {
+        if target == "pl" {
             if let pl = Self.englishToPolishDictionary[clean] { return pl }
         }
-        if (source == "en" || source == "auto" || source == nil) && target.hasPrefix("zh") {
+        if target.hasPrefix("zh") {
+            if let zh = Self.polishToChineseDictionary[clean] { return zh }
             if let zh = Self.englishToChineseDictionary[clean] { return zh }
+            if let en = Self.polishToEnglishDictionary[clean]?.lowercased().split(separator: "/").first?.trimmingCharacters(in: .whitespaces),
+               let zh = Self.englishToChineseDictionary[en] { return zh }
         }
         return nil
     }
     func translateWeb(text: String, source: String, target: String) async -> String? {
         let cleanTarget = target.hasPrefix("zh") ? (target == "zh-Hant" ? "zh-TW" : "zh-CN") : target
-        let cleanSource = source.hasPrefix("zh") ? "zh" : (source == "auto" ? "auto" : source)
+        let cleanSource = source.hasPrefix("zh") ? "zh" : (source == "auto" || source == "und" ? "auto" : source)
         guard let encoded = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
 
-        // Tier 1: MyMemory API (high speed, accurate, supports Polish/English/Chinese without 429 rate limits)
-        let mmSource = cleanSource == "auto" ? (TranslationSource.isPolish(text) ? "pl" : "en") : cleanSource
+        // Tier 1: Google GTX Web (ultra-fast ~50ms, highly reliable for words & sentences across Polish, English, Chinese)
+        let gtxSource = (cleanSource == "und" || cleanSource.isEmpty) ? "auto" : cleanSource
+        if let gtxUrl = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=\(gtxSource)&tl=\(cleanTarget)&dt=t&q=\(encoded)") {
+            var gtxReq = URLRequest(url: gtxUrl)
+            gtxReq.timeoutInterval = 3.5
+            gtxReq.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+            if let (data, response) = try? await URLSession.shared.data(for: gtxReq),
+               let http = response as? HTTPURLResponse, http.statusCode == 200,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [Any],
+               let sentences = json.first as? [[Any]] {
+                let translated = sentences.compactMap { $0.first as? String }.joined()
+                let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !clean.isEmpty && clean.lowercased() != text.lowercased() { return clean }
+            }
+        }
+
+        // Tier 2: MyMemory API Fallback
+        let mmSource = cleanSource == "auto" || cleanSource == "und" ? (TranslationSource.isPolish(text) ? "pl" : "en") : cleanSource
         let mmTarget = cleanTarget == "zh-CN" || cleanTarget == "zh-TW" ? "zh" : cleanTarget
         if let mmUrl = URL(string: "https://api.mymemory.translated.net/get?q=\(encoded)&langpair=\(mmSource)|\(mmTarget)") {
             var mmReq = URLRequest(url: mmUrl)
@@ -474,21 +489,6 @@ extension Entry {
             }
         }
 
-        // Tier 2: Google GTX Web Fallback
-        if let gtxUrl = URL(string: "https://translate.googleapis.com/translate_a/single?client=gtx&sl=\(cleanSource)&tl=\(cleanTarget)&dt=t&q=\(encoded)") {
-            var gtxReq = URLRequest(url: gtxUrl)
-            gtxReq.timeoutInterval = 3.5
-            gtxReq.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
-            if let (data, response) = try? await URLSession.shared.data(for: gtxReq),
-               let http = response as? HTTPURLResponse, http.statusCode == 200,
-               let json = try? JSONSerialization.jsonObject(with: data) as? [Any],
-               let sentences = json.first as? [[Any]] {
-                let translated = sentences.compactMap { $0.first as? String }.joined()
-                let clean = translated.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !clean.isEmpty { return clean }
-            }
-        }
-
         return nil
     }
     func translate() {
@@ -496,11 +496,16 @@ extension Entry {
         guard !text.isEmpty else { return }
         if let request = translationRequest, request.text == text, request.target == target, output == "Translating…" { return }
         translationTask?.cancel(); configuration = nil; areaJobs = []
+        let clean = text.lowercased().trimmingCharacters(in: .punctuationCharacters)
         var detected = TranslationSource.language(text: text,context: capturedContext,preference: sourceChoice)
-        // If detected matches target (e.g. target is English), but the word is Polish (like "strajk"), correct detected to Polish
-        if (detected == target || detected == "en") && target == "en" && TranslationSource.isPolish(text) {
+
+        // Robust language classification for Polish & English:
+        if Self.polishToEnglishDictionary[clean] != nil || Self.polishToChineseDictionary[clean] != nil || TranslationSource.isPolish(text) {
             detected = "pl"
+        } else if Self.englishToPolishDictionary[clean] != nil || Self.englishToChineseDictionary[clean] != nil {
+            if !detected.hasPrefix("zh") && detected != "vi" { detected = "en" }
         }
+
         let request = TranslationRequest(text: text, target: target, kind: captureKind, context: capturedContext,sourceLanguage: detected,sourcePreference: sourceChoice,quality: translationQuality)
         translationRequest = request; translatedRequest = nil; output = "Translating…"
 
@@ -537,13 +542,11 @@ extension Entry {
             secondaryOutput = ""
         }
 
+        // Never reuse an identical source=translation cached failure unless it was intentionally same-language
         if let cached = history.first(where: {
             $0.source == text && $0.kind == captureKind && $0.language == target &&
-            $0.sourceLanguage == request.sourceLanguage &&
-            ($0.sourcePreference ?? "auto") == request.sourcePreference &&
-            ($0.quality ?? "natural") == request.quality &&
             $0.error == nil && !$0.translation.isEmpty &&
-            ($0.translation.lowercased() != $0.source.lowercased() || $0.language == $0.sourceLanguage)
+            $0.translation.lowercased() != $0.source.lowercased()
         }) {
             completeTranslation(cached.translation, request: request); return
         }
@@ -573,11 +576,25 @@ extension Entry {
             let transform = StringTransform(target == "zh-Hant" ? "Simplified-Traditional" : "Traditional-Simplified")
             completeTranslation(text.applyingTransform(transform, reverse: false) ?? text, request: request); return
         }
-        if detected == target { completeTranslation(text, request: request); return }
+        if detected == target && (detected != "en" || !TranslationSource.isPolish(text)) { completeTranslation(text, request: request); return }
         configurationSeed.source = source; configurationSeed.target = Locale.Language(identifier: target)
         if #available(macOS 26.4,*) { configurationSeed.preferredStrategy = translationQuality == "fast" ? .lowLatency : .highFidelity }
         configurationSeed.invalidate()
         configuration = configurationSeed
+    }
+    func retrySecondaryTranslation() {
+        guard let secReq = secondaryRequest else { return }
+        secondaryOutput = "Translating…"
+        Task { [weak self] in
+            guard let self else { return }
+            if let secDirect = self.lookupFallbackTranslation(text: secReq.text, source: secReq.sourceLanguage, target: secReq.target) {
+                self.completeSecondaryTranslation(secDirect, request: secReq)
+            } else if let secWeb = await self.translateWeb(text: secReq.text, source: secReq.sourceLanguage ?? "auto", target: secReq.target) {
+                self.completeSecondaryTranslation(secWeb, request: secReq)
+            } else {
+                self.secondaryOutput = "Translation unavailable"
+            }
+        }
     }
     func performTranslation(_ session: TranslationSession, request: TranslationRequest) async {
         guard translationRequest == request else { return }
@@ -585,7 +602,17 @@ extension Entry {
             try Task.checkCancellation()
             let result = try await session.translate(request.text)
             try Task.checkCancellation()
-            completeTranslation(result.targetText, request: request)
+            let cleanResult = result.targetText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if cleanResult.lowercased() == request.text.lowercased() && request.target != request.sourceLanguage {
+                if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {
+                    completeTranslation(fallback, request: request)
+                    return
+                } else if let webResult = await translateWeb(text: request.text, source: request.sourceLanguage ?? "auto", target: request.target) {
+                    completeTranslation(webResult, request: request)
+                    return
+                }
+            }
+            completeTranslation(cleanResult, request: request)
         } catch {
             guard translationRequest == request, !(error is CancellationError), !Task.isCancelled else { return }
             if let fallback = lookupFallbackTranslation(text: request.text, source: request.sourceLanguage, target: request.target) {

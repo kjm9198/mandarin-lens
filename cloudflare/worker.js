@@ -5,26 +5,31 @@ export default {
     // API: Version Check Endpoint for in-app updates
     if (url.pathname === "/api/version" || url.pathname === "/api/latest.json" || url.pathname === "/api/update") {
       const payload = {
-        latestVersion: "4.3.2",
+        latestVersion: "4.3.3",
         releaseDate: "2026-11-03",
-        changelog: "Fixed screen OCR text selection, resolved drag jitter vs click detection, added automatic Vision recognition recovery, and updated release packages.",
+        changelog: "Fixed Polish-to-English translation, dual-language Polish secondary translation, structured card separation in Notepad, clear Apple update status, removed lingering selection bars, and tightened sentence bounds.",
         macos: {
-          version: "4.3.2",
-          filename: "KamihiLens-4.3.2-macOS-arm64.dmg",
+          version: "4.3.3",
+          filename: "KamihiLens-4.3.3-macOS-arm64.dmg",
           url: `${url.origin}/download/macos/latest`,
-          directUrl: `${url.origin}/downloads/KamihiLens-4.3.2-macOS-arm64.dmg`,
-          sha256: "26d8fc0b93e4f0c2b508c0a94ac19901dc77165aec57f771f9811ea8c4094a9b",
+          directUrl: `${url.origin}/downloads/KamihiLens-4.3.3-macOS-arm64.dmg`,
+          sha256: "90ac28a7992abe0bdad2561c4050ec6a50d9ef966ed4cce7ff5e1a5cc30fbcb7",
           minOs: "macOS 15.0"
         },
         windows: {
-          version: "4.3.2",
-          filename: "KamihiLens-4.3.2-Windows-x64.zip",
+          version: "4.3.3",
+          filename: "KamihiLens-4.3.3-Windows-x64.zip",
           url: `${url.origin}/download/windows/latest`,
-          directUrl: `${url.origin}/downloads/KamihiLens-4.3.2-Windows-x64.zip`,
-          sha256: "d8dc847cfe912b3d6752fc950d0282a6cad90cacfe77e2ff83d78993c40db5cb",
+          directUrl: `${url.origin}/downloads/KamihiLens-4.3.3-Windows-x64.zip`,
+          sha256: "855a79539dffcb44b3a9888c7158965ef8e325d69773d695707135fb7575eb77",
           minOs: "Windows 10 / 11"
         },
         earlierVersions: [
+          {
+            version: "4.3.2",
+            macosUrl: `${url.origin}/downloads/KamihiLens-4.3.2-macOS-arm64.dmg`,
+            sha256: "26d8fc0b93e4f0c2b508c0a94ac19901dc77165aec57f771f9811ea8c4094a9b"
+          },
           {
             version: "4.3.1",
             macosUrl: `${url.origin}/downloads/KamihiLens-4.3.1-macOS-arm64.dmg`,
@@ -64,12 +69,12 @@ export default {
 
     // Direct download shortcut: latest macOS DMG
     if (url.pathname === "/download/macos/latest" || url.pathname === "/download/macos") {
-      return Response.redirect(`${url.origin}/downloads/KamihiLens-4.3.2-macOS-arm64.dmg`, 302);
+      return Response.redirect(`${url.origin}/downloads/KamihiLens-4.3.3-macOS-arm64.dmg`, 302);
     }
 
     // Direct download shortcut: latest Windows ZIP
     if (url.pathname === "/download/windows/latest" || url.pathname === "/download/windows") {
-      return Response.redirect(`${url.origin}/downloads/KamihiLens-4.3.2-Windows-x64.zip`, 302);
+      return Response.redirect(`${url.origin}/downloads/KamihiLens-4.3.3-Windows-x64.zip`, 302);
     }
 
     // Static Assets serving (Website HTML, DMG/ZIP downloads, icons)

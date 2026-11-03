@@ -520,14 +520,19 @@ private struct NoteMarkdown: View {
                     Divider().overlay(Color.lensLine.opacity(0.4)).padding(.vertical, 6)
                 } else if line.hasPrefix("## ") {
                     let sectionTitle = String(line.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                    HStack(spacing: 6) {
-                        Image(systemName: iconForSection(sectionTitle))
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.lensAccent)
-                        Text(sectionTitle)
-                            .font(.system(size: 17, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 6) {
+                        if index > 0 {
+                            Divider().overlay(Color.lensLine.opacity(0.3)).padding(.bottom, 4)
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: iconForSection(sectionTitle))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color.lensAccent)
+                            Text(sectionTitle)
+                                .font(.system(size: 16, weight: .semibold))
+                        }
                     }
-                    .padding(.top, 12)
+                    .padding(.top, index > 0 ? 10 : 2)
                     .textSelection(.enabled)
                 } else if line.hasPrefix("# ") {
                     Text(String(line.dropFirst(2))).font(.system(size: 24,weight: .semibold)).padding(.top,10).textSelection(.enabled)
@@ -577,23 +582,34 @@ extension Lens {
         guard canSaveWord, let request = translatedRequest else { return }
         if notedTranslationID == request.id { notepad.flush(); return }
         let title = String(input.split(separator: "\n").first.map(String.init)?.prefix(60) ?? "Translation")
-        var body = "## Original\n\(input)\n\n## Translation\n\(output)"
+        var sections: [String] = []
+        sections.append("## Original\n\(input)")
+
+        var trans = "## Translation (\(languageName(target)))\n\(output)"
         if output.range(of: "\\p{Han}", options: .regularExpression) != nil {
-            body += "\n\n" + (output.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
+            trans += "\n\n" + (output.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
         }
+        sections.append(trans)
+
         if secondaryTarget != "none" && secondaryTarget != target && !secondaryOutput.isEmpty && secondaryOutput != "Translating…" {
-            body += "\n\n---\n## Second Translation (\(languageName(secondaryTarget)))\n\(secondaryOutput)"
+            var sec = "## Second Translation (\(languageName(secondaryTarget)))\n\(secondaryOutput)"
             if secondaryOutput.range(of: "\\p{Han}", options: .regularExpression) != nil {
-                body += "\n\n" + (secondaryOutput.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
+                sec += "\n\n" + (secondaryOutput.applyingTransform(.mandarinToLatin, reverse: false) ?? "")
             }
+            sections.append(sec)
         }
+
         if let example = usageExample {
-            body += "\n\n---\n## Example sentence\n\(example.chinese)\n\n\(example.pinyin)\n\n\(example.english)"
+            sections.append("## Example sentence\n\(example.chinese)\n\n\(example.pinyin)\n\n\(example.english)")
         }
+
         if !capturedContext.isEmpty && capturedContext != input {
-            body += "\n\n---\n## Source context\n\(capturedContext)"
+            sections.append("## Source context\n\(capturedContext)")
         }
-        body += "\n\n---\n## My Notes\n- "
+
+        sections.append("## My Notes\n- ")
+
+        let body = sections.joined(separator: "\n\n---\n\n")
         if notepad.create(title: title, body: body) != nil { notedTranslationID = request.id }
     }
     func translateNote(_ note: LensNote) {
